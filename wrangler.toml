@@ -1,5 +1,11 @@
 name = "nssa-cron"
+main = "cron/worker.js"
 compatibility_date = "2023-08-01"
 
-[site]
-bucket = "./cron"
+[[rules]]
+type = "ESModule"
+globs = ["**/*.js"]
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html", "**/*.css"]
