@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
     <title>在线Webhook定时任务工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
@@ -11,27 +12,68 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/utc.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/timezone.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/locale/zh-cn.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
+    <!-- 登录/注册界面 -->
+    <div id="auth-container" class="fixed inset-0 bg-white dark:bg-black bg-opacity-100 dark:bg-opacity-100 flex items-center justify-center p-4 z-50">
+        <div class="apple-card rounded-xl shadow-lg w-full max-w-md">
+            <div class="p-8 space-y-6">
+                <div class="text-center">
+                    <h2 class="text-2xl font-semibold">欢迎使用定时任务工具</h2>
+                    <p class="text-color-secondary mt-2">请使用管理员提供的账号登录</p>
+                </div>
+                
+                <div id="auth-error" class="hidden text-red-500 text-sm text-center"></div>
+                
+                <!-- 登录表单 -->
+                <div id="login-form" class="space-y-4">
+                    <div>
+                        <label for="login-email" class="block text-base font-medium text-color-secondary mb-2">邮箱</label>
+                        <input type="email" id="login-email" class="form-input w-full rounded-lg text-base p-2" placeholder="your@email.com" required>
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-base font-medium text-color-secondary mb-2">密码</label>
+                        <input type="password" id="login-password" class="form-input w-full rounded-lg text-base p-2" placeholder="密码" required>
+                    </div>
+                    <div class="pt-2">
+                        <button id="login-btn" class="btn btn-primary w-full">登录</button>
+                    </div>
+                    <!-- 移除注册按钮 -->
+                </div>
+                
+                <!-- 注册表单已移除 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 主应用界面 -->
 
     <div class="max-w-4xl mx-auto">
         <header class="flex justify-between items-center mb-8">
+            <div id="user-info" class="absolute top-4 right-4 text-sm">
+                <span id="user-email" class="mr-2"></span>
+                <button id="logout-btn" class="text-blue-500 hover:underline">退出登录</button>
+            </div>
             <div>
                 <h1 class="text-3xl font-bold">定时任务</h1>
                 <p class="text-lg text-color-secondary mt-1">所有时间均为北京时间</p>
             </div>
             <div class="flex items-center space-x-2">
-                <div id="theme-switcher" class="flex items-center space-x-1 bg-gray-200 dark:bg-gray-800 p-1 rounded-full">
-                    <button id="theme-light-btn" class="p-1.5 rounded-full text-gray-700 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 101.414 1.414l.707-.707a1 1 0 10-1.414-1.414l-.707.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg></button>
-                    <button id="theme-dark-btn" class="p-1.5 rounded-full text-gray-700 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg></button>
-                    <button id="theme-system-btn" class="p-1.5 rounded-full text-gray-700 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3.5a.5.5 0 01.5.5v2.5a.5.5 0 01-1 0V4a.5.5 0 01.5-.5zM10 10a.5.5 0 01.5.5v2.5a.5.5 0 01-1 0V10.5a.5.5 0 01.5-.5zM5.707 5.707a.5.5 0 01.707 0l1.768 1.768a.5.5 0 11-.707.707L5.707 6.414a.5.5 0 010-.707zM12.525 11.818a.5.5 0 01.707 0l1.768 1.768a.5.5 0 11-.707.707l-1.768-1.768a.5.5 0 010-.707zM5.707 14.293a.5.5 0 010-.707l1.768-1.768a.5.5 0 11.707.707L6.414 14.293a.5.5 0 01-.707 0zM11.818 7.475a.5.5 0 010-.707l1.768-1.768a.5.5 0 11.707.707L12.525 7.475a.5.5 0 01-.707 0z"></path></svg></button>
+
+                 <div id="theme-switcher" class="flex items-center space-x-1 bg-gray-200 dark:bg-gray-800 p-1 rounded-full">
+                    <button onclick="setTheme('light')" type="button" id="theme-light-btn" class="p-1.5 rounded-full text-gray-700 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 101.414 1.414l.707-.707a1 1 0 10-1.414-1.414l-.707.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg></button>
+                    <button onclick="setTheme('dark')" type="button" id="theme-dark-btn" class="p-1.5 rounded-full text-gray-700 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg></button>
+                    <button onclick="setTheme('system')" type="button" id="theme-system-btn" class="p-1.5 rounded-full text-gray-700 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3.5a.5.5 0 01.5.5v2.5a.5.5 0 01-1 0V4a.5.5 0 01.5-.5zM10 10a.5.5 0 01.5.5v2.5a.5.5 0 01-1 0V10.5a.5.5 0 01.5-.5zM5.707 5.707a.5.5 0 01.707 0l1.768 1.768a.5.5 0 11-.707.707L5.707 6.414a.5.5 0 010-.707zM12.525 11.818a.5.5 0 01.707 0l1.768 1.768a.5.5 0 11-.707.707l-1.768-1.768a.5.5 0 010-.707zM5.707 14.293a.5.5 0 010-.707l1.768-1.768a.5.5 0 11.707.707L6.414 14.293a.5.5 0 01-.707 0zM11.818 7.475a.5.5 0 010-.707l1.768-1.768a.5.5 0 11.707.707L12.525 7.475a.5.5 0 01-.707 0z"></path></svg></button>
                 </div>
                 <div class="flex items-center space-x-2">
                     <button id="export-tasks-btn" class="btn btn-secondary text-sm">导出</button>
                     <input type="file" id="import-tasks-input" class="hidden" accept=".json">
                     <button id="import-tasks-btn" class="btn btn-secondary text-sm">导入</button>
-                    <button id="create-task-btn" class="btn btn-primary">创建任务</button>
+                <button id="create-task-btn" class="btn btn-primary">创建任务</button>
                 </div>
             </div>
         </header>
@@ -78,9 +120,7 @@
         const cancelBtn = document.getElementById('cancel-btn');
         const formFieldsContainer = document.getElementById('form-fields');
         
-        const lightBtn = document.getElementById('theme-light-btn');
-        const darkBtn = document.getElementById('theme-dark-btn');
-        const systemBtn = document.getElementById('theme-system-btn');
+        // 移除对旧按钮的引用
 
         // --- 共享表单模板 ---
         formFieldsContainer.innerHTML = `
@@ -136,51 +176,196 @@
             </div>
         `;
 
+        // --- Firebase 初始化 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDNWjNYOVpQGkVdXXXXXXXXXXXXXXXXXXX", // 需要替换为实际的API密钥
+            authDomain: "nssa-cron.firebaseapp.com", // 需要替换为实际的域名
+            projectId: "nssa-cron", // 需要替换为实际的项目ID
+            storageBucket: "nssa-cron.appspot.com",
+            messagingSenderId: "XXXXXXXXXXXX",
+            appId: "1:XXXXXXXXXXXX:web:XXXXXXXXXXXX"
+        };
+        
+        // 初始化Firebase
+        firebase.initializeApp(firebaseConfig);
+
         // --- 状态与数据 ---
-        let tasks = JSON.parse(localStorage.getItem('webhook_tasks')) || [];
+        let currentUser = null;
+        let tasks = [];
         let taskTimers = new Map();
 
-        // --- 主题切换逻辑 ---
-        const updateTheme = () => {
-            const storedTheme = localStorage.getItem('theme') || 'system';
-            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            const theme = storedTheme === 'system' ? systemTheme : storedTheme;
-
-            // 1. 移除旧的 class
-            document.documentElement.classList.remove('light', 'dark');
-            // 2. 添加新的 class
-            document.documentElement.classList.add(theme);
-
-            // 3. 更新按钮高亮状态
+        // --- 重写的主题切换逻辑 ---
+        function setTheme(theme) {
+            console.log('设置主题为:', theme);
+            localStorage.setItem('theme', theme);
+            
+            const body = document.body;
+            
+            // 直接修改样式，确保立即生效
+            if (theme === 'dark') {
+                // 暗色主题
+                body.style.backgroundColor = '#000000';
+                body.style.color = '#ffffff';
+                applyModalTheme('dark');
+                console.log('应用暗色主题');
+            } else if (theme === 'system') {
+                // 系统主题 - 检测系统偏好
+                const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (isDarkMode) {
+                    body.style.backgroundColor = '#000000';
+                    body.style.color = '#ffffff';
+                    applyModalTheme('dark');
+                } else {
+                    body.style.backgroundColor = '#f5f5f7';
+                    body.style.color = '#1d1d1f';
+                    applyModalTheme('light');
+                }
+                console.log('应用系统主题, 检测到:', isDarkMode ? '暗色' : '亮色');
+            } else {
+                // 亮色主题
+                body.style.backgroundColor = '#f5f5f7';
+                body.style.color = '#1d1d1f';
+                applyModalTheme('light');
+                console.log('应用亮色主题');
+            }
+            
+            // 更新按钮高亮状态
+            updateButtonStates(theme);
+        }
+        
+        function applyModalTheme(mode) {
+            // 应用到任务弹窗
+            const taskModal = document.getElementById('task-modal');
+            const taskModalCard = taskModal.querySelector('.apple-card');
+            
+            // 应用到认证弹窗
+            const authContainer = document.getElementById('auth-container');
+            const authCard = authContainer.querySelector('.apple-card');
+            
+            if (mode === 'dark') {
+                // 暗色主题的弹窗
+                if (taskModal) {
+                    taskModal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                    if (taskModalCard) {
+                        taskModalCard.style.backgroundColor = '#1c1c1e';
+                        taskModalCard.style.color = '#ffffff';
+                        taskModalCard.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        
+                        // 更新表单元素
+                        const inputs = taskModalCard.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => {
+                            input.style.backgroundColor = '#2c2c2e';
+                            input.style.borderColor = '#5a5a5c';
+                            input.style.color = '#ffffff';
+                        });
+                        
+                        // 更新标签
+                        const labels = taskModalCard.querySelectorAll('label');
+                        labels.forEach(label => {
+                            label.style.color = '#8d8d92';
+                        });
+                    }
+                }
+                
+                // 认证弹窗暗色主题
+                if (authContainer) {
+                    authContainer.style.backgroundColor = '#000000';
+                    if (authCard) {
+                        authCard.style.backgroundColor = '#1c1c1e';
+                        authCard.style.color = '#ffffff';
+                        authCard.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        
+                        // 更新表单元素
+                        const inputs = authCard.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => {
+                            input.style.backgroundColor = '#2c2c2e';
+                            input.style.borderColor = '#5a5a5c';
+                            input.style.color = '#ffffff';
+                        });
+                        
+                        // 更新标签
+                        const labels = authCard.querySelectorAll('label');
+                        labels.forEach(label => {
+                            label.style.color = '#8d8d92';
+                        });
+                    }
+                }
+            } else {
+                // 亮色主题的弹窗
+                if (taskModal) {
+                    taskModal.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                    if (taskModalCard) {
+                        taskModalCard.style.backgroundColor = '#ffffff';
+                        taskModalCard.style.color = '#1d1d1f';
+                        taskModalCard.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+                        
+                        // 更新表单元素
+                        const inputs = taskModalCard.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => {
+                            input.style.backgroundColor = '#f2f2f7';
+                            input.style.borderColor = '#8e8e93';
+                            input.style.color = '#1d1d1f';
+                        });
+                        
+                        // 更新标签
+                        const labels = taskModalCard.querySelectorAll('label');
+                        labels.forEach(label => {
+                            label.style.color = '#6e6e73';
+                        });
+                    }
+                }
+                
+                // 认证弹窗亮色主题
+                if (authContainer) {
+                    authContainer.style.backgroundColor = '#f5f5f7';
+                    if (authCard) {
+                        authCard.style.backgroundColor = '#ffffff';
+                        authCard.style.color = '#1d1d1f';
+                        authCard.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+                        
+                        // 更新表单元素
+                        const inputs = authCard.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => {
+                            input.style.backgroundColor = '#f2f2f7';
+                            input.style.borderColor = '#8e8e93';
+                            input.style.color = '#1d1d1f';
+                        });
+                        
+                        // 更新标签
+                        const labels = authCard.querySelectorAll('label');
+                        labels.forEach(label => {
+                            label.style.color = '#6e6e73';
+                        });
+                    }
+                }
+            }
+        }
+        
+        function updateButtonStates(activeTheme) {
+            const lightBtn = document.getElementById('theme-light-btn');
+            const darkBtn = document.getElementById('theme-dark-btn');
+            const systemBtn = document.getElementById('theme-system-btn');
+            
+            // 移除所有活跃状态
             lightBtn.classList.remove('theme-btn-active');
             darkBtn.classList.remove('theme-btn-active');
             systemBtn.classList.remove('theme-btn-active');
 
-            if (storedTheme === 'light') {
+            // 添加活跃状态
+            if (activeTheme === 'light') {
                 lightBtn.classList.add('theme-btn-active');
-            } else if (storedTheme === 'dark') {
+            } else if (activeTheme === 'dark') {
                 darkBtn.classList.add('theme-btn-active');
-            } else {
+            } else if (activeTheme === 'system') {
                 systemBtn.classList.add('theme-btn-active');
             }
-        };
-
-        lightBtn.addEventListener('click', () => {
-            localStorage.setItem('theme', 'light');
-            updateTheme();
-        });
-
-        darkBtn.addEventListener('click', () => {
-            localStorage.setItem('theme', 'dark');
-            updateTheme();
-        });
-
-        systemBtn.addEventListener('click', () => {
-            localStorage.setItem('theme', 'system');
-            updateTheme();
-        });
-
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme);
+        }
+        
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            console.log('初始化主题:', savedTheme);
+            setTheme(savedTheme);
+        }
 
         // --- 表单UI切换 ---
         const scheduleSelector = document.getElementById('schedule-type-selector');
@@ -260,9 +445,16 @@
             taskForm.dataset.mode = mode;
             taskForm.dataset.editingTaskId = taskId;
 
-            // Force light theme for the modal content
-            const modalContent = document.querySelector('#task-modal .apple-card');
-            modalContent.classList.add('light');
+            // 应用当前主题到弹窗
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            if (currentTheme === 'dark') {
+                applyModalTheme('dark');
+            } else if (currentTheme === 'system') {
+                const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                applyModalTheme(isDarkMode ? 'dark' : 'light');
+            } else {
+                applyModalTheme('light');
+            }
 
             if (mode === 'create') {
                 modalTitle.textContent = '创建新任务';
@@ -297,8 +489,6 @@
 
         function closeModal() {
             taskModal.classList.add('hidden');
-            const modalContent = document.querySelector('#task-modal .apple-card');
-            modalContent.classList.remove('light');
         }
         createTaskBtn.addEventListener('click', () => openModal('create'));
         closeModalBtn.addEventListener('click', closeModal);
@@ -385,7 +575,7 @@
                 return null;
             }
         }
-        
+
         function saveAndRender() {
             const limitWarning = checkStorageLimit();
             localStorage.setItem('webhook_tasks', JSON.stringify(tasks));
@@ -555,16 +745,173 @@
         });
         document.getElementById('import-tasks-input').addEventListener('change', importTasks);
 
-        // --- 初始化 ---
-        function initialize() {
-            updateTheme();
+        // --- 认证相关函数 ---
+        function showAuthError(message) {
+            const errorEl = document.getElementById('auth-error');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+        
+        function hideAuthError() {
+            document.getElementById('auth-error').classList.add('hidden');
+        }
+        
+        function showLoginForm() {
+            document.getElementById('login-form').classList.remove('hidden');
+            hideAuthError();
+        }
+        
+        function showAuthContainer() {
+            document.getElementById('auth-container').classList.remove('hidden');
+            applyModalTheme(localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
+        }
+        
+        function hideAuthContainer() {
+            document.getElementById('auth-container').classList.add('hidden');
+        }
+        
+        function updateUserUI() {
+            if (currentUser) {
+                document.getElementById('user-email').textContent = currentUser.email;
+                document.getElementById('user-info').classList.remove('hidden');
+            } else {
+                document.getElementById('user-info').classList.add('hidden');
+            }
+        }
+        
+        async function loginUser(email, password) {
+            try {
+                hideAuthError();
+                const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+                currentUser = userCredential.user;
+                console.log('用户登录成功:', currentUser.email);
+                hideAuthContainer();
+                loadUserTasks();
+                updateUserUI();
+            } catch (error) {
+                console.error('登录失败:', error);
+                showAuthError(getAuthErrorMessage(error.code));
+            }
+        }
+        
+        // 注册功能已移除，由管理员在Firebase控制台创建用户
+        
+        async function logoutUser() {
+            try {
+                // 清除计时器
+                taskTimers.forEach(timerId => clearTimeout(timerId));
+                taskTimers.clear();
+                
+                await firebase.auth().signOut();
+                currentUser = null;
+                tasks = [];
+                renderTasks();
+                showAuthContainer();
+                showLoginForm();
+                updateUserUI();
+            } catch (error) {
+                console.error('登出失败:', error);
+            }
+        }
+        
+        function getAuthErrorMessage(errorCode) {
+            switch (errorCode) {
+                case 'auth/invalid-email':
+                    return '无效的电子邮箱格式';
+                case 'auth/user-disabled':
+                    return '该用户账号已被禁用';
+                case 'auth/user-not-found':
+                    return '用户不存在';
+                case 'auth/wrong-password':
+                    return '密码错误';
+                case 'auth/email-already-in-use':
+                    return '该邮箱已被注册';
+                case 'auth/weak-password':
+                    return '密码强度太弱，至少需要6位字符';
+                default:
+                    return `认证错误: ${errorCode}`;
+            }
+        }
+        
+        // --- 用户数据管理 ---
+        function getUserTaskKey() {
+            return `webhook_tasks_${currentUser.uid}`;
+        }
+        
+        function loadUserTasks() {
+            if (!currentUser) return;
+            
+            // 清除现有计时器
+            taskTimers.forEach(timerId => clearTimeout(timerId));
+            taskTimers.clear();
+            
+            // 加载用户特定的任务
+            const tasksJson = localStorage.getItem(getUserTaskKey());
+            tasks = tasksJson ? JSON.parse(tasksJson) : [];
+            
+            // 初始化任务计时器
             tasks.forEach(task => {
                 if (task.isActive && Date.now() > task.nextRun) {
                     task.nextRun = calculateNextRun(task);
                 }
                 scheduleNext(task);
             });
-            saveAndRender();
+            
+            renderTasks();
+        }
+        
+        function saveAndRender() {
+            if (currentUser) {
+                const limitWarning = checkStorageLimit();
+                localStorage.setItem(getUserTaskKey(), JSON.stringify(tasks));
+                renderTasks();
+            }
+        }
+        
+        // --- 初始化 ---
+        function initialize() {
+            // 初始化主题
+            initializeTheme();
+            console.log('主题初始化完成');
+            
+            // 监听认证状态变化
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    hideAuthContainer();
+                    loadUserTasks();
+                    updateUserUI();
+                } else {
+                    currentUser = null;
+                    tasks = [];
+                    renderTasks();
+                    showAuthContainer();
+                    showLoginForm();
+                    updateUserUI();
+                }
+            });
+            
+            // 绑定认证相关事件
+            document.getElementById('login-btn').addEventListener('click', () => {
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                if (!email || !password) {
+                    showAuthError('请填写邮箱和密码');
+                    return;
+                }
+                loginUser(email, password);
+            });
+            
+            // 注册相关事件监听已移除
+            document.getElementById('logout-btn').addEventListener('click', logoutUser);
+            
+            // 应用当前主题到登录界面
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            if (currentTheme === 'dark' || (currentTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                applyModalTheme('dark');
+            } else {
+                applyModalTheme('light');
+            }
         }
 
         initialize();

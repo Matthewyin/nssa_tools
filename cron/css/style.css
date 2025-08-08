@@ -1,18 +1,13 @@
-:root {
-    --bg-color: #000000;
-    --text-color-primary: #ffffff;
-    --text-color-secondary: #8d8d92;
-    --card-bg: #1c1c1e;
-    --card-border: rgba(255, 255, 255, 0.1);
-    --input-bg: #2c2c2e;
-    --input-border: #5a5a5c;
-    --input-text: #ffffff;
-    --focus-ring-color: #0a84ff;
-    --btn-primary-bg: #0a84ff;
-    --btn-secondary-bg: #3a3a3c;
+/* 默认亮色主题 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f5f5f7;
+    color: #1d1d1f;
+    transition: background-color 0.3s, color 0.3s;
 }
 
-.light {
+/* 亮色主题变量 */
+body {
     --bg-color: #f5f5f7;
     --text-color-primary: #1d1d1f;
     --text-color-secondary: #6e6e73;
@@ -21,13 +16,41 @@
     --input-bg: #f2f2f7;
     --input-border: #8e8e93;
     --input-text: #1d1d1f;
+    --focus-ring-color: #0a84ff;
+    --btn-primary-bg: #0a84ff;
+    --btn-secondary-bg: #e5e5ea;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color-primary);
-    transition: background-color 0.3s, color 0.3s;
+/* 暗色主题 */
+body.dark-theme {
+    background-color: #000000;
+    color: #ffffff;
+    --bg-color: #000000;
+    --text-color-primary: #ffffff;
+    --text-color-secondary: #8d8d92;
+    --card-bg: #1c1c1e;
+    --card-border: rgba(255, 255, 255, 0.1);
+    --input-bg: #2c2c2e;
+    --input-border: #5a5a5c;
+    --input-text: #ffffff;
+    --btn-secondary-bg: #3a3a3c;
+}
+
+/* 系统主题 - 根据浏览器设置自动切换 */
+@media (prefers-color-scheme: dark) {
+    body.system-theme {
+        background-color: #000000;
+        color: #ffffff;
+        --bg-color: #000000;
+        --text-color-primary: #ffffff;
+        --text-color-secondary: #8d8d92;
+        --card-bg: #1c1c1e;
+        --card-border: rgba(255, 255, 255, 0.1);
+        --input-bg: #2c2c2e;
+        --input-border: #5a5a5c;
+        --input-text: #ffffff;
+        --btn-secondary-bg: #3a3a3c;
+    }
 }
 .apple-card {
     background-color: var(--card-bg);
@@ -93,7 +116,7 @@ body {
 }
 
 .theme-btn-active {
-    background-color: var(--btn-primary-bg) !important;
+    background-color: #0a84ff !important;
     color: white !important;
-    border-radius: 9999px; /* 确保是圆形 */
+    border-radius: 9999px;
 }
