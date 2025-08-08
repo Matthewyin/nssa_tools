@@ -1,0 +1,92 @@
+:root {
+    --bg-color: #000000;
+    --text-color-primary: #ffffff;
+    --text-color-secondary: #8d8d92;
+    --card-bg: #1c1c1e;
+    --card-border: rgba(255, 255, 255, 0.1);
+    --input-bg: #2c2c2e;
+    --input-border: #3a3a3c;
+    --input-text: #ffffff;
+    --focus-ring-color: #0a84ff;
+    --btn-primary-bg: #0a84ff;
+    --btn-secondary-bg: #3a3a3c;
+}
+
+html.light {
+    --bg-color: #f5f5f7;
+    --text-color-primary: #1d1d1f;
+    --text-color-secondary: #6e6e73;
+    --card-bg: #ffffff;
+    --card-border: rgba(0, 0, 0, 0.1);
+    --input-bg: #ebebec;
+    --input-border: #d1d1d6;
+    --input-text: #1d1d1f;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color-primary);
+    transition: background-color 0.3s, color 0.3s;
+}
+.apple-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    transition: background-color 0.3s, border-color 0.3s;
+}
+.form-input, .form-select, .form-checkbox {
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+    transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+}
+.form-input:focus, .form-select:focus, .form-checkbox:focus {
+    --tw-ring-color: var(--focus-ring-color);
+    border-color: var(--focus-ring-color);
+    box-shadow: 0 0 0 2px var(--focus-ring-color);
+}
+.form-checkbox {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 0.375rem;
+    display: inline-block;
+    vertical-align: middle;
+    position: relative;
+}
+.form-checkbox:checked {
+    background-color: var(--btn-primary-bg);
+    border-color: var(--btn-primary-bg);
+}
+.form-checkbox:checked::after {
+    content: '✔';
+    color: white;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8rem;
+}
+.btn {
+    border-radius: 0.5rem;
+    font-weight: 600;
+    padding: 0.625rem 1.25rem;
+    transition: opacity 0.2s;
+}
+.btn:hover {
+    opacity: 0.85;
+}
+.btn-primary { background-color: var(--btn-primary-bg); color: white; }
+.btn-secondary { background-color: var(--btn-secondary-bg); color: var(--text-color-primary); }
+.action-btn {
+    background-color: transparent;
+    color: var(--text-color-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+}
+.action-btn:hover {
+    background-color: var(--input-bg);
+    color: var(--text-color-primary);
+}

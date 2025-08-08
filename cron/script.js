@@ -1,0 +1,352 @@
+// 初始化 dayjs
+dayjs.extend(window.dayjs_plugin_utc);
+dayjs.extend(window.dayjs_plugin_timezone);
+dayjs.extend(window.dayjs_plugin_relativeTime);
+dayjs.extend(window.dayjs_plugin_weekday);
+dayjs.locale('zh-cn');
+dayjs.tz.setDefault("Asia/Shanghai");
+
+// --- DOM 元素获取 ---
+const taskListContainer = document.getElementById('task-list');
+const themeToggleButton = document.getElementById('theme-toggle');
+const createTaskBtn = document.getElementById('create-task-btn');
+const taskModal = document.getElementById('task-modal');
+const taskForm = document.getElementById('task-form');
+const modalTitle = document.getElementById('modal-title');
+const submitBtn = document.getElementById('submit-btn');
+const closeModalBtn = document.getElementById('close-modal-btn');
+const cancelBtn = document.getElementById('cancel-btn');
+const formFieldsContainer = document.getElementById('form-fields');
+const darkIcon = document.getElementById('theme-toggle-dark-icon');
+const lightIcon = document.getElementById('theme-toggle-light-icon');
+
+// --- 共享表单模板 ---
+formFieldsContainer.innerHTML = `
+    <div>
+        <label for="task-name" class="block text-base font-medium text-color-secondary mb-2">任务名称</label>
+        <input type="text" id="task-name" class="form-input w-full rounded-lg text-base p-2" placeholder="例如：每日数据同步" required>
+    </div>
+    <div>
+        <label for="webhook-url" class="block text-base font-medium text-color-secondary mb-2">Webhook URL</label>
+        <input type="url" id="webhook-url" class="form-input w-full rounded-lg text-base p-2" placeholder="https://qyapi.weixin.qq.com/..." required>
+    </div>
+    <div>
+        <label for="request-method" class="block text-base font-medium text-color-secondary mb-2">请求方法</label>
+        <select id="request-method" class="form-select w-full rounded-lg text-base p-2">
+            <option>POST</option><option>GET</option><option>PUT</option><option>DELETE</option>
+        </select>
+    </div>
+    <div>
+        <label for="request-body" class="block text-base font-medium text-color-secondary mb-2">请求体 (Request Body)</label>
+        <textarea id="request-body" rows="3" class="form-input w-full rounded-lg text-base p-2" placeholder='例如：{"msgtype": "text", "text": {"content": "你好"}}'></textarea>
+    </div>
+    <div>
+        <label class="block text-base font-medium text-color-secondary mb-2">定时规则</label>
+        <select id="schedule-type-selector" class="form-select w-full rounded-lg text-base p-2">
+            <option value="simple">简单间隔</option>
+            <option value="advanced">高级定时 (类Cron)</option>
+        </select>
+    </div>
+    <div id="simple-schedule-container">
+        <label for="schedule-interval" class="block text-base font-medium text-color-secondary mb-2">执行频率</label>
+        <input type="number" id="schedule-interval" class="form-input w-24 rounded-lg inline text-base p-2" value="5" min="1">
+        <select id="schedule-unit" class="form-select w-32 rounded-lg inline text-base p-2">
+            <option value="minutes">分钟</option><option value="hours">小时</option><option value="days">天</option>
+        </select>
+    </div>
+    <div id="advanced-schedule-container" class="hidden space-y-3">
+        <div>
+            <label class="block text-base font-medium text-color-secondary mb-2">选择日期 (每周)</label>
+            <div class="grid grid-cols-4 gap-4 mt-2">
+                <label class="flex items-center space-x-2"><input type="checkbox" class="form-checkbox" name="weekday" value="1"><span>一</span></label>
+                <label class="flex items-center space-x-2"><input type="checkbox" class="form-checkbox" name="weekday" value="2"><span>二</span></label>
+                <label class="flex items-center space-x-2"><input type="checkbox" class="form-checkbox" name="weekday" value="3"><span>三</span></label>
+                <label class="flex items-center space-x-2"><input type="checkbox" class="form-checkbox" name="weekday" value="4"><span>四</span></label>
+                <label class="flex items-center space-x-2"><input type="checkbox" class="form-checkbox" name="weekday" value="5"><span>五</span></label>
+                <label class="flex items-center space-x-2"><input type="checkbox" class="form-checkbox" name="weekday" value="6"><span>六</span></label>
+                <label class="flex items-center space-x-2"><input type="checkbox" class="form-checkbox" name="weekday" value="0"><span>日</span></label>
+            </div>
+        </div>
+        <div>
+            <label for="schedule-time" class="block text-base font-medium text-color-secondary mb-2">执行时间</label>
+            <input type="time" id="schedule-time" class="form-input w-full rounded-lg text-base p-2" value="09:55">
+        </div>
+    </div>
+`;
+
+// --- 状态与数据 ---
+let tasks = JSON.parse(localStorage.getItem('webhook_tasks')) || [];
+let taskTimers = new Map();
+
+// --- 主题切换逻辑 ---
+const applyTheme = (theme) => {
+    document.documentElement.classList.toggle('light', theme === 'light');
+    darkIcon.classList.toggle('hidden', theme === 'light');
+    lightIcon.classList.toggle('hidden', theme === 'dark');
+};
+themeToggleButton.addEventListener('click', () => {
+    const newTheme = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+    localStorage.setItem('theme', newTheme);
+    applyTheme(newTheme);
+});
+
+// --- 表单UI切换 ---
+const scheduleSelector = document.getElementById('schedule-type-selector');
+const simpleContainer = document.getElementById('simple-schedule-container');
+const advancedContainer = document.getElementById('advanced-schedule-container');
+scheduleSelector.addEventListener('change', (e) => {
+    simpleContainer.classList.toggle('hidden', e.target.value === 'advanced');
+    advancedContainer.classList.toggle('hidden', e.target.value === 'simple');
+});
+
+// --- 核心任务逻辑 ---
+function calculateNextRun(task) {
+    let now = dayjs();
+    if (task.scheduleType === 'advanced') {
+        const [hour, minute] = task.time.split(':').map(Number);
+        const sortedDays = task.days.map(Number).sort();
+        let nextRun = null;
+        for (let i = 0; i < 7; i++) {
+            let potentialRun = now.add(i, 'day').hour(hour).minute(minute).second(0).millisecond(0);
+            if (sortedDays.includes(potentialRun.day()) && potentialRun.isAfter(now)) {
+                nextRun = potentialRun;
+                break;
+            }
+        }
+        if (!nextRun) {
+            const nextWeekDay = sortedDays[0];
+            nextRun = now.add(1, 'week').day(nextWeekDay).hour(hour).minute(minute).second(0).millisecond(0);
+        }
+        return nextRun.valueOf();
+    } else {
+        return now.add(task.interval, task.unit).valueOf();
+    }
+}
+
+async function executeTask(task) {
+    console.log(`[${dayjs().format('YYYY-MM-DD HH:mm:ss')}] 执行任务: ${task.name}`);
+    try {
+        await fetch(task.url, {
+            method: task.method,
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: task.method !== 'GET' ? task.body : null,
+        });
+        updateTaskStatus(task.id, '请求已发送 (无法验证响应)', '#f59e0b'); // yellow-500
+    } catch (error) {
+        console.error(`任务 ${task.name} 执行失败:`, error);
+        updateTaskStatus(task.id, `网络错误: ${error.message}`, '#ef4444'); // red-500
+    }
+}
+
+function scheduleNext(task) {
+    if (!task.isActive) return;
+    if (taskTimers.has(task.id)) clearTimeout(taskTimers.get(task.id));
+    const timeToNextRun = Math.max(0, task.nextRun - Date.now());
+    const timerId = setTimeout(async () => {
+        await executeTask(task);
+        const currentTask = tasks.find(t => t.id === task.id);
+        if (currentTask && currentTask.isActive) {
+            currentTask.nextRun = calculateNextRun(currentTask);
+            saveAndRender();
+            scheduleNext(currentTask);
+        }
+    }, timeToNextRun);
+    taskTimers.set(task.id, timerId);
+}
+
+// --- 弹窗 (Modal) 逻辑 ---
+function openModal(mode, taskId = null) {
+    taskForm.dataset.mode = mode;
+    taskForm.dataset.editingTaskId = taskId;
+
+    if (mode === 'create') {
+        modalTitle.textContent = '创建新任务';
+        submitBtn.textContent = '创建任务';
+        taskForm.reset();
+        scheduleSelector.dispatchEvent(new Event('change'));
+    } else {
+        modalTitle.textContent = '编辑任务';
+        submitBtn.textContent = '保存更改';
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        document.getElementById('task-name').value = task.name;
+        document.getElementById('webhook-url').value = task.url;
+        document.getElementById('request-method').value = task.method;
+        document.getElementById('request-body').value = task.body;
+        scheduleSelector.value = task.scheduleType;
+        scheduleSelector.dispatchEvent(new Event('change'));
+
+        if (task.scheduleType === 'advanced') {
+            document.querySelectorAll('input[name="weekday"]').forEach(cb => {
+                cb.checked = task.days.includes(cb.value);
+            });
+            document.getElementById('schedule-time').value = task.time;
+        } else {
+            document.getElementById('schedule-interval').value = task.interval;
+            document.getElementById('schedule-unit').value = task.unit;
+        }
+    }
+    taskModal.classList.remove('hidden');
+}
+
+function closeModal() {
+    taskModal.classList.add('hidden');
+}
+createTaskBtn.addEventListener('click', () => openModal('create'));
+closeModalBtn.addEventListener('click', closeModal);
+cancelBtn.addEventListener('click', closeModal);
+
+// --- 渲染与保存 ---
+function updateTaskStatus(taskId, message, color) {
+    const statusEl = document.querySelector(`.task-card[data-id="${taskId}"] .task-status`);
+    if (statusEl) {
+        statusEl.textContent = message;
+        statusEl.style.color = color;
+    }
+}
+
+function renderTasks() {
+    if (tasks.length === 0) {
+        taskListContainer.innerHTML = `<div class="text-center py-16">
+            <h3 class="text-xl font-semibold">没有任务</h3>
+            <p class="text-color-secondary mt-2">点击“创建任务”来添加您的第一个定时任务。</p>
+        </div>`;
+        return;
+    }
+    taskListContainer.innerHTML = '';
+    tasks.sort((a, b) => a.nextRun - b.nextRun).forEach(task => {
+        const nextRunFromNow = dayjs(task.nextRun).fromNow();
+        let scheduleText = '';
+        if (task.scheduleType === 'advanced') {
+            const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+            const selectedDayNames = task.days.map(d => `周${dayNames[d]}`).join('、');
+            scheduleText = `${selectedDayNames} ${task.time}`;
+        } else {
+            scheduleText = `每 ${task.interval} ${task.unit === 'minutes' ? '分钟' : task.unit === 'hours' ? '小时' : '天'}`;
+        }
+        const card = document.createElement('div');
+        card.className = 'apple-card rounded-xl p-4 flex justify-between items-center';
+        card.dataset.id = task.id;
+        card.innerHTML = `
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg">${task.name}</h3>
+                <p class="text-sm text-color-secondary mt-1">${scheduleText}</p>
+                <p class="text-xs mt-2" style="color: #0a84ff;">下次: ${nextRunFromNow} (${dayjs(task.nextRun).format('MM-DD HH:mm')})</p>
+                <p class="task-status text-xs text-color-secondary mt-1">等待执行...</p>
+            </div>
+            <div class="flex items-center space-x-2 flex-shrink-0">
+                <button class="edit-btn action-btn">编辑</button>
+                <button class="toggle-active-btn action-btn">${task.isActive ? '暂停' : '启动'}</button>
+                <button class="run-now-btn action-btn">立即触发</button>
+                <button class="delete-btn action-btn text-red-500">删除</button>
+            </div>
+        `;
+        taskListContainer.appendChild(card);
+    });
+}
+
+function saveAndRender() {
+    localStorage.setItem('webhook_tasks', JSON.stringify(tasks));
+    renderTasks();
+}
+
+// --- 事件监听器 ---
+function getTaskDataFromForm() {
+    const scheduleType = document.getElementById('schedule-type-selector').value;
+    const taskData = {
+        name: document.getElementById('task-name').value,
+        url: document.getElementById('webhook-url').value,
+        method: document.getElementById('request-method').value,
+        body: document.getElementById('request-body').value,
+        scheduleType: scheduleType,
+    };
+    if (scheduleType === 'advanced') {
+        taskData.days = Array.from(document.querySelectorAll('input[name="weekday"]:checked')).map(cb => cb.value);
+        taskData.time = document.getElementById('schedule-time').value;
+    } else {
+        taskData.interval = parseInt(document.getElementById('schedule-interval').value);
+        taskData.unit = document.getElementById('schedule-unit').value;
+    }
+    return taskData;
+}
+
+taskForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const mode = taskForm.dataset.mode;
+    const taskData = getTaskDataFromForm();
+
+    if (taskData.scheduleType === 'advanced' && taskData.days.length === 0) {
+        alert('请至少选择一个执行日期！');
+        return;
+    }
+
+    if (mode === 'create') {
+        const newTask = {
+            ...taskData,
+            id: Date.now(),
+            isActive: true,
+            createdAt: Date.now(),
+        };
+        newTask.nextRun = calculateNextRun(newTask);
+        tasks.push(newTask);
+        scheduleNext(newTask);
+    } else {
+        const taskId = Number(taskForm.dataset.editingTaskId);
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+            tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
+            tasks[taskIndex].nextRun = calculateNextRun(tasks[taskIndex]);
+            scheduleNext(tasks[taskIndex]);
+        }
+    }
+    
+    saveAndRender();
+    closeModal();
+});
+
+taskListContainer.addEventListener('click', (e) => {
+    const button = e.target.closest('button');
+    if (!button) return;
+    const card = button.closest('.apple-card');
+    if (!card) return;
+    
+    const taskId = Number(card.dataset.id);
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+    const task = tasks[taskIndex];
+
+    if (button.classList.contains('delete-btn')) {
+        if (taskTimers.has(taskId)) clearTimeout(taskTimers.get(taskId));
+        tasks.splice(taskIndex, 1);
+        saveAndRender();
+    } else if (button.classList.contains('toggle-active-btn')) {
+        task.isActive = !task.isActive;
+        if (task.isActive) {
+            task.nextRun = calculateNextRun(task);
+            scheduleNext(task);
+        } else {
+            if (taskTimers.has(taskId)) clearTimeout(taskTimers.get(taskId));
+        }
+        saveAndRender();
+    } else if (button.classList.contains('run-now-btn')) {
+        executeTask(task);
+    } else if (button.classList.contains('edit-btn')) {
+        openModal('edit', taskId);
+    }
+});
+
+// --- 初始化 ---
+function initialize() {
+    applyTheme(localStorage.getItem('theme') || 'dark');
+    tasks.forEach(task => {
+        if (task.isActive && Date.now() > task.nextRun) {
+            task.nextRun = calculateNextRun(task);
+        }
+        scheduleNext(task);
+    });
+    saveAndRender();
+}
+
+initialize();

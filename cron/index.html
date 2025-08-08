@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线Webhook定时任务工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/relativeTime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/weekday.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/utc.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/timezone.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/locale/zh-cn.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold">定时任务</h1>
+                <p class="text-lg text-color-secondary mt-1">所有时间均为北京时间</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                 <button id="theme-toggle" class="p-2 rounded-full text-color-secondary hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none">
+                    <svg id="theme-toggle-dark-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                    <svg id="theme-toggle-light-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 101.414 1.414l.707-.707a1 1 0 10-1.414-1.414l-.707.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                </button>
+                <button id="create-task-btn" class="btn btn-primary">创建任务</button>
+            </div>
+        </header>
+
+        <main id="task-list" class="space-y-4">
+            <!-- 任务列表将在这里动态生成 -->
+        </main>
+    </div>
+
+    <!-- 创建/编辑任务弹窗 (Modal) -->
+    <div id="task-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+        <div class="apple-card rounded-xl shadow-lg w-full max-w-2xl max-h-full overflow-y-auto">
+            <form id="task-form" class="p-8 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 id="modal-title" class="text-2xl font-semibold">创建新任务</h2>
+                    <button type="button" id="close-modal-btn" class="text-color-secondary hover:text-color-primary text-2xl font-bold">&times;</button>
+                </div>
+                <div id="form-fields"></div>
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" id="cancel-btn" class="btn btn-secondary">取消</button>
+                    <button type="submit" id="submit-btn" class="btn btn-primary">创建任务</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
