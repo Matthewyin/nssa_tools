@@ -21,11 +21,12 @@
                 <h1 class="text-3xl font-bold">定时任务</h1>
                 <p class="text-lg text-color-secondary mt-1">所有时间均为北京时间</p>
             </div>
-            <div class="flex items-center space-x-4">
-                 <button id="theme-toggle" class="p-2 rounded-full text-color-secondary hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none">
-                    <svg id="theme-toggle-dark-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
-                    <svg id="theme-toggle-light-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 101.414 1.414l.707-.707a1 1 0 10-1.414-1.414l-.707.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
-                </button>
+            <div class="flex items-center space-x-2">
+                 <div id="theme-switcher" class="flex items-center space-x-1 bg-gray-200 dark:bg-gray-800 p-1 rounded-full">
+                    <button id="theme-light-btn" class="p-1.5 rounded-full text-gray-700 dark:text-gray-400"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 101.414 1.414l.707-.707a1 1 0 10-1.414-1.414l-.707.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg></button>
+                    <button id="theme-dark-btn" class="p-1.5 rounded-full text-gray-700 dark:text-gray-400"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg></button>
+                    <button id="theme-system-btn" class="p-1.5 rounded-full text-gray-700 dark:text-gray-400"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3.5a.5.5 0 01.5.5v2.5a.5.5 0 01-1 0V4a.5.5 0 01.5-.5zM10 10a.5.5 0 01.5.5v2.5a.5.5 0 01-1 0V10.5a.5.5 0 01.5-.5zM5.707 5.707a.5.5 0 01.707 0l1.768 1.768a.5.5 0 11-.707.707L5.707 6.414a.5.5 0 010-.707zM12.525 11.818a.5.5 0 01.707 0l1.768 1.768a.5.5 0 11-.707.707l-1.768-1.768a.5.5 0 010-.707zM5.707 14.293a.5.5 0 010-.707l1.768-1.768a.5.5 0 11.707.707L6.414 14.293a.5.5 0 01-.707 0zM11.818 7.475a.5.5 0 010-.707l1.768-1.768a.5.5 0 11.707.707L12.525 7.475a.5.5 0 01-.707 0z"></path></svg></button>
+                </div>
                 <button id="create-task-btn" class="btn btn-primary">创建任务</button>
             </div>
         </header>
@@ -63,7 +64,6 @@
 
         // --- DOM 元素获取 ---
         const taskListContainer = document.getElementById('task-list');
-        const themeToggleButton = document.getElementById('theme-toggle');
         const createTaskBtn = document.getElementById('create-task-btn');
         const taskModal = document.getElementById('task-modal');
         const taskForm = document.getElementById('task-form');
@@ -72,8 +72,10 @@
         const closeModalBtn = document.getElementById('close-modal-btn');
         const cancelBtn = document.getElementById('cancel-btn');
         const formFieldsContainer = document.getElementById('form-fields');
-        const darkIcon = document.getElementById('theme-toggle-dark-icon');
-        const lightIcon = document.getElementById('theme-toggle-light-icon');
+        
+        const lightBtn = document.getElementById('theme-light-btn');
+        const darkBtn = document.getElementById('theme-dark-btn');
+        const systemBtn = document.getElementById('theme-system-btn');
 
         // --- 共享表单模板 ---
         formFieldsContainer.innerHTML = `
@@ -134,16 +136,35 @@
         let taskTimers = new Map();
 
         // --- 主题切换逻辑 ---
-        const applyTheme = (theme) => {
+        const updateTheme = () => {
+            const storedTheme = localStorage.getItem('theme');
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            const theme = storedTheme === 'system' ? systemTheme : storedTheme || systemTheme;
+            
+            document.documentElement.classList.toggle('dark', theme === 'dark');
             document.documentElement.classList.toggle('light', theme === 'light');
-            darkIcon.classList.toggle('hidden', theme === 'light');
-            lightIcon.classList.toggle('hidden', theme === 'dark');
+
+            lightBtn.classList.toggle('bg-white', theme === 'light');
+            darkBtn.classList.toggle('bg-gray-900', theme === 'dark');
+            systemBtn.classList.toggle('bg-gray-500', storedTheme === 'system');
         };
-        themeToggleButton.addEventListener('click', () => {
-            const newTheme = document.documentElement.classList.contains('light') ? 'dark' : 'light';
-            localStorage.setItem('theme', newTheme);
-            applyTheme(newTheme);
+
+        lightBtn.addEventListener('click', () => {
+            localStorage.setItem('theme', 'light');
+            updateTheme();
         });
+
+        darkBtn.addEventListener('click', () => {
+            localStorage.setItem('theme', 'dark');
+            updateTheme();
+        });
+
+        systemBtn.addEventListener('click', () => {
+            localStorage.setItem('theme', 'system');
+            updateTheme();
+        });
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme);
 
         // --- 表单UI切换 ---
         const scheduleSelector = document.getElementById('schedule-type-selector');
@@ -394,7 +415,7 @@
 
         // --- 初始化 ---
         function initialize() {
-            applyTheme(localStorage.getItem('theme') || 'dark');
+            updateTheme();
             tasks.forEach(task => {
                 if (task.isActive && Date.now() > task.nextRun) {
                     task.nextRun = calculateNextRun(task);
