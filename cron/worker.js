@@ -1,6 +1,5 @@
 import indexHtml from './index.html';
-import styleCss from './style.css';
-import scriptJs from './script.js';
+import styleCss from './css/style.css';
 
 export default {
   async fetch(request) {
@@ -8,11 +7,8 @@ export default {
     if (url.pathname === '/' || url.pathname === '/index.html') {
       return new Response(indexHtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
     }
-    if (url.pathname === '/style.css') {
+    if (url.pathname === '/css/style.css') {
       return new Response(styleCss, { headers: { 'Content-Type': 'text/css' } });
-    }
-    if (url.pathname === '/script.js') {
-      return new Response(scriptJs, { headers: { 'Content-Type': 'application/javascript' } });
     }
     return new Response('Not Found', { status: 404 });
   },

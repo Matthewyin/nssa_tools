@@ -8,5 +8,5 @@ globs = ["worker.js"]
 
 [[rules]]
 type = "Text"
-globs = ["index.html", "style.css", "script.js"]
-fallthrough = true
+globs = ["index.html", "css/style.css"]
+fallthrough = false
