@@ -137,16 +137,27 @@
 
         // --- 主题切换逻辑 ---
         const updateTheme = () => {
-            const storedTheme = localStorage.getItem('theme');
+            const storedTheme = localStorage.getItem('theme') || 'system';
             const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            const theme = storedTheme === 'system' ? systemTheme : storedTheme || systemTheme;
-            
-            document.documentElement.classList.toggle('dark', theme === 'dark');
-            document.documentElement.classList.toggle('light', theme === 'light');
+            const theme = storedTheme === 'system' ? systemTheme : storedTheme;
 
-            lightBtn.classList.toggle('bg-white', theme === 'light');
-            darkBtn.classList.toggle('bg-gray-900', theme === 'dark');
-            systemBtn.classList.toggle('bg-gray-500', storedTheme === 'system');
+            // 1. 移除旧的 class
+            document.documentElement.classList.remove('light', 'dark');
+            // 2. 添加新的 class
+            document.documentElement.classList.add(theme);
+
+            // 3. 更新按钮高亮状态
+            lightBtn.classList.remove('theme-btn-active');
+            darkBtn.classList.remove('theme-btn-active');
+            systemBtn.classList.remove('theme-btn-active');
+
+            if (storedTheme === 'light') {
+                lightBtn.classList.add('theme-btn-active');
+            } else if (storedTheme === 'dark') {
+                darkBtn.classList.add('theme-btn-active');
+            } else {
+                systemBtn.classList.add('theme-btn-active');
+            }
         };
 
         lightBtn.addEventListener('click', () => {

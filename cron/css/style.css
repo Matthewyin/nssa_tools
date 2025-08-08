@@ -90,3 +90,8 @@ body {
     background-color: var(--input-bg);
     color: var(--text-color-primary);
 }
+
+.theme-btn-active {
+    background-color: var(--btn-primary-bg) !important;
+    color: white !important;
+}
