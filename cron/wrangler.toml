@@ -5,8 +5,3 @@ compatibility_date = "2025-08-08"
 [[rules]]
 type = "ESModule"
 globs = ["worker.js"]
-
-[[rules]]
-type = "Text"
-globs = ["index.html", "css/style.css"]
-fallthrough = false
