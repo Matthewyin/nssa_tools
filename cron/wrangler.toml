@@ -9,3 +9,4 @@ globs = ["worker.js"]
 [[rules]]
 type = "Text"
 globs = ["index.html", "style.css", "script.js"]
+fallthrough = false
