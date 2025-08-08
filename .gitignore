@@ -1,2 +1,5 @@
 node_modules
 .DS_Store
+
+# 排除含敏感信息的配置文件
+cron/wrangler.toml
