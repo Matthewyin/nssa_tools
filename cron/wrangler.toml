@@ -1,6 +1,6 @@
 name = "nssa-cron"
-main = "cron/worker.js"
-compatibility_date = "2023-08-01"
+main = "worker.js"
+compatibility_date = "2025-08-08"
 
 [[rules]]
 type = "ESModule"
