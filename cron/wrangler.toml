@@ -4,8 +4,8 @@ compatibility_date = "2025-08-08"
 
 [[rules]]
 type = "ESModule"
-globs = ["**/*.js"]
+globs = ["worker.js"]
 
 [[rules]]
 type = "Text"
-globs = ["**/*.html", "**/*.css"]
+globs = ["index.html", "style.css", "script.js"]
