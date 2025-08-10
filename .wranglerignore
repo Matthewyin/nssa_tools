@@ -1,0 +1,12 @@
+.git/
+**/node_modules/**
+**/.DS_Store
+**/.env*
+**/*.bak
+**/*.sample
+**/wrangler.toml
+**/wrangler.toml.bak
+**/package*.json
+**/.vscode/**
+**/.idea/**
+**/worker.js
