@@ -75,7 +75,7 @@ export default {
     }
 
     // Serve static assets from repository root
-    // Blocklist: do not expose sensitive files
+    // Blocklist: do not expose sensitive files or heavy folders
     const sensitivePatterns = [
       /(^|\/)wrangler\.toml(\.bak)?$/i,
       /(^|\/)wrangler\.json$/i,
@@ -92,6 +92,11 @@ export default {
       /(^|\/)service\-account.*\.json$/i,
       /(^|\/)worker\.js$/i,
     ];
+
+    // hard drop large dependency directories irrespective of assets.include
+    if (url.pathname.includes('/node_modules/')) {
+      return new Response("Not Found", { status: 404 });
+    }
 
     for (const pattern of sensitivePatterns) {
       if (pattern.test(url.pathname)) {

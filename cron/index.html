@@ -802,6 +802,8 @@
                 showAuthContainer();
                 showLoginForm();
                 updateUserUI();
+                // 同步清理服务端会话
+                window.location.href = '/auth/logout';
             } catch (error) {
                 console.error('登出失败:', error);
             }
