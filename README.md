@@ -109,3 +109,12 @@ npx wrangler deploy
 ## 本地开发建议
 - 使用 `wrangler dev` 本地预览，确认 `/firebase-config.js` 注入和 Cookie 行为。
 - 若需要单独开发 `cron` 子应用，可进入 `cron/` 使用其 `wrangler.toml` 独立部署预览。
+
+## 第三方许可与版权说明
+- Emoji/符号：页面中的动物/水果/形状等符号为标准 Unicode 字符，由用户设备与浏览器的系统字体渲染，本项目不打包或分发任何第三方表情图片或字体文件。
+- Material Symbols（用于 favicon）：来自 Google 的 Material Symbols Outlined，通过 Google Fonts 在线加载，许可证为 Apache-2.0。参考：[Material Symbols](https://fonts.google.com/icons) · [Apache-2.0 许可](https://www.apache.org/licenses/LICENSE-2.0).
+- Tailwind CSS（CDN 版本）：许可证 MIT。参考：[Tailwind CSS](https://tailwindcss.com/) · [License](https://github.com/tailwindlabs/tailwindcss/blob/master/LICENSE).
+- Firebase Web SDK：许可证 Apache-2.0。参考：[Firebase JS SDK](https://github.com/firebase/firebase-js-sdk) · [License](https://github.com/firebase/firebase-js-sdk/blob/HEAD/LICENSE).
+- Day.js：许可证 MIT。参考：[Day.js](https://day.js.org/) · [License](https://github.com/iamkun/dayjs/blob/dev/LICENSE).
+
+说明：若未来需要统一 Emoji 风格并进行离线分发，可考虑接入 Twemoji（CC-BY 4.0，需署名）或本地托管开源 SVG 图标集（如 Heroicons，MIT；Material Symbols，本地托管并附带许可证）。
