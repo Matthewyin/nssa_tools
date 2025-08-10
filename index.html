@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NSSA Tools</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800">
+  <header class="border-b bg-white">
+    <div class="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
+      <h1 class="text-xl font-semibold">NSSA Tools</h1>
+      <div class="text-sm flex items-center gap-3">
+        <span id="user-email" class="text-slate-500"></span>
+        <a href="/auth/logout" class="text-blue-600 hover:text-blue-700">退出</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-4 py-10">
+    <p class="text-slate-600 mb-6">请选择一个工具进入：</p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <a href="/cron" class="block group rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Webhook 定时任务</h2>
+          <span class="text-blue-600 group-hover:translate-x-0.5 transition">→</span>
+        </div>
+        <p class="mt-2 text-sm text-slate-500">创建并在浏览器中调度 Webhook 请求（邮箱密码登录，管理员创建账号）。</p>
+      </a>
+
+      <a href="/gomoku" class="block group rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">五子棋</h2>
+          <span class="text-blue-600 group-hover:translate-x-0.5 transition">→</span>
+        </div>
+        <p class="mt-2 text-sm text-slate-500">人机/双人对战，登录后访问。</p>
+      </a>
+    </div>
+  </main>
+
+  <script>
+    (function() {
+      if (window.__FIREBASE_CONFIG__) {
+        firebase.initializeApp(window.__FIREBASE_CONFIG__);
+        firebase.auth().onAuthStateChanged(function(user) {
+          if (!user) {
+            var url = new URL('/auth/login', window.location.origin);
+            url.searchParams.set('redirect', window.location.pathname + window.location.search);
+            window.location.replace(url.toString());
+            return;
+          }
+          var emailEl = document.getElementById('user-email');
+          if (emailEl) emailEl.textContent = user.email || '';
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
