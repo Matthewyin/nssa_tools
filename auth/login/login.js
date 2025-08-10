@@ -34,6 +34,20 @@
     const auth = initFirebase();
     if (!auth) return;
 
+    // 若用户已通过 Firebase 持久化处于登录状态，则自动同步会话到 Worker 并跳转
+    auth.onAuthStateChanged(async (user) => {
+      try {
+        if (user) {
+          const idToken = await user.getIdToken(/* forceRefresh */ true);
+          await persistSessionToWorker(idToken);
+          const target = getRedirect() || '/';
+          window.location.replace('/?redirect=' + encodeURIComponent(target));
+        }
+      } catch (err) {
+        // 忽略自动同步失败，用户可手动登录
+      }
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorEl.textContent = '';
@@ -41,8 +55,8 @@
         const { user } = await auth.signInWithEmailAndPassword(emailEl.value, passwordEl.value);
         const idToken = await user.getIdToken(/* forceRefresh */ true);
         await persistSessionToWorker(idToken);
-        const redirect = getRedirect();
-        window.location.replace(redirect);
+        const target = getRedirect() || '/';
+        window.location.replace('/?redirect=' + encodeURIComponent(target));
       } catch (err) {
         errorEl.textContent = err.message || '登录失败，请重试';
       }

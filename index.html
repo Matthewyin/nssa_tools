@@ -44,6 +44,27 @@
 
   <script>
     (function() {
+      // 会话预热：若带有 redirect 参数，确保已登录后再跳转，减少受保护页面的首跳 302
+      function handleRedirectAfterWarmup() {
+        var params = new URLSearchParams(window.location.search);
+        var target = params.get('redirect');
+        if (!target) return;
+        if (!window.__FIREBASE_CONFIG__ || !window.firebase) {
+          // 若 Firebase 尚未就绪，稍后再检查
+          setTimeout(handleRedirectAfterWarmup, 50);
+          return;
+        }
+        if (!firebase.apps || firebase.apps.length === 0) {
+          firebase.initializeApp(window.__FIREBASE_CONFIG__);
+        }
+        firebase.auth().onAuthStateChanged(function(user) {
+          if (user) {
+            // 已登录，跳转到目标页
+            window.location.replace(target);
+          }
+        });
+      }
+
       if (window.__FIREBASE_CONFIG__) {
         firebase.initializeApp(window.__FIREBASE_CONFIG__);
         firebase.auth().onAuthStateChanged(function(user) {
@@ -55,6 +76,8 @@
           }
           var emailEl = document.getElementById('user-email');
           if (emailEl) emailEl.textContent = user.email || '';
+          // 登录后尝试处理预热跳转
+          handleRedirectAfterWarmup();
         });
       }
     })();
