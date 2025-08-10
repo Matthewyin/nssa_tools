@@ -5,20 +5,6 @@ compatibility_date = "2025-08-10"
 [assets]
 directory = "."
 binding = "ASSETS"
-exclude = [
-  "**/node_modules/**",
-  "**/.git/**",
-  "**/.gitignore",
-  "**/.DS_Store",
-  "**/wrangler.toml",
-  "**/wrangler.toml.bak",
-  "**/*.bak",
-  "**/*.sample",
-  "**/package*.json",
-  "**/.vscode/**",
-  "**/.idea/**",
-  "**/worker.js"
-]
 
 [vars]
 # Firebase Web config for browser initialization (public)
