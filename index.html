@@ -24,7 +24,7 @@
     <p class="text-slate-600 mb-6">请选择一个工具进入：</p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <a href="/cron" class="block group rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition">
+      <a href="/cron" data-target="/cron" data-require-auth="true" class="tool-card block group rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold">Webhook 定时任务</h2>
           <span class="text-blue-600 group-hover:translate-x-0.5 transition">→</span>
@@ -32,15 +32,48 @@
         <p class="mt-2 text-sm text-slate-500">创建并在浏览器中调度 Webhook 请求（邮箱密码登录，管理员创建账号）。</p>
       </a>
 
-      <a href="/Gomoku" class="block group rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition">
+      <a href="/Gomoku" data-target="/Gomoku" data-require-auth="true" class="tool-card block group rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold">五子棋</h2>
           <span class="text-blue-600 group-hover:translate-x-0.5 transition">→</span>
         </div>
         <p class="mt-2 text-sm text-slate-500">人机/双人对战，登录后访问。</p>
       </a>
+
+      <a href="https://topfac.nssa.io" target="_blank" rel="noreferrer noopener" class="block group rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">智能网络拓扑生成系统</h2>
+          <span class="text-blue-600 group-hover:translate-x-0.5 transition">↗</span>
+        </div>
+        <p class="mt-2 text-sm text-slate-500">基于自然语言描述生成网络拓扑图，支持 DrawIO 格式输出。</p>
+      </a>
     </div>
   </main>
+
+  <!-- 登录弹窗 -->
+  <div id="login-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div class="w-full max-w-sm bg-white rounded-xl shadow p-6 space-y-4">
+      <div>
+        <h2 class="text-xl font-semibold text-slate-800">登录 NSSA Tools</h2>
+        <p class="text-sm text-slate-500">使用邮箱和密码登录。无自助注册。</p>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">邮箱</label>
+          <input id="login-email" type="email" class="w-full border rounded px-3 py-2" placeholder="you@example.com" />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">密码</label>
+          <input id="login-password" type="password" class="w-full border rounded px-3 py-2" placeholder="******" />
+        </div>
+        <p id="login-error" class="text-sm text-red-600"></p>
+        <div class="flex gap-2">
+          <button id="login-submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded py-2">登录</button>
+          <button id="login-cancel" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded py-2">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     (function() {
@@ -65,20 +98,58 @@
         });
       }
 
+      var currentUser = null;
+      function persistSessionToWorker(idToken){
+        return fetch('/auth/session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ idToken }) });
+      }
+
+      function openLoginModal(target){
+        var modal = document.getElementById('login-modal');
+        var emailEl = document.getElementById('login-email');
+        var pwdEl = document.getElementById('login-password');
+        var errEl = document.getElementById('login-error');
+        var submitting = false;
+        errEl.textContent = '';
+        modal.classList.remove('hidden');
+
+        function close(){ modal.classList.add('hidden'); }
+        document.getElementById('login-cancel').onclick = close;
+        document.getElementById('login-submit').onclick = async function(){
+          if (submitting) return; submitting = true; errEl.textContent = '';
+          try{
+            const auth = firebase.auth();
+            await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+            const cred = await auth.signInWithEmailAndPassword(emailEl.value, pwdEl.value);
+            const idToken = await cred.user.getIdToken(true);
+            await persistSessionToWorker(idToken);
+            close();
+            window.location.href = target;
+          }catch(e){ errEl.textContent = e.message || '登录失败'; }
+          finally{ submitting = false; }
+        };
+      }
+
+      function bindToolCards(){
+        document.querySelectorAll('a.tool-card[data-require-auth="true"]').forEach(function(a){
+          a.addEventListener('click', function(e){
+            var target = a.getAttribute('data-target') || a.getAttribute('href');
+            if (!currentUser){ e.preventDefault(); openLoginModal(target); }
+          });
+        });
+      }
+
       if (window.__FIREBASE_CONFIG__) {
-        firebase.initializeApp(window.__FIREBASE_CONFIG__);
+        if (!firebase.apps || firebase.apps.length === 0) {
+          firebase.initializeApp(window.__FIREBASE_CONFIG__);
+        }
         firebase.auth().onAuthStateChanged(function(user) {
-          if (!user) {
-            var url = new URL('/auth/login', window.location.origin);
-            url.searchParams.set('redirect', window.location.pathname + window.location.search);
-            window.location.replace(url.toString());
-            return;
-          }
+          currentUser = user || null;
           var emailEl = document.getElementById('user-email');
-          if (emailEl) emailEl.textContent = user.email || '';
+          if (emailEl) emailEl.textContent = currentUser ? (currentUser.email || '') : '';
           // 登录后尝试处理预热跳转
           handleRedirectAfterWarmup();
         });
+        bindToolCards();
       }
     })();
   </script>
