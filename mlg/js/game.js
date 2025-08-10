@@ -94,8 +94,9 @@
     resizeCanvas(){
       const rect = this.canvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
+      // 使用实际渲染尺寸，避免 CSS 高度与画布像素高度不一致导致坐标偏移
       this.canvas.width = Math.floor(rect.width * dpr);
-      this.canvas.height = Math.floor(480 * dpr);
+      this.canvas.height = Math.floor(rect.height * dpr);
     },
 
     handleResize(){
@@ -255,7 +256,10 @@
       const x = (e.clientX - rect.left) * dpr;
       const y = (e.clientY - rect.top) * dpr;
       const tile = this.getSelectableTileAtPoint(x, y);
-      if (!tile) return;
+      if (!tile){
+        // 点击空白或不可选区域时不做二次点击要求，直接返回
+        return;
+      }
       this.pickTile(tile.id);
     },
 

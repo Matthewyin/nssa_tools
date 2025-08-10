@@ -3,5 +3,5 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .btn-primary{background:#0a84ff;color:#fff}
 .btn-secondary{background:#e5e5ea;color:#1f2937}
 .game-container{position:relative;max-width:640px;margin:0 auto;background:#fff;border-radius:1rem;border:1px solid rgba(0,0,0,.1);padding:12px}
-.game-canvas{width:100%;height:400px;background:#f8fafc;border-radius:.75rem}
+.game-canvas{width:100%;height:50vh;background:#f8fafc;border-radius:.75rem;display:block}
 .slot-bar{margin-top:12px;min-height:64px;background:#f1f5f9;border-radius:.75rem;display:flex;gap:8px;align-items:center;padding:8px}
