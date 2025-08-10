@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>猫了个猫 | NSSA Tools</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=design_services" />
+  <link rel="stylesheet" href="/mlg/css/style.css" />
+  <script src="/firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800">
+  <header class="border-b bg-white">
+    <div class="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-sm text-slate-600 hover:underline">← 返回首页</a>
+        <h1 class="text-xl font-semibold">猫了个猫（羊了个羊风格）</h1>
+      </div>
+      <div class="text-sm flex items-center gap-3">
+        <span id="user-email" class="text-slate-500"></span>
+        <a href="/auth/logout" class="text-blue-600 hover:text-blue-700">退出</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-4 py-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-4 text-sm text-slate-600">
+        <div>关卡：<span id="level">1</span></div>
+        <div>难度：<span id="difficulty">入门</span></div>
+        <div>剩余步数：<span id="moves">--</span></div>
+        <div>剩余时间：<span id="time">--</span></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-powerup" class="btn btn-secondary">扩容 x2</button>
+        <button id="btn-hint" class="btn btn-secondary">提示</button>
+        <button id="btn-shuffle" class="btn btn-secondary">洗牌</button>
+        <button id="btn-undo" class="btn btn-secondary">撤销</button>
+        <button id="btn-restart" class="btn btn-primary">重开</button>
+      </div>
+    </div>
+
+    <div id="game-container" class="game-container">
+      <canvas id="game-canvas" class="game-canvas"></canvas>
+      <div id="slot-bar" class="slot-bar"></div>
+    </div>
+
+    <p class="mt-4 text-xs text-slate-500">说明：初始 8 关，每 3 关提升一级难度，后续将无限扩容。道具“扩容 x2”为预留功能，可用于积分兑换或广告激励扩容。</p>
+  </main>
+
+  <script>\n    // 设置 favicon 为 Material Symbols 的 design_services 图标
+    (function(){
+      function setFavicon(){
+        try{ var size=64, c=document.createElement('canvas'); c.width=size; c.height=size; var ctx=c.getContext('2d');
+          function draw(){ ctx.clearRect(0,0,size,size); ctx.fillStyle='#0a84ff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='48px "Material Symbols Outlined"'; ctx.fillText('design_services', size/2, size/2+2);
+            var url=c.toDataURL('image/png'); var link=document.querySelector('link[rel="icon"][data-dynamic="1"]'); if(!link){ link=document.createElement('link'); link.rel='icon'; link.type='image/png'; link.setAttribute('data-dynamic','1'); document.head.appendChild(link);} link.href=url; }
+          if(document.fonts && document.fonts.load){ document.fonts.load('48px "Material Symbols Outlined"').then(draw, draw);} else { setTimeout(draw, 300); }
+        }catch(e){}
+      }
+      setFavicon();
+    })();
+
+    // 登录保护（与 /Gomoku 一致）：未登录则跳转登录页
+    if (window.__FIREBASE_CONFIG__) {
+      if (!firebase.apps || firebase.apps.length === 0) {
+        firebase.initializeApp(window.__FIREBASE_CONFIG__);
+      }
+      firebase.auth().onAuthStateChanged(function(user){
+        if (!user) {
+          var url = new URL('/auth/login', window.location.origin);
+          url.searchParams.set('redirect', window.location.pathname + window.location.search);
+          window.location.replace(url.toString());
+        } else {
+          var emailEl = document.getElementById('user-email');
+          if (emailEl) emailEl.textContent = user.email || '';
+          // 初始化游戏
+          window.MLG && window.MLG.bootstrap(user);
+        }
+      });
+    }
+  </script>
+  <script src="/mlg/js/game.js"></script>
+</body>
+</html>
