@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NSSA Tools</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=design_services" />
   <script src="/firebase-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -77,6 +79,33 @@
 
   <script>
     (function() {
+      // 使用 Material Symbols 生成动态 favicon
+      function setFavicon() {
+        try {
+          var size = 64;
+          var canvas = document.createElement('canvas');
+          canvas.width = size; canvas.height = size;
+          var ctx = canvas.getContext('2d');
+          var draw = function() {
+            ctx.clearRect(0,0,size,size);
+            ctx.fillStyle = '#0a84ff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = '48px "Material Symbols Outlined"';
+            ctx.fillText('design_services', size/2, size/2 + 2);
+            var url = canvas.toDataURL('image/png');
+            var link = document.querySelector('link[rel="icon"][data-dynamic="1"]');
+            if (!link) { link = document.createElement('link'); link.rel='icon'; link.type='image/png'; link.setAttribute('data-dynamic','1'); document.head.appendChild(link); }
+            link.href = url;
+          };
+          if (document.fonts && document.fonts.load) {
+            document.fonts.load('48px "Material Symbols Outlined"').then(draw, draw);
+          } else {
+            setTimeout(draw, 300);
+          }
+        } catch(e) {}
+      }
+
       // 会话预热：若带有 redirect 参数，确保已登录后再跳转，减少受保护页面的首跳 302
       function handleRedirectAfterWarmup() {
         var params = new URLSearchParams(window.location.search);
@@ -148,6 +177,8 @@
           if (emailEl) emailEl.textContent = currentUser ? (currentUser.email || '') : '';
           // 登录后尝试处理预热跳转
           handleRedirectAfterWarmup();
+          // 设置 favicon
+          setFavicon();
         });
         bindToolCards();
       }

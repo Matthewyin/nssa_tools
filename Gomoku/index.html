@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>五子棋 (人机对战版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=design_services" />
     <script src="/firebase-config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -125,6 +127,28 @@
     </div>
 
     <script>
+        // 设置 favicon 为 Material Symbols 的 design_services 图标
+        (function(){
+            function setFavicon(){
+                try{
+                    var size=64, c=document.createElement('canvas'); c.width=size; c.height=size; var ctx=c.getContext('2d');
+                    function draw(){
+                        ctx.clearRect(0,0,size,size);
+                        ctx.fillStyle='#0a84ff';
+                        ctx.textAlign='center'; ctx.textBaseline='middle';
+                        ctx.font='48px "Material Symbols Outlined"';
+                        ctx.fillText('design_services', size/2, size/2+2);
+                        var url=c.toDataURL('image/png');
+                        var link=document.querySelector('link[rel="icon"][data-dynamic="1"]');
+                        if(!link){ link=document.createElement('link'); link.rel='icon'; link.type='image/png'; link.setAttribute('data-dynamic','1'); document.head.appendChild(link); }
+                        link.href=url;
+                    }
+                    if(document.fonts && document.fonts.load){ document.fonts.load('48px "Material Symbols Outlined"').then(draw, draw); } else { setTimeout(draw, 300); }
+                }catch(e){}
+            }
+            setFavicon();
+        })();
+    </script>
         // 初始化 Firebase（登录保护）
         if (window.__FIREBASE_CONFIG__) {
             if (firebase.apps && firebase.apps.length === 0) {
