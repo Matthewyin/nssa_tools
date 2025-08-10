@@ -37,7 +37,7 @@ SESSION_MAX_AGE = "604800" # 7 days in seconds
 AUTH_BYPASS = "/auth,/firebase-config.js,/auth/login,/auth/logout"
 
 # Route binding to custom domain
-workers_dev = false
+workers_dev = true
 
 [[routes]]
 pattern = "tools.nssa.io/*"
