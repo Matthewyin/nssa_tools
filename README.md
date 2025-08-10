@@ -1,8 +1,16 @@
-# Webhook定时任务工具
+# NSSA Tools（多工具台）
 
-这是一个基于Cloudflare Workers的定时任务工具，用于定时触发Webhook请求。该工具使用Firebase Authentication进行用户认证，确保每个用户只能看到和管理自己的任务。
+这是一个基于 Cloudflare Workers 的多工具站，统一使用 Firebase Authentication 登录访问。目前包含：
 
-## 功能特点
+- Webhook 定时任务（路径：`/cron`）
+- 五子棋游戏（路径：`/Gomoku`）
+
+根 Worker 负责：
+- 统一注入浏览器端 Firebase 配置（`/firebase-config.js`）
+- 登录拦截与 Cookie 会话（`/auth/session`、`/auth/logout`）
+- 静态资源发布（`ASSETS`）与敏感文件屏蔽
+
+## Webhook 定时任务功能特点
 
 - 用户认证系统，保护任务数据安全（仅管理员可创建用户）
 - 支持简单间隔和高级定时（类Cron）两种定时方式
@@ -11,7 +19,7 @@
 - 任务导入/导出功能
 - 实时显示下次执行时间
 
-## 部署指南
+## 部署指南（根 Worker）
 
 ### 1. 创建Firebase项目
 
@@ -24,31 +32,24 @@
 
 ### 2. 更新配置
 
-1. 在`index.html`文件中找到Firebase配置部分：
+配置集中在根目录 `wrangler.toml` 的 `[vars]`：
 
-```javascript
-const firebaseConfig = {
-    apiKey: "AIzaSyDNWjNYOVpQGkVdXXXXXXXXXXXXXXXXXXX", // 需要替换为实际的API密钥
-    authDomain: "nssa-cron.firebaseapp.com", // 需要替换为实际的域名
-    projectId: "nssa-cron", // 需要替换为实际的项目ID
-    storageBucket: "nssa-cron.appspot.com",
-    messagingSenderId: "XXXXXXXXXXXX",
-    appId: "1:XXXXXXXXXXXX:web:XXXXXXXXXXXX"
-};
+```toml
+[vars]
+FIREBASE_API_KEY = "<your_api_key>"
+FIREBASE_AUTH_DOMAIN = "<your_auth_domain>"
+FIREBASE_PROJECT_ID = "<your_project_id>"
+FIREBASE_STORAGE_BUCKET = "<your_storage_bucket>"
+FIREBASE_MESSAGING_SENDER_ID = "<your_sender_id>"
+FIREBASE_APP_ID = "<your_app_id>"
+SESSION_COOKIE_NAME = "nssatools_session"
+SESSION_MAX_AGE = "604800"
+AUTH_BYPASS = "/auth,/firebase-config.js,/auth/login,/auth/logout"
 ```
 
-2. 在`worker.js`文件中找到Firebase Auth配置部分：
+前端通过 `/firebase-config.js` 自动注入上述公共配置，无需在页面里硬编码。
 
-```javascript
-const firebaseAuthConfig = {
-  apiKey: "AIzaSyDNWjNYOVpQGkVdXXXXXXXXXXXXXXXXXXX", // 需要替换为实际的API密钥
-  projectId: "nssa-cron", // 需要替换为实际的项目ID
-};
-```
-
-将上述配置中的占位符替换为您在Firebase控制台中获取的实际值。
-
-### 3. 使用Wrangler部署
+### 3. 使用 Wrangler 部署
 
 1. 确保已安装Wrangler CLI：
 ```bash
@@ -65,7 +66,7 @@ wrangler login
 npx wrangler deploy
 ```
 
-## 使用说明
+## 使用说明（用户）
 
 1. 访问部署后的Worker URL
 2. 使用管理员提供的账户登录（系统不提供自助注册功能）
@@ -77,23 +78,34 @@ npx wrangler deploy
 
 管理员需要在Firebase控制台中手动创建用户账号。详细步骤请参考 [ADMIN_GUIDE.md](ADMIN_GUIDE.md)。
 
-## 安全说明
+## 安全与会话
 
-- 所有用户数据存储在浏览器的localStorage中，与用户ID关联
-- Firebase Authentication确保只有授权用户可以访问应用
-- 每个用户只能看到和管理自己创建的任务
-- 采用管理员创建用户模式，防止未授权用户自行注册
+- 所有用户数据（任务）存储在浏览器 `localStorage`，并以 `webhook_tasks_<uid>`（每用户隔离）为 key。
+- 统一在根 Worker 做登录拦截。首次进入受保护页面若无 Cookie 会 302 至登录页。
+- 已实现“会话预热”：登录页在成功登录后跳回根页 `/?redirect=<目标页>`，根页确认 Firebase 已登录后再进入目标，减少“闪一下”。
+- 仅管理员在 Firebase 控制台创建账号，不提供自助注册。
 
 ## 技术栈
 
 - Cloudflare Workers：提供serverless运行环境
 - Firebase Authentication：提供用户认证服务
 - HTML/CSS/JavaScript：前端界面
-- localStorage：本地数据存储
+- localStorage：本地数据存储（按用户隔离）
 - Day.js：日期时间处理库
 
 ## 注意事项
 
-- 由于使用localStorage存储数据，清除浏览器数据会导致任务丢失
-- 建议定期导出任务数据进行备份
-- 浏览器localStorage存储限制为5MB，请注意任务数量
+- 使用 `localStorage` 存储，清除浏览器数据会丢失任务；建议定期导出备份。
+- 浏览器 `localStorage` 存储约 5MB，任务多时注意容量并分用户保存。
+- 若将 `/cron` 单独部署（见 `cron/wrangler.toml`），需在该 Worker 内自行注入 Firebase 配置，或复用根 Worker 的 `/firebase-config.js`。
+
+## 路由与页面
+- `/`：工具首页（显示用户邮箱、提供退出）
+- `/cron`：Webhook 定时任务（支持明暗主题、导入导出、立即触发、按用户存储）
+- `/Gomoku`：五子棋（人机/双人、支持悔棋）
+- `/auth/login`：登录页（邮箱/密码）
+- `/auth/logout`：退出登录
+
+## 本地开发建议
+- 使用 `wrangler dev` 本地预览，确认 `/firebase-config.js` 注入和 Cookie 行为。
+- 若需要单独开发 `cron` 子应用，可进入 `cron/` 使用其 `wrangler.toml` 独立部署预览。
