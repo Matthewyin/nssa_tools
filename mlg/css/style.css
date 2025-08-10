@@ -2,9 +2,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .btn{border-radius:.5rem;font-weight:600;padding:.5rem 1rem;background:#e5e7eb}
 .btn-primary{background:#0a84ff;color:#fff}
 .btn-secondary{background:#e5e5ea;color:#1f2937}
-.game-container{position:relative;max-width:640px;margin:0 auto;background:#fff;border-radius:1rem;border:1px solid rgba(0,0,0,.1);padding:12px}
-.game-canvas{width:100%;height:50vh;background:#f8fafc;border-radius:.75rem;display:block}
+.game-container{position:relative;max-width:960px;margin:0 auto;background:#fff;border-radius:1rem;border:1px solid rgba(0,0,0,.1);padding:12px}
+.game-canvas{width:100%;height:56vh;max-height:640px;min-height:320px;background:#f8fafc;border-radius:.75rem;display:block}
 .slot-bar{margin-top:12px;min-height:64px;background:#f1f5f9;border-radius:.75rem;display:flex;gap:8px;align-items:center;padding:8px}
 .slot-item{width:48px;height:48px;border:2px solid #cbd5e1;border-radius:.5rem;display:flex;align-items:center;justify-content:center;background:#fff}
 .slot-item.empty{background:#f8fafc;border-style:dashed;color:#cbd5e1}
 .slot-emoji{font-size:24px;line-height:1}
+
+@media (max-width: 640px){
+  .btn{padding:.45rem .8rem}
+  .slot-item{width:42px;height:42px}
+  .slot-emoji{font-size:20px}
+}
+
+@media (min-width: 1024px){
+  .game-canvas{height:60vh}
+}
