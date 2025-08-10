@@ -23,6 +23,21 @@
     '#ef4444','#f97316','#f59e0b','#84cc16','#10b981','#06b6d4','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#a3e635','#f472b6'
   ];
 
+  // 更丰富的符号集（动物/水果/形状/物品等），用于不同类型的牌
+  const SYMBOLS = [
+    '🐱','🐶','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵',
+    '🐤','🐧','🐙','🦄','🐝','🦋','🦕','🦖','🦉','🦜',
+    '🍎','🍊','🍋','🍉','🍇','🍓','🍒','🥝','🍍','🥑','🍑','🍌',
+    '🌸','🌼','🌻','🍀','🌙','⭐️','☀️','⚡️','🔥','❄️',
+    '⚽️','🏀','🏈','🎾','🎲','🎯','🎁','💎','🔔',
+    '❤️','💙','💚','💛','💜','🧡','🤎','🖤',
+    '🔶','🔷','🔺','🔻','⬛️','⬜️','◼️','◻️'
+  ];
+
+  function getSymbolForType(type){
+    return SYMBOLS[type % SYMBOLS.length];
+  }
+
   const MLG = {
     bootstrap(user){
       this.user = user;
@@ -129,11 +144,13 @@
     // --- Level Generation ---
     getLevelParams(level){
       const tier = Math.floor((level - 1) / 3); // 每3关提升一档
-      const rows = clamp(5 + tier, 5, 8);
-      const cols = clamp(5 + tier, 5, 8);
+      const rows = clamp(5 + tier, 5, 9);
+      const cols = clamp(5 + tier, 5, 9);
       const layers = clamp(2 + Math.floor(tier/1), 2, 4);
-      const typeCount = clamp(6 + tier, 6, 12);
-      const coverDensity = clamp(0.55 + tier * 0.05, 0.55, 0.8);
+      // 增加类型数量上限，提升多样性
+      const typeCount = clamp(8 + tier * 2, 8, Math.min(SYMBOLS.length - 1, 24));
+      // 略微提高覆盖密度，增加层叠感
+      const coverDensity = clamp(0.60 + tier * 0.05, 0.60, 0.85);
       return { rows, cols, layers, typeCount, coverDensity };
     },
 
@@ -413,7 +430,7 @@
         ctx.fillStyle = color;
         ctx.font = `${Math.floor(r.h*0.5)}px system-ui`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('🐱', r.x + r.w/2, r.y + r.h/2 + 2);
+        ctx.fillText(getSymbolForType(tile.type), r.x + r.w/2, r.y + r.h/2 + 2);
         // overlay for non-selectable
         if (tile.status==='board' && this.isCovered(tile, rects)){
           ctx.fillStyle = 'rgba(0,0,0,0.15)';
@@ -436,7 +453,8 @@
       const container = document.getElementById('slot-bar');
       const items = this.slot.map(id => this.tiles.find(t=> t.id===id)).map(tile => {
         const color = COLOR_PALETTE[tile.type % COLOR_PALETTE.length];
-        return `<div class="slot-item" style="border-color:${color}"><span class="slot-emoji">🐱</span></div>`;
+        const sym = getSymbolForType(tile.type);
+        return `<div class="slot-item" style="border-color:${color}"><span class="slot-emoji">${sym}</span></div>`;
       });
       // fill empty with placeholders
       const empties = Math.max(0, SLOT_CAPACITY - this.slot.length);
