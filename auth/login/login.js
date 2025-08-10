@@ -25,7 +25,7 @@
     const app = firebase.initializeApp(window.__FIREBASE_CONFIG__);
     const auth = firebase.auth(app);
     // 使用本地持久化，确保登录状态在各子页面有效，避免重复登录
-    auth.setPersistence('local');
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     return auth;
   }
 

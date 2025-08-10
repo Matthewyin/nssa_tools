@@ -426,7 +426,9 @@
                     currentTask.nextRun = calculateNextRun(currentTask);
                     // 只更新当前任务的UI，而不是重新渲染整个列表
                     updateTaskUI(currentTask.id);
-                    localStorage.setItem('webhook_tasks', JSON.stringify(tasks));
+                    if (currentUser) {
+                        localStorage.setItem(getUserTaskKey(), JSON.stringify(tasks));
+                    }
                     scheduleNext(currentTask);
                 }
             }, timeToNextRun);
@@ -571,7 +573,9 @@
 
         function saveAndRender() {
             const limitWarning = checkStorageLimit();
-            localStorage.setItem('webhook_tasks', JSON.stringify(tasks));
+            if (currentUser) {
+                localStorage.setItem(getUserTaskKey(), JSON.stringify(tasks));
+            }
             renderTasks();
         }
 
@@ -711,7 +715,9 @@
                         });
                         
                         // 保存并重新调度所有任务
-                        localStorage.setItem('webhook_tasks', JSON.stringify(tasks));
+                        if (currentUser) {
+                            localStorage.setItem(getUserTaskKey(), JSON.stringify(tasks));
+                        }
                         renderTasks();
                         tasks.forEach(task => {
                             if (task.isActive) scheduleNext(task);

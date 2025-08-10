@@ -1,8 +1,9 @@
+// Module-scoped cache survives across requests within the same isolate
+const TOKEN_CACHE = new Map();
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    // simple in-memory cache for token validations within isolate lifetime
-    env.__TOKEN_CACHE__ ||= new Map();
 
     // Allow health check quickly
     if (url.pathname === "/_health") {
@@ -54,7 +55,16 @@ export default {
 
     // Simple cookie-based gate with token validation
     const cookieName = env.SESSION_COOKIE_NAME || "nssatools_session";
-    const cookies = Object.fromEntries((request.headers.get("Cookie") || "").split(";").map(c => c.trim().split("=")).filter(([k]) => k));
+    const rawCookie = request.headers.get("Cookie") || "";
+    const cookies = {};
+    for (const part of rawCookie.split(";")) {
+      const p = part.trim();
+      if (!p) continue;
+      const eq = p.indexOf("=");
+      const k = eq >= 0 ? p.slice(0, eq) : p;
+      const v = eq >= 0 ? p.slice(eq + 1) : "";
+      if (k) cookies[k] = v;
+    }
     const session = cookies[cookieName];
 
     // If not bypass and no session, redirect to login
@@ -128,7 +138,7 @@ export default {
 async function verifyIdToken(env, idToken) {
   if (!idToken) return false;
   const cacheKey = `t:${idToken.slice(0, 25)}`;
-  const cached = env.__TOKEN_CACHE__.get(cacheKey);
+  const cached = TOKEN_CACHE.get(cacheKey);
   const now = Date.now();
   if (cached && cached.expires > now) return true;
 
@@ -141,7 +151,7 @@ async function verifyIdToken(env, idToken) {
     });
     if (resp.ok) {
       // cache for 5 minutes
-      env.__TOKEN_CACHE__.set(cacheKey, { ok: true, expires: now + 5 * 60 * 1000 });
+      TOKEN_CACHE.set(cacheKey, { ok: true, expires: now + 5 * 60 * 1000 });
       return true;
     }
     return false;
