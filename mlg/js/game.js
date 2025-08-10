@@ -100,6 +100,8 @@
       this.canvas = document.getElementById('game-canvas');
       this.ctx = this.canvas.getContext('2d');
       this.dpr = window.devicePixelRatio || 1;
+      // 先根据可用空间调整 CSS 高度，再进行像素尺寸调整
+      this.updateCanvasCssHeight();
       this.resizeCanvas();
       this.canvas.addEventListener('click', (e)=> this.handleCanvasClick(e));
     },
@@ -117,8 +119,34 @@
     },
 
     handleResize(){
+      this.updateCanvasCssHeight();
       this.resizeCanvas();
       this.render();
+    },
+
+    updateCanvasCssHeight(){
+      try{
+        const header = document.querySelector('header');
+        const topBar = document.getElementById('top-bar');
+        const slotBar = document.getElementById('slot-bar');
+        const viewportH = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
+        const headerH = header ? header.offsetHeight : 0;
+        const topBarH = topBar ? topBar.offsetHeight : 0;
+        // 预留给槽位栏的空间（若未渲染高度，则使用其 min-height 作为保底）
+        let slotReserve = 84;
+        if (slotBar){
+          const cs = getComputedStyle(slotBar);
+          const minH = parseFloat(cs.minHeight || '0') || 0;
+          const paddingTop = parseFloat(cs.paddingTop || '0') || 0;
+          const paddingBottom = parseFloat(cs.paddingBottom || '0') || 0;
+          const measured = slotBar.offsetHeight || 0;
+          slotReserve = Math.max(measured, minH + paddingTop + paddingBottom, 72);
+        }
+        // 其他垂直间距（main 的内边距、容器内边距和安全余量）
+        const extraGaps = 24 /* main py-6 top */ + 24 /* main py-6 bottom */ + 24 /* 控件与画布间距余量 */ + 12 /* 容器内边距上 */ + 12 /* 容器内边距下 */;
+        const available = Math.max(180, viewportH - headerH - topBarH - slotReserve - extraGaps);
+        this.canvas.style.height = `${Math.floor(available)}px`;
+      }catch(e){ /* no-op */ }
     },
 
     bindUI(){
@@ -258,11 +286,12 @@
       const params = this.getLevelParams(this.state.level);
       const padding = 16; // CSS px
       const boardWidth = this.cssWidth - padding * 2;
-      const boardHeight = this.cssHeight - padding * 2 - 80; // 留出阴影空间
+      // 在移动端使用可用高度，自适应
+      const boardHeight = Math.max(120, this.cssHeight - padding * 2 - 80); // 留出阴影空间
       const cellSize = Math.min(boardWidth / params.cols, boardHeight / params.rows);
       const offsetX = (this.cssWidth - cellSize * params.cols) / 2;
       const offsetY = padding;
-      const layerOffset = Math.floor(cellSize * 0.15);
+      const layerOffset = Math.floor(cellSize * 0.12);
       const rects = new Map();
       for (const tile of this.tiles){
         const x = Math.floor(offsetX + tile.col * cellSize + tile.layer * layerOffset);
