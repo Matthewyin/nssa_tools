@@ -219,19 +219,17 @@
     },
 
     isCovered(tile, rects){
-      // a tile is covered if any higher layer tile (greater layer) overlaps its center and is not gone
+      // 规则：只要有更高层的牌与当前牌矩形有任何重叠，即判定为被覆盖（不可点击）
       if (tile.status !== 'board') return false;
-      const myRect = rects.get(tile.id);
-      const cx = myRect.x + myRect.w / 2;
-      const cy = myRect.y + myRect.h / 2;
+      const a = rects.get(tile.id);
       for (const other of this.tiles){
         if (other === tile) continue;
         if (other.status !== 'board') continue;
         if (other.layer <= tile.layer) continue;
-        const r = rects.get(other.id);
-        if (cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h){
-          return true;
-        }
+        const b = rects.get(other.id);
+        const overlapW = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+        const overlapH = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+        if (overlapW > 0 && overlapH > 0) return true;
       }
       return false;
     },
@@ -306,8 +304,7 @@
       // restore removed
       for (const id of action.removed){
         const t = this.tiles.find(tt=> tt.id===id);
-        if (t && t.status === 'gone') t.status = 'slot';
-        if (!this.slot.includes(id)) this.slot.push(id);
+        if (t && t.status === 'gone') t.status = 'board';
       }
       // remove last added from slot back to board
       const idx = this.slot.lastIndexOf(action.tileId);
@@ -412,7 +409,7 @@
       // draw tiles from bottom to top (lower layer first)
       const sorted = [...this.tiles].sort((a,b)=> a.layer - b.layer);
       for (const tile of sorted){
-        if (tile.status === 'gone') continue;
+        if (tile.status !== 'board') continue; // 只渲染棋盘上的牌
         const r = rects.get(tile.id);
         // shadow by layer
         ctx.save();
