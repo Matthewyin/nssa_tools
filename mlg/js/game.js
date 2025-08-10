@@ -47,7 +47,18 @@
       this.highlightTileId = null;
       this.initCanvas();
       this.bindUI();
-      this.newGame(/*keepLevel*/true);
+      // 如有正在进行的局面，则直接恢复；否则开新局
+      if (this.state && Array.isArray(this.state.tiles) && this.state.tiles.length > 0){
+        this.tiles = this.state.tiles;
+        this.slot = this.state.slot || [];
+        this.history = this.state.history || [];
+        SLOT_CAPACITY = typeof this.state.slotCapacity === 'number' ? this.state.slotCapacity : 8;
+        this.highlightTileId = null;
+        this.updateHud();
+        this.render();
+      } else {
+        this.newGame(/*keepLevel*/true);
+      }
       this.handleResize = this.handleResize.bind(this);
       window.addEventListener('resize', this.handleResize);
     },
@@ -67,7 +78,12 @@
             ],
             powerUpTokens: 0
           },
-          stats: {}
+          stats: {},
+          // 进行中局面
+          tiles: [],
+          slot: [],
+          history: [],
+          slotCapacity: 8
         };
         const merged = raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
         // 迁移与矫正：去掉提示道具，确保存在洗牌/撤销条目
@@ -80,18 +96,28 @@
         ensure('undo','撤销');
         merged.inventory = merged.inventory || { items: [], powerUpTokens: 0 };
         merged.inventory.items = filtered;
+        if (typeof merged.slotCapacity !== 'number') merged.slotCapacity = 8;
+        if (!Array.isArray(merged.tiles)) merged.tiles = [];
+        if (!Array.isArray(merged.slot)) merged.slot = [];
+        if (!Array.isArray(merged.history)) merged.history = [];
         return merged;
       }catch{ return { level:1, seed: Math.floor(Math.random()*1e9), inventory:{ items:[], powerUpTokens:0 }, stats:{} }; }
     },
 
     saveState(){
       try{
-        localStorage.setItem(getStorageKey(this.user), JSON.stringify({
+        // 将进行中局面一并保存
+        const snapshot = {
           level: this.state.level,
           seed: this.state.seed,
           inventory: this.state.inventory,
-          stats: this.state.stats
-        }));
+          stats: this.state.stats,
+          tiles: this.tiles || [],
+          slot: this.slot || [],
+          history: this.history || [],
+          slotCapacity: typeof SLOT_CAPACITY === 'number' ? SLOT_CAPACITY : 8
+        };
+        localStorage.setItem(getStorageKey(this.user), JSON.stringify(snapshot));
       }catch{}
     },
 
@@ -179,8 +205,13 @@
       this.highlightTileId = null;
       // 每关重置：槽位容量默认 8；洗牌/撤销不累加，重置为 1 次
       SLOT_CAPACITY = 8;
+      this.state.slotCapacity = SLOT_CAPACITY;
       const shuffleItem = this.getItem('shuffle'); if (shuffleItem) shuffleItem.remainingUses = 1;
       const undoItem = this.getItem('undo'); if (undoItem) { undoItem.remainingUses = 1; this.undoStepBudget = 2; }
+      // 更新持久化快照字段
+      this.state.tiles = this.tiles;
+      this.state.slot = this.slot;
+      this.state.history = this.history;
       this.saveState();
       this.updateHud();
       this.render();
@@ -441,6 +472,7 @@
       const value = pick.trim().toLowerCase();
       if (value === 'slot' || value === '扩容'){
         SLOT_CAPACITY = clamp(SLOT_CAPACITY + 1, 1, 16);
+        this.state.slotCapacity = SLOT_CAPACITY;
         this.showMessage(`槽位容量 +1 → ${SLOT_CAPACITY}`, 'info');
       } else if (value === 'shuffle' || value === '洗牌'){
         const item = this.getItem('shuffle');
