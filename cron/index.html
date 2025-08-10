@@ -60,9 +60,12 @@
                 <span id="user-email" class="mr-2"></span>
                 <button id="logout-btn" class="text-blue-500 hover:underline">退出登录</button>
             </div>
-            <div>
-                <h1 class="text-3xl font-bold">定时任务</h1>
-                <p class="text-lg text-color-secondary mt-1">所有时间均为北京时间</p>
+            <div class="flex items-center space-x-4">
+                <a href="/" class="btn btn-secondary text-sm">← 返回首页</a>
+                <div>
+                    <h1 class="text-3xl font-bold">定时任务</h1>
+                    <p class="text-lg text-color-secondary mt-1">所有时间均为北京时间</p>
+                </div>
             </div>
             <div class="flex items-center space-x-2">
 
@@ -191,37 +194,22 @@
         function setTheme(theme) {
             console.log('设置主题为:', theme);
             localStorage.setItem('theme', theme);
-            
+
             const body = document.body;
-            
-            // 直接修改样式，确保立即生效
+            body.classList.remove('dark-theme', 'system-theme');
+
             if (theme === 'dark') {
-                // 暗色主题
-                body.style.backgroundColor = '#000000';
-                body.style.color = '#ffffff';
+                body.classList.add('dark-theme');
                 applyModalTheme('dark');
-                console.log('应用暗色主题');
             } else if (theme === 'system') {
-                // 系统主题 - 检测系统偏好
+                body.classList.add('system-theme');
                 const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                if (isDarkMode) {
-                    body.style.backgroundColor = '#000000';
-                    body.style.color = '#ffffff';
-                    applyModalTheme('dark');
-                } else {
-                    body.style.backgroundColor = '#f5f5f7';
-                    body.style.color = '#1d1d1f';
-                    applyModalTheme('light');
-                }
-                console.log('应用系统主题, 检测到:', isDarkMode ? '暗色' : '亮色');
+                applyModalTheme(isDarkMode ? 'dark' : 'light');
             } else {
-                // 亮色主题
-                body.style.backgroundColor = '#f5f5f7';
-                body.style.color = '#1d1d1f';
+                // light
                 applyModalTheme('light');
-                console.log('应用亮色主题');
             }
-            
+
             // 更新按钮高亮状态
             updateButtonStates(theme);
         }
