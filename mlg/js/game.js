@@ -87,16 +87,21 @@
     initCanvas(){
       this.canvas = document.getElementById('game-canvas');
       this.ctx = this.canvas.getContext('2d');
+      this.dpr = window.devicePixelRatio || 1;
       this.resizeCanvas();
       this.canvas.addEventListener('click', (e)=> this.handleCanvasClick(e));
     },
 
     resizeCanvas(){
       const rect = this.canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      // 使用实际渲染尺寸，避免 CSS 高度与画布像素高度不一致导致坐标偏移
-      this.canvas.width = Math.floor(rect.width * dpr);
-      this.canvas.height = Math.floor(rect.height * dpr);
+      this.dpr = window.devicePixelRatio || 1;
+      this.cssWidth = rect.width;
+      this.cssHeight = rect.height;
+      // 设置实际像素尺寸
+      this.canvas.width = Math.floor(this.cssWidth * this.dpr);
+      this.canvas.height = Math.floor(this.cssHeight * this.dpr);
+      // 使用 CSS 像素坐标系进行绘制
+      this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     },
 
     handleResize(){
@@ -202,12 +207,11 @@
     computeTileRects(){
       // compute pixel rects for each tile based on rows/cols and layer offset
       const params = this.getLevelParams(this.state.level);
-      const dpr = window.devicePixelRatio || 1;
-      const padding = 16 * dpr;
-      const boardWidth = this.canvas.width - padding * 2;
-      const boardHeight = this.canvas.height - padding * 2 - 80 * dpr; // leave room for layer shadows
+      const padding = 16; // CSS px
+      const boardWidth = this.cssWidth - padding * 2;
+      const boardHeight = this.cssHeight - padding * 2 - 80; // 留出阴影空间
       const cellSize = Math.min(boardWidth / params.cols, boardHeight / params.rows);
-      const offsetX = (this.canvas.width - cellSize * params.cols) / 2;
+      const offsetX = (this.cssWidth - cellSize * params.cols) / 2;
       const offsetY = padding;
       const layerOffset = Math.floor(cellSize * 0.15);
       const rects = new Map();
@@ -252,9 +256,8 @@
 
     handleCanvasClick(e){
       const rect = this.canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      const x = (e.clientX - rect.left) * dpr;
-      const y = (e.clientY - rect.top) * dpr;
+      const x = (e.clientX - rect.left); // CSS px
+      const y = (e.clientY - rect.top);
       const tile = this.getSelectableTileAtPoint(x, y);
       if (!tile){
         // 点击空白或不可选区域时不做二次点击要求，直接返回
@@ -406,9 +409,8 @@
     // --- Rendering ---
     render(){
       const ctx = this.ctx;
-      const w = this.canvas.width;
-      const h = this.canvas.height;
-      const dpr = window.devicePixelRatio || 1;
+      const w = this.cssWidth;
+      const h = this.cssHeight;
       ctx.clearRect(0,0,w,h);
       ctx.fillStyle = '#f1f5f9';
       ctx.fillRect(0,0,w,h);
