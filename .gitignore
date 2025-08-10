@@ -3,3 +3,19 @@ node_modules
 
 # 排除含敏感信息的配置文件
 cron/wrangler.toml
+
+# 统一Worker模式下，屏蔽子目录的独立wrangler配置
+**/wrangler.toml
+!wrangler.toml
+
+# 备份与样例
+**/*.bak
+**/*.sample
+
+# 环境文件
+.env
+.env.*
+
+# IDE & 系统
+.vscode/
+.idea/

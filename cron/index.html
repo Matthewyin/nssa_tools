@@ -15,6 +15,8 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- Unified Firebase config injected by Worker -->
+    <script src="/firebase-config.js"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
@@ -177,17 +179,8 @@
         `;
 
         // --- Firebase 初始化 ---
-        const firebaseConfig = {
-            apiKey: "__FIREBASE_API_KEY__",
-            authDomain: "__FIREBASE_AUTH_DOMAIN__",
-            projectId: "__FIREBASE_PROJECT_ID__",
-            storageBucket: "__FIREBASE_STORAGE_BUCKET__",
-            messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
-            appId: "__FIREBASE_APP_ID__"
-        };
-        
-        // 初始化Firebase
-        firebase.initializeApp(firebaseConfig);
+        // 使用统一配置初始化 Firebase（由 /firebase-config.js 提供）
+        firebase.initializeApp(window.__FIREBASE_CONFIG__);
 
         // --- 状态与数据 ---
         let currentUser = null;
