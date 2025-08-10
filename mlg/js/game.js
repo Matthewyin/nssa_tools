@@ -1,5 +1,6 @@
 (function(){
-  const SLOT_CAPACITY = 7;
+  // 槽位容量改为可变，默认 8
+  let SLOT_CAPACITY = 8;
   const DIFFICULTY_LABELS = ['入门','进阶','高手','大师','宗师'];
 
   function getStorageKey(user){
@@ -60,15 +61,26 @@
           seed: Math.floor(Math.random()*1e9),
           inventory: {
             items: [
-              { id: 'hint', name: '提示', remainingUses: 2, cap: 5 },
-              { id: 'shuffle', name: '洗牌', remainingUses: 2, cap: 5 },
-              { id: 'undo', name: '撤销', remainingUses: 3, cap: 6 }
+              // 移除提示；默认每关洗牌×1、撤销×1；cap 上限保守
+              { id: 'shuffle', name: '洗牌', remainingUses: 1, cap: 9 },
+              { id: 'undo', name: '撤销', remainingUses: 1, cap: 9 }
             ],
             powerUpTokens: 0
           },
           stats: {}
         };
-        return raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+        const merged = raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+        // 迁移与矫正：去掉提示道具，确保存在洗牌/撤销条目
+        const items = (merged.inventory && Array.isArray(merged.inventory.items)) ? merged.inventory.items : [];
+        const filtered = items.filter(it => it && (it.id === 'shuffle' || it.id === 'undo'));
+        const ensure = (id, name)=>{
+          if (!filtered.some(it=> it.id === id)) filtered.push({ id, name, remainingUses: 1, cap: 9 });
+        };
+        ensure('shuffle','洗牌');
+        ensure('undo','撤销');
+        merged.inventory = merged.inventory || { items: [], powerUpTokens: 0 };
+        merged.inventory.items = filtered;
+        return merged;
       }catch{ return { level:1, seed: Math.floor(Math.random()*1e9), inventory:{ items:[], powerUpTokens:0 }, stats:{} }; }
     },
 
@@ -113,8 +125,8 @@
       // Top HUD
       this.updateHud();
 
-      document.getElementById('btn-powerup').addEventListener('click', ()=> this.handlePowerUp());
-      document.getElementById('btn-hint').addEventListener('click', ()=> this.useHint());
+      const addBtn = document.getElementById('btn-add');
+      if (addBtn) addBtn.addEventListener('click', ()=> this.handleAdd());
       document.getElementById('btn-shuffle').addEventListener('click', ()=> this.useShuffle());
       document.getElementById('btn-undo').addEventListener('click', ()=> this.useUndo());
       document.getElementById('btn-restart').addEventListener('click', ()=> this.newGame(/*keepLevel*/true));
@@ -137,6 +149,10 @@
       this.tiles = this.generateLevel(this.state.level, this.state.seed);
       this.history = [];
       this.highlightTileId = null;
+      // 每关重置：槽位容量默认 8；洗牌/撤销不累加，重置为 1 次
+      SLOT_CAPACITY = 8;
+      const shuffleItem = this.getItem('shuffle'); if (shuffleItem) shuffleItem.remainingUses = 1;
+      const undoItem = this.getItem('undo'); if (undoItem) { undoItem.remainingUses = 1; this.undoStepBudget = 2; }
       this.saveState();
       this.updateHud();
       this.render();
@@ -150,13 +166,12 @@
     // --- Level Generation ---
     getLevelParams(level){
       const tier = Math.floor((level - 1) / 3); // 每3关提升一档
-      const rows = clamp(5 + tier, 5, 9);
-      const cols = clamp(5 + tier, 5, 9);
-      const layers = clamp(2 + Math.floor(tier/1), 2, 4);
-      // 增加类型数量上限，提升多样性
-      const typeCount = clamp(8 + tier * 2, 8, Math.min(SYMBOLS.length - 1, 24));
-      // 略微提高覆盖密度，增加层叠感
-      const coverDensity = clamp(0.60 + tier * 0.05, 0.60, 0.85);
+      const rows = clamp(6 + tier, 6, 10);
+      const cols = clamp(6 + tier, 6, 10);
+      const layers = clamp(5 + Math.floor(tier/1), 5, 8); // 起始 5 层，上限更高
+      const typeCount = clamp(10 + tier * 3, 10, Math.min(SYMBOLS.length - 1, 30));
+      // 提高覆盖密度，增加堆叠；并用于去相邻策略
+      const coverDensity = clamp(0.70 + tier * 0.05, 0.70, 0.90);
       return { rows, cols, layers, typeCount, coverDensity };
     },
 
@@ -164,42 +179,76 @@
       const params = this.getLevelParams(level);
       const random = rng(seed);
       const positions = [];
-      // Generate grid positions per layer with some holes based on coverDensity
+      // 生成更高层级和更密集的分布
       for (let z = 0; z < params.layers; z++){
         for (let r = 0; r < params.rows; r++){
           for (let c = 0; c < params.cols; c++){
-            // create a hole chance inversely proportional to density
             const keep = random() < params.coverDensity;
             if (keep) positions.push({ layer: z, row: r, col: c });
           }
         }
       }
-      // Ensure total positions is multiple of 3 (each type in triples)
+      // 保证位置数量可被 3 整除
       const remainder = positions.length % 3;
       if (remainder !== 0){
-        positions.splice(0, remainder); // drop a few to make divisible by 3
+        positions.splice(0, remainder);
       }
-      // Assign types in triples
-      const tiles = [];
-      let typeId = 0;
-      for (let i = 0; i < positions.length; i += 3){
+      // 先为每个位置分配一个类型池，避免同层相邻概率过高：
+      // - 创建类型数组，复制三次（三消）
+      const tripleCount = positions.length / 3;
+      const typesPool = [];
+      for (let i = 0; i < tripleCount; i++){
         const t = Math.floor(random() * params.typeCount);
-        for (let j = 0; j < 3; j++){
-          const pos = positions[i + j];
-          tiles.push({
-            id: `t${i+j}`,
-            type: t,
-            layer: pos.layer,
-            row: pos.row,
-            col: pos.col,
-            status: 'board' // 'board' | 'slot' | 'gone'
-          });
+        typesPool.push(t,t,t);
+      }
+      // 洗牌类型池
+      for (let i = typesPool.length - 1; i > 0; i--){
+        const j = Math.floor(random() * (i + 1));
+        [typesPool[i], typesPool[j]] = [typesPool[j], typesPool[i]];
+      }
+      // 将 positions 按层分组并打乱，以减少可见相邻重复
+      const byLayer = new Map();
+      for (const pos of positions){
+        if (!byLayer.has(pos.layer)) byLayer.set(pos.layer, []);
+        byLayer.get(pos.layer).push(pos);
+      }
+      for (const arr of byLayer.values()){
+        for (let i = arr.length - 1; i > 0; i--){
+          const j = Math.floor(random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
         }
       }
-      // Shuffle within layers to reduce obvious triples clustering
-      tiles.sort(()=> random() - 0.5);
-      // Re-assign ids after shuffle for stable rendering order (higher layer drawn later)
-      tiles.forEach((tile, idx)=> tile.id = `t${idx}`);
+      // 合并层序，交错从各层取，进一步降低相邻重复
+      const merged = [];
+      const layerKeys = [...byLayer.keys()].sort((a,b)=> a-b);
+      let progressed = true;
+      while (progressed){
+        progressed = false;
+        for (const k of layerKeys){
+          const arr = byLayer.get(k);
+          if (arr && arr.length){ merged.push(arr.shift()); progressed = true; }
+        }
+      }
+      // 按邻近惩罚分配类型：尽量避免与最近两个相同
+      const tiles = [];
+      for (let i = 0; i < merged.length; i++){
+        // 选择一个类型，使其不与最近两个已分配类型相同
+        let pickedType = null;
+        for (let attempt = 0; attempt < 3 && typesPool.length; attempt++){
+          const candidate = typesPool.pop();
+          const prev1 = tiles[i-1]?.type;
+          const prev2 = tiles[i-2]?.type;
+          if (candidate !== prev1 && candidate !== prev2){
+            pickedType = candidate;
+            break;
+          }
+          // 放回候选，放到前面，稍后再试
+          typesPool.unshift(candidate);
+        }
+        if (pickedType === null && typesPool.length){ pickedType = typesPool.pop(); }
+        const pos = merged[i];
+        tiles.push({ id: `t${i}`, type: pickedType ?? 0, layer: pos.layer, row: pos.row, col: pos.col, status: 'board' });
+      }
       return tiles;
     },
 
@@ -324,9 +373,15 @@
     useUndo(){
       const undoItem = this.getItem('undo');
       if (!undoItem || undoItem.remainingUses <= 0){ this.showMessage('撤销次数不足', 'warn'); return; }
-      const action = this.history.pop();
-      if (!action){ this.showMessage('没有可撤销的操作', 'info'); return; }
-      this.undoAction(action);
+      // 每次使用可撤销最多 2 步
+      let steps = 0;
+      while (steps < 2){
+        const action = this.history.pop();
+        if (!action) break;
+        this.undoAction(action);
+        steps++;
+      }
+      if (steps === 0){ this.showMessage('没有可撤销的操作', 'info'); return; }
       undoItem.remainingUses -= 1;
       this.saveState();
     },
@@ -348,49 +403,30 @@
       this.saveState();
     },
 
-    useHint(){
-      const item = this.getItem('hint');
-      if (!item || item.remainingUses <= 0){ this.showMessage('提示次数不足', 'warn'); return; }
-      // find a selectable tile whose type count (board+slot) >= 3
-      const counts = new Map();
-      for (const t of this.tiles){
-        if (t.status === 'gone') continue;
-        counts.set(t.type, (counts.get(t.type)||0) + 1);
-      }
-      const rects = this.computeTileRects();
-      let targetId = null;
-      for (const t of this.tiles){
-        if (t.status !== 'board') continue;
-        if (counts.get(t.type) >= 3 && !this.isCovered(t, rects)) { targetId = t.id; break; }
-      }
-      if (!targetId){
-        // fallback: highlight any selectable
-        for (const t of this.tiles){
-          if (t.status==='board' && !this.isCovered(t, rects)) { targetId = t.id; break; }
-        }
-      }
-      if (targetId){
-        this.highlightTileId = targetId;
-        item.remainingUses -= 1;
-        this.render();
-        setTimeout(()=>{ this.highlightTileId = null; this.render(); }, 800);
-        this.saveState();
-      } else {
-        this.showMessage('暂无可提示的目标', 'info');
-      }
-    },
+    // 移除提示功能
 
-    handlePowerUp(){
-      // simple selector via prompt
-      const choices = this.state.inventory.items.map(it=> it.id).join('/');
-      const pick = prompt(`选择要扩容的道具(${choices})：`, 'hint');
+    handleAdd(){
+      // 通过 prompt 选择增加：洗牌/撤销/扩容
+      const pick = prompt('选择要增加的内容（shuffle/undo/slot）：', 'shuffle');
       if (!pick) return;
-      const item = this.getItem(pick.trim());
-      if (!item){ this.showMessage('未知道具', 'warn'); return; }
-      const old = item.remainingUses;
-      item.remainingUses = clamp(item.remainingUses * 2, 0, item.cap);
-      this.showMessage(`${item.name || item.id} 次数：${old} → ${item.remainingUses}`, 'info');
+      const value = pick.trim().toLowerCase();
+      if (value === 'slot' || value === '扩容'){
+        SLOT_CAPACITY = clamp(SLOT_CAPACITY + 1, 1, 16);
+        this.showMessage(`槽位容量 +1 → ${SLOT_CAPACITY}`, 'info');
+      } else if (value === 'shuffle' || value === '洗牌'){
+        const item = this.getItem('shuffle');
+        if (item){ item.remainingUses = clamp(item.remainingUses + 1, 0, item.cap); }
+        this.showMessage('洗牌 +1', 'info');
+      } else if (value === 'undo' || value === '撤销'){
+        const item = this.getItem('undo');
+        if (item){ item.remainingUses = clamp(item.remainingUses + 1, 0, item.cap); }
+        this.showMessage('撤销 +1', 'info');
+      } else {
+        this.showMessage('无效选择', 'warn');
+        return;
+      }
       this.saveState();
+      this.render();
     },
 
     getItem(id){
