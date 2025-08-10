@@ -5,6 +5,20 @@ compatibility_date = "2025-08-10"
 [assets]
 directory = "."
 binding = "ASSETS"
+exclude = [
+  "**/node_modules/**",
+  "**/.git/**",
+  "**/.gitignore",
+  "**/.DS_Store",
+  "**/wrangler.toml",
+  "**/wrangler.toml.bak",
+  "**/*.bak",
+  "**/*.sample",
+  "**/package*.json",
+  "**/.vscode/**",
+  "**/.idea/**",
+  "**/worker.js"
+]
 
 [vars]
 # Firebase Web config for browser initialization (public)
@@ -21,3 +35,10 @@ SESSION_MAX_AGE = "604800" # 7 days in seconds
 
 # Paths that can bypass auth (login assets, config script)
 AUTH_BYPASS = "/auth,/firebase-config.js,/auth/login,/auth/logout"
+
+# Route binding to custom domain
+workers_dev = false
+
+[[routes]]
+pattern = "tools.nssa.io/*"
+zone_name = "nssa.io"
