@@ -366,11 +366,15 @@
           if (t.status==='board' && !this.isCovered(t, rects)) { targetId = t.id; break; }
         }
       }
-      this.highlightTileId = targetId;
-      item.remainingUses -= 1;
-      this.render();
-      setTimeout(()=>{ this.highlightTileId = null; this.render(); }, 800);
-      this.saveState();
+      if (targetId){
+        this.highlightTileId = targetId;
+        item.remainingUses -= 1;
+        this.render();
+        setTimeout(()=>{ this.highlightTileId = null; this.render(); }, 800);
+        this.saveState();
+      } else {
+        this.showMessage('暂无可提示的目标', 'info');
+      }
     },
 
     handlePowerUp(){
