@@ -44,7 +44,7 @@ export default {
     }
     if (url.pathname === "/auth/logout") {
       const cookieName = env.SESSION_COOKIE_NAME || "nssatools_session";
-      const headers = new Headers({ Location: "/auth/login" });
+      const headers = new Headers({ Location: "/" });
       headers.append("Set-Cookie", `${cookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`);
       return new Response(null, { status: 302, headers });
     }
@@ -69,18 +69,18 @@ export default {
 
     // If not bypass and no session, redirect to login
     if (!isBypass && !session) {
-      const loginUrl = new URL("/auth/login", url.origin);
-      loginUrl.searchParams.set("redirect", url.pathname + url.search);
-      return Response.redirect(loginUrl.toString(), 302);
+      const homeUrl = new URL("/", url.origin);
+      homeUrl.searchParams.set("redirect", url.pathname + url.search);
+      return Response.redirect(homeUrl.toString(), 302);
     }
 
     // If session present, verify token (with cache)
     if (!isBypass && session) {
       const valid = await verifyIdToken(env, session);
       if (!valid) {
-        const loginUrl = new URL("/auth/login", url.origin);
-        loginUrl.searchParams.set("redirect", url.pathname + url.search);
-        return Response.redirect(loginUrl.toString(), 302);
+        const homeUrl = new URL("/", url.origin);
+        homeUrl.searchParams.set("redirect", url.pathname + url.search);
+        return Response.redirect(homeUrl.toString(), 302);
       }
     }
 

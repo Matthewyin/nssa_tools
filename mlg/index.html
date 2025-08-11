@@ -21,7 +21,7 @@
       </div>
       <div class="text-sm flex items-center gap-3">
         <span id="user-email" class="text-slate-500"></span>
-        <a href="/auth/logout" class="text-blue-600 hover:text-blue-700">退出</a>
+        <a id="logout-link" href="/auth/logout" class="text-blue-600 hover:text-blue-700">退出</a>
       </div>
     </div>
   </header>
@@ -73,14 +73,14 @@
       setFavicon();
     })();
 
-    // 登录保护（与 /Gomoku 一致）：未登录则跳转登录页
+    // 登录保护：未登录返回首页，由首页负责统一登录
     if (window.__FIREBASE_CONFIG__) {
       if (!firebase.apps || firebase.apps.length === 0) {
         firebase.initializeApp(window.__FIREBASE_CONFIG__);
       }
       firebase.auth().onAuthStateChanged(function(user){
         if (!user) {
-          var url = new URL('/auth/login', window.location.origin);
+          var url = new URL('/', window.location.origin);
           url.searchParams.set('redirect', window.location.pathname + window.location.search);
           window.location.replace(url.toString());
         } else {
@@ -91,6 +91,17 @@
         }
       });
     }
+
+    // 统一登出：先 signOut 再清服务器 Cookie
+    (function(){
+      var link = document.getElementById('logout-link');
+      if (!link) return;
+      link.addEventListener('click', async function(e){
+        e.preventDefault();
+        try{ if (window.firebase && firebase.apps && firebase.apps.length){ await firebase.auth().signOut(); } }catch(e){}
+        window.location.href = '/auth/logout';
+      });
+    })();
   </script>
 </body>
 </html>

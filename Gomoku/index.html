@@ -149,19 +149,34 @@
             setFavicon();
         })();
     </script>
-        // 初始化 Firebase（登录保护）
+        // 初始化 Firebase（登录保护：未登录统一回首页登录）
         if (window.__FIREBASE_CONFIG__) {
             if (firebase.apps && firebase.apps.length === 0) {
                 firebase.initializeApp(window.__FIREBASE_CONFIG__);
             }
             firebase.auth().onAuthStateChanged(user => {
                 if (!user) {
-                    const url = new URL('/auth/login', window.location.origin);
+                    const url = new URL('/', window.location.origin);
                     url.searchParams.set('redirect', window.location.pathname + window.location.search);
                     window.location.replace(url.toString());
                 }
             });
         }
+
+        // 统一登出：项目内点击退出时，先 signOut 再清服务器 Cookie
+        (function(){
+          var header = document.querySelector('header, .mx-auto');
+          var logoutLink = document.getElementById('logout-link');
+          if (!logoutLink){
+            // 若页面未内置登出入口，跳过
+            return;
+          }
+          logoutLink.addEventListener('click', async function(e){
+            e.preventDefault();
+            try{ if (window.firebase && firebase.apps && firebase.apps.length){ await firebase.auth().signOut(); } }catch(e){}
+            window.location.href = '/auth/logout';
+          });
+        })();
 
         // --- DOM Elements ---
         const canvas = document.getElementById('gomoku-board');

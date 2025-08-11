@@ -214,6 +214,12 @@
         let tasks = [];
         let taskTimers = new Map();
 
+        async function persistSessionToWorker(idToken){
+            try{
+                await fetch('/auth/session', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ idToken }) });
+            }catch(e){ console.warn('会话同步失败', e); }
+        }
+
         // --- 重写的主题切换逻辑 ---
         function setTheme(theme) {
             console.log('设置主题为:', theme);
@@ -795,6 +801,7 @@
                 hideAuthError();
                 const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
+                try{ const idToken = await currentUser.getIdToken(true); await persistSessionToWorker(idToken); }catch(e){}
                 console.log('用户登录成功:', currentUser.email);
                 hideAuthContainer();
                 loadUserTasks();
@@ -888,9 +895,10 @@
             console.log('主题初始化完成');
             
             // 监听认证状态变化
-            firebase.auth().onAuthStateChanged(user => {
+            firebase.auth().onAuthStateChanged(async user => {
                 if (user) {
                     currentUser = user;
+                    try{ const idToken = await user.getIdToken(true); await persistSessionToWorker(idToken); }catch(e){}
                     hideAuthContainer();
                     loadUserTasks();
                     updateUserUI();

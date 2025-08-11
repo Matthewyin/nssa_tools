@@ -17,7 +17,8 @@
       <h1 class="text-xl font-semibold">NSSA Tools</h1>
       <div class="text-sm flex items-center gap-3">
         <span id="user-email" class="text-slate-500"></span>
-        <a href="/auth/logout" class="text-blue-600 hover:text-blue-700">退出</a>
+        <a id="login-open" href="#" class="text-blue-600 hover:text-blue-700 hidden">登录</a>
+        <a id="logout-link" href="/auth/logout" class="text-blue-600 hover:text-blue-700 hidden">退出</a>
       </div>
     </div>
   </header>
@@ -175,20 +176,54 @@
         });
       }
 
+      function bindAuthLinks(){
+        var loginOpen = document.getElementById('login-open');
+        var logoutLink = document.getElementById('logout-link');
+        if (loginOpen){
+          loginOpen.addEventListener('click', function(e){
+            e.preventDefault();
+            openLoginModal('/');
+          });
+        }
+        if (logoutLink){
+          logoutLink.addEventListener('click', async function(e){
+            e.preventDefault();
+            try{
+              if (window.firebase && firebase.apps && firebase.apps.length){
+                await firebase.auth().signOut();
+              }
+            }catch(e){}
+            // 清 Cookie 会话
+            window.location.href = '/auth/logout';
+          });
+        }
+      }
+
       if (window.__FIREBASE_CONFIG__) {
         if (!firebase.apps || firebase.apps.length === 0) {
           firebase.initializeApp(window.__FIREBASE_CONFIG__);
         }
-        firebase.auth().onAuthStateChanged(function(user) {
+        firebase.auth().onAuthStateChanged(async function(user) {
           currentUser = user || null;
           var emailEl = document.getElementById('user-email');
+          var loginOpen = document.getElementById('login-open');
+          var logoutLink = document.getElementById('logout-link');
           if (emailEl) emailEl.textContent = currentUser ? (currentUser.email || '') : '';
+          if (currentUser){
+            if (logoutLink) logoutLink.classList.remove('hidden');
+            if (loginOpen) loginOpen.classList.add('hidden');
+            try{ const idToken = await currentUser.getIdToken(true); await persistSessionToWorker(idToken); }catch(e){}
+          } else {
+            if (logoutLink) logoutLink.classList.add('hidden');
+            if (loginOpen) loginOpen.classList.remove('hidden');
+          }
           // 登录后尝试处理预热跳转
           handleRedirectAfterWarmup();
           // 设置 favicon
           setFavicon();
         });
         bindToolCards();
+        bindAuthLinks();
       }
     })();
   </script>
