@@ -45,6 +45,8 @@
       this.state = this.loadState();
       this.history = [];
       this.highlightTileId = null;
+      this.timer = null;
+      this.warnedNearFull = false;
       this.initCanvas();
       this.bindUI();
       // 如有正在进行的局面，则直接恢复；否则开新局
@@ -54,6 +56,12 @@
         this.history = this.state.history || [];
         SLOT_CAPACITY = typeof this.state.slotCapacity === 'number' ? this.state.slotCapacity : 8;
         this.highlightTileId = null;
+        // 确保存在开始时间
+        if (typeof this.state.startedAt !== 'number'){
+          this.state.startedAt = Date.now();
+          this.saveState();
+        }
+        this.startTimer();
         this.updateHud();
         this.render();
       } else {
@@ -83,7 +91,8 @@
           tiles: [],
           slot: [],
           history: [],
-          slotCapacity: 8
+          slotCapacity: 8,
+          startedAt: Date.now()
         };
         const merged = raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
         // 迁移与矫正：去掉提示道具，确保存在洗牌/撤销条目
@@ -100,6 +109,7 @@
         if (!Array.isArray(merged.tiles)) merged.tiles = [];
         if (!Array.isArray(merged.slot)) merged.slot = [];
         if (!Array.isArray(merged.history)) merged.history = [];
+        if (typeof merged.startedAt !== 'number') merged.startedAt = Date.now();
         return merged;
       }catch{ return { level:1, seed: Math.floor(Math.random()*1e9), inventory:{ items:[], powerUpTokens:0 }, stats:{} }; }
     },
@@ -115,7 +125,8 @@
           tiles: this.tiles || [],
           slot: this.slot || [],
           history: this.history || [],
-          slotCapacity: typeof SLOT_CAPACITY === 'number' ? SLOT_CAPACITY : 8
+          slotCapacity: typeof SLOT_CAPACITY === 'number' ? SLOT_CAPACITY : 8,
+          startedAt: this.state.startedAt
         };
         localStorage.setItem(getStorageKey(this.user), JSON.stringify(snapshot));
       }catch{}
@@ -178,9 +189,38 @@
     bindUI(){
       // Top HUD
       this.updateHud();
-
+      // 内置增加道具面板
       const addBtn = document.getElementById('btn-add');
-      if (addBtn) addBtn.addEventListener('click', ()=> this.handleAdd());
+      const addPanel = document.getElementById('add-panel');
+      if (addBtn && addPanel){
+        addBtn.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          addPanel.classList.toggle('hidden');
+          addPanel.setAttribute('aria-hidden', addPanel.classList.contains('hidden') ? 'true' : 'false');
+        });
+        addPanel.addEventListener('click', (e)=>{
+          const target = e.target.closest('.menu-item');
+          if (!target) return;
+          const action = target.getAttribute('data-action');
+          this.applyAddAction(action);
+          addPanel.classList.add('hidden');
+          addPanel.setAttribute('aria-hidden','true');
+        });
+        // 点击外部关闭
+        document.addEventListener('click', (e)=>{
+          if (addPanel.classList.contains('hidden')) return;
+          if (e.target === addBtn || addPanel.contains(e.target)) return;
+          addPanel.classList.add('hidden');
+          addPanel.setAttribute('aria-hidden','true');
+        });
+        // Esc 关闭
+        document.addEventListener('keydown', (e)=>{
+          if (e.key === 'Escape'){
+            addPanel.classList.add('hidden');
+            addPanel.setAttribute('aria-hidden','true');
+          }
+        });
+      }
       document.getElementById('btn-shuffle').addEventListener('click', ()=> this.useShuffle());
       document.getElementById('btn-undo').addEventListener('click', ()=> this.useUndo());
       document.getElementById('btn-restart').addEventListener('click', ()=> this.newGame(/*keepLevel*/true));
@@ -191,8 +231,19 @@
       const diffEl = document.getElementById('difficulty');
       if (levelEl) levelEl.textContent = this.state.level;
       if (diffEl) diffEl.textContent = DIFFICULTY_LABELS[Math.floor((this.state.level - 1) / 3)] || DIFFICULTY_LABELS[0];
-      document.getElementById('moves').textContent = '--';
-      document.getElementById('time').textContent = '--';
+      const movesEl = document.getElementById('moves');
+      const timeEl = document.getElementById('time');
+      const moves = Array.isArray(this.history) ? this.history.length : 0;
+      const elapsedMs = Math.max(0, Date.now() - (this.state.startedAt || Date.now()));
+      const mm = String(Math.floor(elapsedMs/60000)).padStart(2,'0');
+      const ss = String(Math.floor((elapsedMs%60000)/1000)).padStart(2,'0');
+      if (movesEl) movesEl.textContent = String(moves);
+      if (timeEl) timeEl.textContent = `${mm}:${ss}`;
+    },
+
+    startTimer(){
+      if (this.timer) clearInterval(this.timer);
+      this.timer = setInterval(()=> this.updateHud(), 1000);
     },
 
     // --- Game Loop ---
@@ -208,6 +259,10 @@
       this.state.slotCapacity = SLOT_CAPACITY;
       const shuffleItem = this.getItem('shuffle'); if (shuffleItem) shuffleItem.remainingUses = 1;
       const undoItem = this.getItem('undo'); if (undoItem) { undoItem.remainingUses = 1; this.undoStepBudget = 2; }
+      // 计时器重置
+      this.state.startedAt = Date.now();
+      this.startTimer();
+      this.warnedNearFull = false;
       // 更新持久化快照字段
       this.state.tiles = this.tiles;
       this.state.slot = this.slot;
@@ -224,13 +279,15 @@
 
     // --- Level Generation ---
     getLevelParams(level){
-      const tier = Math.floor((level - 1) / 3); // 每3关提升一档
-      const rows = clamp(6 + tier, 6, 10);
-      const cols = clamp(6 + tier, 6, 10);
-      const layers = clamp(5 + Math.floor(tier/1), 5, 8); // 起始 5 层，上限更高
-      const typeCount = clamp(10 + tier * 3, 10, Math.min(SYMBOLS.length - 1, 30));
-      // 提高覆盖密度，增加堆叠；并用于去相邻策略
-      const coverDensity = clamp(0.70 + tier * 0.05, 0.70, 0.90);
+      const tier = Math.floor((level - 1) / 3); // 每 3 关提升一档
+      // 每层减少平铺规模（更少的行列），但整体增大层数
+      const rows = clamp(5 + Math.floor(tier / 2), 5, 8);
+      const cols = clamp(5 + Math.floor(tier / 2), 5, 8);
+      const layers = clamp(7 + Math.floor(tier * 1.5), 7, 12);
+      // 降低每层密度，使单层更稀疏
+      const coverDensity = clamp(0.42 + tier * 0.03, 0.42, 0.62);
+      // 适度的类型数量，避免过于重复或过分离散
+      const typeCount = clamp(12 + tier * 2, 12, Math.min(SYMBOLS.length - 1, 28));
       return { rows, cols, layers, typeCount, coverDensity };
     },
 
@@ -411,6 +468,7 @@
 
       this.history.push(action);
       this.render();
+      this.updateHud();
       this.checkWin();
       this.saveState();
     },
@@ -443,6 +501,7 @@
       }
       if (steps === 0){ this.showMessage('没有可撤销的操作', 'info'); return; }
       undoItem.remainingUses -= 1;
+      this.updateHud();
       this.saveState();
     },
 
@@ -463,22 +522,25 @@
       this.saveState();
     },
 
-    // 移除提示功能
-
+    // 增加道具：内置面板分支
     handleAdd(){
-      // 通过 prompt 选择增加：洗牌/撤销/扩容
-      const pick = prompt('选择要增加的内容（shuffle/undo/slot）：', 'shuffle');
-      if (!pick) return;
-      const value = pick.trim().toLowerCase();
-      if (value === 'slot' || value === '扩容'){
+      const addPanel = document.getElementById('add-panel');
+      if (!addPanel) return;
+      addPanel.classList.toggle('hidden');
+      addPanel.setAttribute('aria-hidden', addPanel.classList.contains('hidden') ? 'true':'false');
+    },
+
+    applyAddAction(value){
+      const v = String(value || '').trim().toLowerCase();
+      if (v === 'slot' || v === '扩容'){
         SLOT_CAPACITY = clamp(SLOT_CAPACITY + 1, 1, 16);
         this.state.slotCapacity = SLOT_CAPACITY;
         this.showMessage(`槽位容量 +1 → ${SLOT_CAPACITY}`, 'info');
-      } else if (value === 'shuffle' || value === '洗牌'){
+      } else if (v === 'shuffle' || v === '洗牌'){
         const item = this.getItem('shuffle');
         if (item){ item.remainingUses = clamp(item.remainingUses + 1, 0, item.cap); }
         this.showMessage('洗牌 +1', 'info');
-      } else if (value === 'undo' || value === '撤销'){
+      } else if (v === 'undo' || v === '撤销'){
         const item = this.getItem('undo');
         if (item){ item.remainingUses = clamp(item.remainingUses + 1, 0, item.cap); }
         this.showMessage('撤销 +1', 'info');
@@ -564,13 +626,30 @@
       const empties = Math.max(0, SLOT_CAPACITY - this.slot.length);
       for (let i=0;i<empties;i++){ items.push('<div class="slot-item empty"></div>'); }
       container.innerHTML = items.join('');
+      // 预警：接近满容量
+      const nearFull = this.slot.length >= Math.max(1, SLOT_CAPACITY - 1) && this.slot.length < SLOT_CAPACITY;
+      container.classList.toggle('warning', nearFull);
+      if (nearFull && !this.warnedNearFull){
+        this.showMessage('注意：槽位即将满', 'warn');
+        this.warnedNearFull = true;
+      }
+      if (!nearFull){ this.warnedNearFull = false; }
     },
 
     // --- Toast ---
     showMessage(text, type){
-      // minimal toast using alert-like UX for now
-      console.log(`[${type}]`, text);
-      // can be improved to custom toast UI later
+      try{
+        console.log(`[${type}]`, text);
+        const container = document.getElementById('toast-container');
+        if (!container){ return; }
+        const toast = document.createElement('div');
+        toast.className = `toast ${type || 'info'}`;
+        toast.textContent = String(text || '');
+        container.appendChild(toast);
+        setTimeout(()=>{
+          try{ toast.remove(); }catch{}
+        }, 2500);
+      }catch{}
     }
   };
 

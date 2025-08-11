@@ -31,14 +31,20 @@
       <div class="flex items-center gap-4 text-sm text-slate-600 flex-wrap">
         <div>关卡：<span id="level">1</span></div>
         <div>难度：<span id="difficulty">入门</span></div>
-        <div>剩余步数：<span id="moves">--</span></div>
-        <div>剩余时间：<span id="time">--</span></div>
+        <div>步数：<span id="moves">--</span></div>
+        <div>用时：<span id="time">--</span></div>
       </div>
       <div class="controls flex flex-wrap items-center gap-2">
         <button id="btn-add" class="btn btn-secondary">增加道具</button>
         <button id="btn-shuffle" class="btn btn-secondary">洗牌</button>
         <button id="btn-undo" class="btn btn-secondary">撤销</button>
         <button id="btn-restart" class="btn btn-primary">重开</button>
+        <!-- 内置增加道具面板 -->
+        <div id="add-panel" class="add-panel hidden" role="menu" aria-hidden="true">
+          <button class="menu-item" data-action="slot">扩容 +1</button>
+          <button class="menu-item" data-action="shuffle">洗牌 +1</button>
+          <button class="menu-item" data-action="undo">撤销 +1</button>
+        </div>
       </div>
     </div>
 
@@ -49,6 +55,9 @@
 
     <p class="mt-4 text-xs text-slate-500">说明：每关默认 洗牌×1、撤销×1（一次撤销最多两步），不可跨关累加；槽位默认 8，可通过“增加道具”选择扩容（+1）、洗牌（+1）或撤销（+1）。难度每 3 关提升，且自 5 层起始并逐步增加，同时优化了图片排列的随机性与相邻去重。</p>
   </main>
+
+  <!-- Toast 容器 -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
   <script src="/mlg/js/game.js"></script>
   <script>
