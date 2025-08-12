@@ -655,81 +655,30 @@
         ctx.save();
         ctx.translate(0, 0);
 
-        // 计算色彩与外观参数
+        // 配色与外形（保留圆角，但取消立体化效果）
         const accentColor = COLOR_PALETTE[tile.type % COLOR_PALETTE.length];
-        const baseFace = '#fff7ed'; // 亮色暖白基底
+        const faceColor = '#fff7ed';
         const cornerRadius = Math.max(6, Math.floor(Math.min(r.w, r.h) * 0.12));
 
-        // 1) 软阴影（按层级略增强偏移与模糊）
-        const layerFactor = 1 + tile.layer * 0.06;
-        ctx.shadowColor = 'rgba(0,0,0,0.22)';
-        ctx.shadowBlur = 10 * layerFactor;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 6 * layerFactor;
-
-        // 2) 面板渐变（顶部更亮，底部略暗）
-        const g = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
-        g.addColorStop(0, 'rgba(255,255,255,0.75)');
-        g.addColorStop(0.08, baseFace);
-        g.addColorStop(0.92, 'rgba(0,0,0,0.02)');
-        g.addColorStop(1, 'rgba(0,0,0,0.04)');
-
-        // 绘制圆角卡片主体
-        this.createRoundedRectPath(ctx, r.x, r.y, r.w, r.h, cornerRadius);
-        ctx.fillStyle = g;
-        ctx.fill();
-
-        // 3) 外边描边：以类型色为主色，透明度适中
+        // 关闭阴影
         ctx.shadowColor = 'transparent';
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = accentColor + 'cc'; // ~80% 透明度
-        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
 
-        // 4) 高光与暗边的斜切（bevel）
-        // 顶/左外侧高光
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-        ctx.beginPath();
-        ctx.moveTo(r.x + cornerRadius * 0.5, r.y + 1);
-        ctx.lineTo(r.x + r.w - cornerRadius * 0.7, r.y + 1);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(r.x + 1, r.y + cornerRadius * 0.7);
-        ctx.lineTo(r.x + 1, r.y + r.h - cornerRadius * 0.7);
-        ctx.stroke();
-
-        // 右/底内缘的暗边（模拟内阴影）
-        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-        ctx.beginPath();
-        ctx.moveTo(r.x + r.w - 2, r.y + cornerRadius);
-        ctx.lineTo(r.x + r.w - 2, r.y + r.h - cornerRadius);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(r.x + cornerRadius, r.y + r.h - 2);
-        ctx.lineTo(r.x + r.w - cornerRadius, r.y + r.h - 2);
-        ctx.stroke();
-
-        // 5) 镜面高光片（顶左区域的柔和椭圆高光）
-        const highlightWidth = Math.floor(r.w * 0.6);
-        const highlightHeight = Math.floor(r.h * 0.35);
-        const hg = ctx.createLinearGradient(r.x, r.y, r.x, r.y + highlightHeight);
-        hg.addColorStop(0, 'rgba(255,255,255,0.20)');
-        hg.addColorStop(1, 'rgba(255,255,255,0.0)');
-        ctx.fillStyle = hg;
-        this.createRoundedRectPath(ctx, r.x + 6, r.y + 6, highlightWidth, highlightHeight, Math.min(cornerRadius, 8));
+        // 简洁的面板与描边
+        this.createRoundedRectPath(ctx, r.x, r.y, r.w, r.h, cornerRadius);
+        ctx.fillStyle = faceColor;
         ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = accentColor;
+        ctx.stroke();
 
-        // 6) 符号（emoji）轻浮雕：先暗色偏移后主体色
-        const symbolFontSize = Math.floor(r.h * 0.5);
-        ctx.font = `${symbolFontSize}px system-ui`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        // 阴影层
-        ctx.fillStyle = 'rgba(0,0,0,0.22)';
-        ctx.fillText(getSymbolForType(tile.type), r.x + r.w/2, r.y + r.h/2 + 3);
-        // 主体层
+        // 符号（单次绘制，无浮雕）
         ctx.fillStyle = accentColor;
-        ctx.fillText(getSymbolForType(tile.type), r.x + r.w/2, r.y + r.h/2 + 1);
+        ctx.font = `${Math.floor(r.h*0.5)}px system-ui`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(getSymbolForType(tile.type), r.x + r.w/2, r.y + r.h/2 + 2);
 
         const covered = (tile.status==='board' && this.isCovered(tile, rects));
         // overlay for non-selectable
