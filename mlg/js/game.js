@@ -168,6 +168,10 @@
       this.updateCanvasCssHeight();
       this.resizeCanvas();
       this.canvas.addEventListener('click', (e)=> this.handleCanvasClick(e));
+      // 监听主题变化，强制重绘，避免返回页面时残留错误底色
+      window.addEventListener('mlg:theme-change', ()=>{
+        try{ this.render(); }catch{}
+      });
     },
 
     resizeCanvas(){
@@ -633,8 +637,9 @@
       const w = this.cssWidth;
       const h = this.cssHeight;
       ctx.clearRect(0,0,w,h);
-      // 背景颜色根据主题由 CSS 控制画布容器；此处作为兜底
-      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-color')?.trim() || '#fff7ed';
+      // 背景以主题变量为准，防止在导航返回后出现与 body 不一致的黑底
+      const bg = getComputedStyle(document.body).getPropertyValue('--bg-color')?.trim();
+      ctx.fillStyle = bg && bg !== '' ? bg : '#fff7ed';
       ctx.fillRect(0,0,w,h);
 
       // 统计槽位中类型计数，用于“近三连”棋盘引导（计数==2）
