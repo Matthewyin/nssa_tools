@@ -19,6 +19,7 @@ body {
     --focus-ring-color: #0a84ff;
     --btn-primary-bg: #0a84ff;
     --btn-secondary-bg: #e5e5ea;
+    --checkbox-check-color: #000000; /* 黑字用于亮色背景 */
 }
 
 /* 暗色主题 */
@@ -34,6 +35,7 @@ body.dark-theme {
     --input-border: #5a5a5c;
     --input-text: #ffffff;
     --btn-secondary-bg: #3a3a3c;
+    --checkbox-check-color: #ffffff; /* 白字用于暗色背景 */
 }
 
 /* 系统主题 - 根据浏览器设置自动切换 */
@@ -50,6 +52,7 @@ body.dark-theme {
         --input-border: #5a5a5c;
         --input-text: #ffffff;
         --btn-secondary-bg: #3a3a3c;
+        --checkbox-check-color: #ffffff; /* 白字用于暗色背景 */
     }
 }
 .apple-card {
@@ -84,7 +87,7 @@ body.dark-theme {
 }
 .form-checkbox:checked::after {
     content: '✔';
-    color: white;
+    color: var(--checkbox-check-color);
     position: absolute;
     top: 50%;
     left: 50%;
