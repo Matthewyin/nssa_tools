@@ -253,13 +253,9 @@
       if (levelEl) levelEl.textContent = this.state.level;
       if (diffEl) diffEl.textContent = DIFFICULTY_LABELS[Math.floor((this.state.level - 1) / 3)] || DIFFICULTY_LABELS[0];
       const movesEl = document.getElementById('moves');
-      const timeEl = document.getElementById('time');
       const moves = Array.isArray(this.history) ? this.history.length : 0;
-      const elapsedMs = Math.max(0, Date.now() - (this.state.startedAt || Date.now()));
-      const mm = String(Math.floor(elapsedMs/60000)).padStart(2,'0');
-      const ss = String(Math.floor((elapsedMs%60000)/1000)).padStart(2,'0');
       if (movesEl) movesEl.textContent = String(moves);
-      if (timeEl) timeEl.textContent = `${mm}:${ss}`;
+      // 计时功能已移除，不再更新用时
 
       // 同步道具按钮可用状态与提示
       const shuffleBtn = document.getElementById('btn-shuffle');
@@ -275,8 +271,8 @@
     },
 
     startTimer(){
-      if (this.timer) clearInterval(this.timer);
-      this.timer = setInterval(()=> this.updateHud(), 1000);
+      // 计时功能已移除
+      if (this.timer) { clearInterval(this.timer); this.timer = null; }
     },
 
     // --- Game Loop ---
