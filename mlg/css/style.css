@@ -31,8 +31,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 @media (max-width: 640px){
   .btn{padding:.45rem .7rem}
   .slot-bar{gap:6px;padding:6px}
-  .slot-item{width:40px;height:40px}
-  .slot-emoji{font-size:20px}
+  /* 缩小槽位图标，提升可视区域 */
+  .slot-item{width:36px;height:36px}
+  .slot-emoji{font-size:18px}
+  /* 减少容器与页面的左右边距，给画布更多空间 */
+  .game-container{padding:8px}
+  main{padding-left:8px;padding-right:8px}
 }
 
 @media (min-width: 1024px){

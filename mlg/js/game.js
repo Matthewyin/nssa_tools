@@ -381,7 +381,8 @@
       // 使棋盘在考虑层叠横向位移后仍能完整显示在视口内
       const extraX = Math.max(0, (params.layers - 1) * layerOffset);
       // 移动端整体左移一点，避免右侧内容被裁剪
-      const mobileNudge = this.cssWidth <= 640 ? 6 : 0;
+      // 进一步左移，配合移动端缩小 UI
+      const mobileNudge = this.cssWidth <= 640 ? 10 : 0;
       const offsetX = Math.max(8, Math.floor((this.cssWidth - (cellSize * params.cols + extraX)) / 2) - mobileNudge);
       const offsetY = padding;
       const rects = new Map();
