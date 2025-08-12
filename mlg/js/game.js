@@ -442,7 +442,7 @@
       const padding = isMobile ? 8 : 16; // 移动端更小内边距
       const boardWidth = this.cssWidth - padding * 2;
       const boardHeight = Math.max(120, this.cssHeight - padding * 2 - 80);
-      // 使用非等比单元尺寸，便于在 3:2 框中居中
+      // 使用非等比单元尺寸；方形牌在单元内居中
       const cellW = boardWidth / params.cols;
       const cellH = boardHeight / params.rows;
       const baseCell = Math.min(cellW, cellH);
@@ -459,18 +459,12 @@
       const rects = new Map();
       const whFactor = isMobile ? 0.93 : 0.95; // 收缩比例
       for (const tile of this.tiles){
-        // 以 3:2（高:宽）矩形自适应到单元内，水平/垂直居中（即 w:h = 2:3）
+        // 以正方形自适应到单元内，水平/垂直居中
         const maxW = cellW * whFactor;
         const maxH = cellH * whFactor;
-        const ratioW = 2, ratioH = 3;
-        let wCandidate = Math.min(maxW, maxH * (ratioW/ratioH));
-        let hCandidate = wCandidate * (ratioH/ratioW);
-        if (hCandidate > maxH){
-          hCandidate = maxH;
-          wCandidate = hCandidate * (ratioW/ratioH);
-        }
-        const w = Math.floor(wCandidate);
-        const h = Math.floor(hCandidate);
+        const side = Math.floor(Math.min(maxW, maxH));
+        const w = side;
+        const h = side;
         const cellX = offsetX + tile.col * cellW + tile.layer * layerOffset;
         const cellY = offsetY + tile.row * cellH + (params.layers - tile.layer - 1) * layerOffset;
         const x = Math.floor(cellX + (cellW - w) / 2);
@@ -698,7 +692,7 @@
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
 
-        // 简洁的面板与描边（3:2 矩形改为小圆角）
+        // 简洁的面板与描边（方形卡片小圆角）
         const rectRadius = Math.max(4, Math.floor(Math.min(r.w, r.h) * 0.12));
         this.createRoundedRectPath(ctx, r.x, r.y, r.w, r.h, rectRadius);
         ctx.fillStyle = faceColor;
@@ -709,8 +703,8 @@
 
         // 符号立体感（仅对 emoji 增加轻微阴影与细描边，不改变卡片平面风格）
         const symbol = getSymbolForType(tile.type);
-        // 矩形比例更宽，图标可更大：占高的 62%
-        const fontSize = Math.floor(r.h * 0.62);
+        // 方形内的符号字号（占高约 50%）
+        const fontSize = Math.floor(r.h * 0.5);
         const sx = r.x + r.w/2;
         const sy = r.y + r.h/2 + 1; // 略微下移以居中
         ctx.font = `${fontSize}px system-ui`;
