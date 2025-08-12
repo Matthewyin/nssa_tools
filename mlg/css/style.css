@@ -1,11 +1,17 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
-.btn{border-radius:.5rem;font-weight:600;padding:.5rem 1rem;background:#e5e7eb}
-.btn-primary{background:#0a84ff;color:#fff}
-.btn-secondary{background:#e5e5ea;color:#1f2937}
+.btn{border-radius:.5rem;font-weight:600;padding:.5rem 1rem;background:#e5e7eb;transition:filter .15s ease, transform .05s ease}
+.btn-primary{background:var(--btn-primary-bg, #0a84ff);color:#fff}
+.btn-secondary{background:var(--btn-secondary-bg, #e5e5ea);color:var(--text-color-primary, #1f2937)}
+.btn:hover{filter:brightness(.98)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.6;cursor:not-allowed;filter:saturate(0.7)}
 .game-container{position:relative;width:100%;max-width:960px;margin:0 auto;background:#fff;border-radius:1rem;border:1px solid rgba(0,0,0,.1);padding:12px}
 .game-canvas{width:100%;height:56vh;max-height:calc(100vh - 220px);min-height:240px;background:#f8fafc;border-radius:.75rem;display:block}
-.slot-bar{margin-top:12px;min-height:64px;background:#f1f5f9;border-radius:.75rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px}
+.slot-bar{margin-top:12px;min-height:64px;background:var(--card-bg,#f1f5f9);border:1px solid var(--card-border, rgba(0,0,0,.06));border-radius:.75rem;display:flex;flex-wrap:nowrap;gap:8px;align-items:center;padding:8px}
+.slot-bar::-webkit-scrollbar{display:none}
+.slot-bar{scrollbar-width:none}
 .slot-item{width:48px;height:48px;border:2px solid #cbd5e1;border-radius:.5rem;display:flex;align-items:center;justify-content:center;background:#fff}
+.slot-item.near{box-shadow:0 0 0 2px rgba(14,165,233,.35) inset}
 .slot-item.empty{background:#f8fafc;border-style:dashed;color:#cbd5e1}
 .slot-emoji{font-size:24px;line-height:1}
 
@@ -26,13 +32,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 
 /* 槽位预警态 */
 .slot-bar.warning{box-shadow:0 0 0 2px #f59e0b inset;animation:slotPulse 1s ease-in-out infinite}
-@keyframes slotPulse{0%{box-shadow:0 0 0 2px #f59e0b inset}50%{box-shadow:0 0 0 4px #fbbf24 inset}100%{box-shadow:0 0 0 2px #f59e0b inset}}
+@keyframes slotPulse{0%{box-shadow:0 0 0 1px #f59e0b inset}50%{box-shadow:0 0 0 2px #fbbf24 inset}100%{box-shadow:0 0 0 1px #f59e0b inset}}
+
+/* 槽位项弹入动效 */
+.slot-item{animation:slotPop 160ms ease}
+@keyframes slotPop{0%{transform:scale(.92);opacity:.0}70%{transform:scale(1.04);opacity:1}100%{transform:scale(1)} }
+
+/* HUD 胶囊样式与预警态 */
+.hud-pill{display:inline-flex;align-items:center;gap:6px;padding:.2rem .5rem;border-radius:9999px;border:1px solid var(--card-border, rgba(0,0,0,.1));background:var(--card-bg,#fff);font-size:.875rem}
+.hud-pill .icon{width:16px;height:16px;display:inline-block}
+.hud-pill.warning{animation:hudPulse 1.2s ease-in-out infinite;border-color:#f59e0b}
+@keyframes hudPulse{0%{box-shadow:0 0 0 0 rgba(245,158,11,.35)}70%{box-shadow:0 0 0 6px rgba(245,158,11,.0)}100%{box-shadow:0 0 0 0 rgba(245,158,11,.0)}}
+
+/* 按钮内图标尺寸 */
+.btn .icon{width:18px;height:18px;vertical-align:middle}
+
+/* 顶部粘性压缩态 */
+.site-header{position:sticky;top:0;z-index:40;backdrop-filter:saturate(120%) blur(6px)}
+.site-header .wrap{transition:padding .15s ease}
+.site-header.header-compact .wrap{padding-top:.5rem;padding-bottom:.5rem}
 
 @media (max-width: 640px){
   .btn{padding:.45rem .7rem}
-  .slot-bar{gap:6px;padding:6px}
+  .slot-bar{gap:6px;padding:6px; overflow-x:auto; white-space:nowrap}
   /* 缩小槽位图标，提升可视区域 */
-  .slot-item{width:36px;height:36px}
+  .slot-item{width:34px;height:34px}
   .slot-emoji{font-size:18px}
   /* 减少容器与页面的左右边距，给画布更多空间 */
   .game-container{padding:8px}

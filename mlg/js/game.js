@@ -192,6 +192,8 @@
       // 内置增加道具面板
       const addBtn = document.getElementById('btn-add');
       const addPanel = document.getElementById('add-panel');
+      const moreBtn = document.getElementById('btn-more');
+      const morePanel = document.getElementById('more-panel');
       if (addBtn && addPanel){
         addBtn.addEventListener('click', (e)=>{
           e.stopPropagation();
@@ -221,6 +223,25 @@
           }
         });
       }
+      // 移动端更多菜单
+      if (moreBtn && morePanel){
+        moreBtn.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          morePanel.classList.toggle('hidden');
+          morePanel.setAttribute('aria-hidden', morePanel.classList.contains('hidden') ? 'true' : 'false');
+        });
+        morePanel.addEventListener('click', (e)=>{
+          const target = e.target.closest('.menu-item');
+          if (!target) return;
+          const action = target.getAttribute('data-action');
+          if (action === 'add') document.getElementById('btn-add')?.click();
+          if (action === 'shuffle') document.getElementById('btn-shuffle')?.click();
+          if (action === 'undo') document.getElementById('btn-undo')?.click();
+          if (action === 'restart') document.getElementById('btn-restart')?.click();
+          morePanel.classList.add('hidden');
+          morePanel.setAttribute('aria-hidden','true');
+        });
+      }
       document.getElementById('btn-shuffle').addEventListener('click', ()=> this.useShuffle());
       document.getElementById('btn-undo').addEventListener('click', ()=> this.useUndo());
       document.getElementById('btn-restart').addEventListener('click', ()=> this.newGame(/*keepLevel*/true));
@@ -239,6 +260,18 @@
       const ss = String(Math.floor((elapsedMs%60000)/1000)).padStart(2,'0');
       if (movesEl) movesEl.textContent = String(moves);
       if (timeEl) timeEl.textContent = `${mm}:${ss}`;
+
+      // 同步道具按钮可用状态与提示
+      const shuffleBtn = document.getElementById('btn-shuffle');
+      const undoBtn = document.getElementById('btn-undo');
+      const syncBtn = (btn, item)=>{
+        if (!btn) return;
+        const remaining = item ? Number(item.remainingUses||0) : 0;
+        btn.disabled = !item || remaining <= 0;
+        btn.title = item ? `${item.name} 剩余 ${remaining}` : '不可用';
+      };
+      syncBtn(shuffleBtn, this.getItem('shuffle'));
+      syncBtn(undoBtn, this.getItem('undo'));
     },
 
     startTimer(){
@@ -524,6 +557,7 @@
       pool.forEach((t, idx)=> t.type = types[idx]);
       item.remainingUses -= 1;
       this.render();
+      this.updateHud();
       this.saveState();
     },
 
@@ -576,8 +610,18 @@
       const w = this.cssWidth;
       const h = this.cssHeight;
       ctx.clearRect(0,0,w,h);
-      ctx.fillStyle = '#f1f5f9';
+      // 背景颜色根据主题由 CSS 控制画布容器；此处作为兜底
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-color')?.trim() || '#f1f5f9';
       ctx.fillRect(0,0,w,h);
+
+      // 统计槽位中类型计数，用于“近三连”棋盘引导（计数==2）
+      const countByType = {};
+      for (const id of this.slot){
+        const t = this.tiles.find(tt=> tt.id===id);
+        if (!t) continue;
+        countByType[t.type] = (countByType[t.type] || 0) + 1;
+      }
+      const nearTripleTypes = new Set(Object.keys(countByType).filter(k => countByType[k] === 2).map(k=> Number(k)));
 
       const rects = this.computeTileRects();
       // draw tiles from bottom to top (lower layer first)
@@ -602,10 +646,30 @@
         ctx.font = `${Math.floor(r.h*0.5)}px system-ui`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(getSymbolForType(tile.type), r.x + r.w/2, r.y + r.h/2 + 2);
+        const covered = (tile.status==='board' && this.isCovered(tile, rects));
         // overlay for non-selectable
-        if (tile.status==='board' && this.isCovered(tile, rects)){
-          ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        if (covered){
+          // 暗色下使用浅色半透明覆盖，亮色下使用深色半透明覆盖
+          const isDark = (function(){
+            try{
+              const t = (localStorage.getItem('mlg_theme')||'light');
+              if (t === 'dark') return true;
+              if (t === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }catch{}
+            return false;
+          })();
+          ctx.fillStyle = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)';
           ctx.fillRect(r.x, r.y, r.w, r.h);
+        }
+        // near-triple guidance highlight (only for selectable tiles)
+        if (!covered && nearTripleTypes.has(tile.type)){
+          ctx.save();
+          ctx.strokeStyle = 'rgba(14,165,233,0.8)'; // cyan-500-ish
+          ctx.lineWidth = 3;
+          if (ctx.setLineDash) ctx.setLineDash([6,4]);
+          ctx.strokeRect(r.x+2, r.y+2, r.w-4, r.h-4);
+          if (ctx.setLineDash) ctx.setLineDash([]);
+          ctx.restore();
         }
         // highlight
         if (this.highlightTileId === tile.id){
@@ -622,10 +686,19 @@
 
     renderSlotBar(){
       const container = document.getElementById('slot-bar');
+      // 统计类型出现次数，用于“近三连”高亮（计数==2）
+      const countsByType = {};
+      this.slot.forEach(id => {
+        const t = this.tiles.find(tt=> tt.id===id);
+        if (!t) return;
+        countsByType[t.type] = (countsByType[t.type] || 0) + 1;
+      });
       const items = this.slot.map(id => this.tiles.find(t=> t.id===id)).map(tile => {
         const color = COLOR_PALETTE[tile.type % COLOR_PALETTE.length];
         const sym = getSymbolForType(tile.type);
-        return `<div class="slot-item" style="border-color:${color}"><span class="slot-emoji">${sym}</span></div>`;
+        const near = countsByType[tile.type] === 2;
+        const nearClass = near ? ' near' : '';
+        return `<div class="slot-item${nearClass}" data-type="${tile.type}" style="border-color:${color}"><span class="slot-emoji">${sym}</span></div>`;
       });
       // fill empty with placeholders
       const empties = Math.max(0, SLOT_CAPACITY - this.slot.length);
@@ -634,6 +707,9 @@
       // 预警：接近满容量
       const nearFull = this.slot.length >= Math.max(1, SLOT_CAPACITY - 1) && this.slot.length < SLOT_CAPACITY;
       container.classList.toggle('warning', nearFull);
+      // 同步到 HUD 胶囊的预警样式
+      const hudMoves = document.getElementById('hud-moves');
+      if (hudMoves){ hudMoves.classList.toggle('warning', nearFull); }
       if (nearFull && !this.warnedNearFull){
         this.showMessage('注意：槽位即将满', 'warn');
         this.warnedNearFull = true;
