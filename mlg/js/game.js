@@ -341,21 +341,17 @@
     getLevelParams(level){
       const tier = Math.floor((level - 1) / 3); // 每 3 关提升一档
       const isMobile = (this.cssWidth || window.innerWidth || 0) <= 640;
-      // 基础行列与层数
+      // 每层减少平铺规模（更少的行列），但整体增大层数
       let rows = clamp(5 + Math.floor(tier / 2), 5, 8);
       let cols = clamp(5 + Math.floor(tier / 2), 5, 8);
-      let layers = clamp(7 + Math.floor(tier * 1.5), 7, 12);
-      let coverDensity = clamp(0.42 + tier * 0.03, 0.42, 0.62);
-      // 移动端优化：减少“平铺密度”，增加层数，减小单张尺寸
-      // - 行列各 +1，使单元格变小
-      // - 层数 +2，维持挑战强度
-      // - 每层密度 -0.08，减少同屏拥挤
+      const layers = clamp(7 + Math.floor(tier * 1.5), 7, 12);
+      // 移动端将行列各-1（最低 4），放大单元格，提升点击面积
       if (isMobile){
-        rows = clamp(rows + 1, 5, 9);
-        cols = clamp(cols + 1, 5, 9);
-        layers = clamp(layers + 2, 8, 14);
-        coverDensity = clamp(coverDensity - 0.08, 0.32, 0.52);
+        rows = clamp(rows - 1, 4, rows);
+        cols = clamp(cols - 1, 4, cols);
       }
+      // 降低每层密度，使单层更稀疏
+      const coverDensity = clamp(0.42 + tier * 0.03, 0.42, 0.62);
       // 适度的类型数量，避免过于重复或过分离散
       const typeCount = clamp(12 + tier * 2, 12, Math.min(SYMBOLS.length - 1, 28));
       return { rows, cols, layers, typeCount, coverDensity };
@@ -365,18 +361,11 @@
       const params = this.getLevelParams(level);
       const random = rng(seed);
       const positions = [];
-      // 生成分布：减少总量，提高随机性，允许“成络”遮盖
+      // 生成更高层级和更密集的分布（基础规则）
       for (let z = 0; z < params.layers; z++){
         for (let r = 0; r < params.rows; r++){
           for (let c = 0; c < params.cols; c++){
-            // 基础密度
-            let p = params.coverDensity;
-            // 随机扰动：不同层/行列偏移，增加随机性
-            p += (random() - 0.5) * 0.10; // ±0.05
-            // 边缘略稀疏，中部略密集，构造“成络”结构
-            const edgeFactor = (r===0||c===0||r===params.rows-1||c===params.cols-1) ? -0.06 : +0.04;
-            p = clamp(p + edgeFactor, 0.18, 0.72);
-            const keep = random() < p;
+            const keep = random() < params.coverDensity;
             if (keep) positions.push({ layer: z, row: r, col: c });
           }
         }
@@ -406,13 +395,10 @@
         byLayer.get(pos.layer).push(pos);
       }
       for (const arr of byLayer.values()){
-        // Fisher-Yates
         for (let i = arr.length - 1; i > 0; i--){
           const j = Math.floor(random() * (i + 1));
           [arr[i], arr[j]] = [arr[j], arr[i]];
         }
-        // 打乱后再按“蛇形”排序，形成局部连贯性
-        arr.sort((a,b)=> (a.row + (a.col%2)) - (b.row + (b.col%2)) + (random() - 0.5));
       }
       // 合并层序，交错从各层取，进一步降低相邻重复
       const merged = [];
@@ -460,13 +446,13 @@
       const cellW = boardWidth / params.cols;
       const cellH = boardHeight / params.rows;
       const baseCell = Math.min(cellW, cellH);
-      // 为了允许上层完全遮住下层，层间位移设为 0
-      const layerOffset = 0;
+      // 恢复层间位移
+      const layerOffset = Math.floor(baseCell * (isMobile ? 0.10 : 0.12));
       // 使棋盘在考虑层叠横向位移后仍能完整显示在视口内
-      const extraX = 0;
-      // 移动端整体向右下方轻微偏移
-      const nudgeX = isMobile ? 8 : 0;
-      const nudgeY = isMobile ? 6 : 0;
+      const extraX = Math.max(0, (params.layers - 1) * layerOffset);
+      // 恢复至之前的偏移策略：移动端向左轻微偏移，避免右侧裁剪
+      const nudgeX = isMobile ? -10 : 0;
+      const nudgeY = 0;
       const contentWidth = cellW * params.cols + extraX;
       const offsetX = Math.max(8, Math.floor((this.cssWidth - contentWidth) / 2) + nudgeX);
       const offsetY = padding + nudgeY;
@@ -485,8 +471,8 @@
         }
         const w = Math.floor(wCandidate);
         const h = Math.floor(hCandidate);
-        const cellX = offsetX + tile.col * cellW;
-        const cellY = offsetY + tile.row * cellH;
+        const cellX = offsetX + tile.col * cellW + tile.layer * layerOffset;
+        const cellY = offsetY + tile.row * cellH + (params.layers - tile.layer - 1) * layerOffset;
         const x = Math.floor(cellX + (cellW - w) / 2);
         const y = Math.floor(cellY + (cellH - h) / 2);
         rects.set(tile.id, { x, y, w, h });
