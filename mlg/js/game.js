@@ -637,9 +637,10 @@
       const w = this.cssWidth;
       const h = this.cssHeight;
       ctx.clearRect(0,0,w,h);
-      // 背景以主题变量为准，防止在导航返回后出现与 body 不一致的黑底
-      const bg = getComputedStyle(document.body).getPropertyValue('--bg-color')?.trim();
-      ctx.fillStyle = bg && bg !== '' ? bg : '#fff7ed';
+      // 使用画布自身的 CSS 背景色，保持与样式一致（亮色暖色、暗色深色）
+      let canvasBg = '';
+      try{ canvasBg = getComputedStyle(this.canvas).getPropertyValue('background-color')?.trim(); }catch{}
+      ctx.fillStyle = canvasBg && canvasBg !== '' ? canvasBg : '#fff7ed';
       ctx.fillRect(0,0,w,h);
 
       // 统计槽位中类型计数，用于“近三连”棋盘引导（计数==2）
