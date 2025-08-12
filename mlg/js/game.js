@@ -674,11 +674,24 @@
         ctx.strokeStyle = accentColor;
         ctx.stroke();
 
-        // 符号（单次绘制，无浮雕）
+        // 符号立体感（仅对 emoji 增加轻微阴影与细描边，不改变卡片平面风格）
+        const symbol = getSymbolForType(tile.type);
+        const fontSize = Math.floor(r.h * 0.5);
+        const sx = r.x + r.w/2;
+        const sy = r.y + r.h/2 + 1; // 略微下移以居中
+        ctx.font = `${fontSize}px system-ui`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // 阴影（底层轻微偏移）
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.fillText(symbol, sx, sy + 1.5);
+        // 主体
         ctx.fillStyle = accentColor;
-        ctx.font = `${Math.floor(r.h*0.5)}px system-ui`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(getSymbolForType(tile.type), r.x + r.w/2, r.y + r.h/2 + 2);
+        ctx.fillText(symbol, sx, sy);
+        // 细描边（增强边缘清晰度）
+        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+        if (ctx.strokeText) ctx.strokeText(symbol, sx, sy);
 
         const covered = (tile.status==='board' && this.isCovered(tile, rects));
         // overlay for non-selectable
