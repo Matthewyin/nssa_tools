@@ -445,23 +445,38 @@
       const isMobile = this.cssWidth <= 640;
       const padding = isMobile ? 8 : 16; // 移动端更小内边距
       const boardWidth = this.cssWidth - padding * 2;
-      // 在移动端使用可用高度，自适应
       const boardHeight = Math.max(120, this.cssHeight - padding * 2 - 80);
-      const cellSize = Math.min(boardWidth / params.cols, boardHeight / params.rows);
-      const layerOffset = Math.floor(cellSize * (isMobile ? 0.10 : 0.12));
+      // 使用非等比单元尺寸，便于在 3:2 框中居中
+      const cellW = boardWidth / params.cols;
+      const cellH = boardHeight / params.rows;
+      const baseCell = Math.min(cellW, cellH);
+      const layerOffset = Math.floor(baseCell * (isMobile ? 0.10 : 0.12));
       // 使棋盘在考虑层叠横向位移后仍能完整显示在视口内
       const extraX = Math.max(0, (params.layers - 1) * layerOffset);
       // 移动端整体左移一点，避免右侧内容被裁剪
-      // 进一步左移，配合移动端缩小 UI
-      const mobileNudge = this.cssWidth <= 640 ? 10 : 0;
-      const offsetX = Math.max(8, Math.floor((this.cssWidth - (cellSize * params.cols + extraX)) / 2) - mobileNudge);
+      const mobileNudge = isMobile ? 10 : 0;
+      const contentWidth = cellW * params.cols + extraX;
+      const offsetX = Math.max(8, Math.floor((this.cssWidth - contentWidth) / 2) - mobileNudge);
       const offsetY = padding;
       const rects = new Map();
+      const whFactor = isMobile ? 0.93 : 0.95; // 收缩比例
       for (const tile of this.tiles){
-        const x = Math.floor(offsetX + tile.col * cellSize + tile.layer * layerOffset);
-        const y = Math.floor(offsetY + tile.row * cellSize + (params.layers - tile.layer - 1) * layerOffset);
-        const whFactor = isMobile ? 0.93 : 0.95; // 移动端略收缩，避免图标过大
-        rects.set(tile.id, { x, y, w: Math.floor(cellSize * whFactor), h: Math.floor(cellSize * whFactor) });
+        // 以 3:2（宽:高）矩形自适应到单元内，水平/垂直居中
+        const maxW = cellW * whFactor;
+        const maxH = cellH * whFactor;
+        let wCandidate = Math.min(maxW, maxH * 3/2);
+        let hCandidate = wCandidate * 2/3;
+        if (hCandidate > maxH){
+          hCandidate = maxH;
+          wCandidate = hCandidate * 3/2;
+        }
+        const w = Math.floor(wCandidate);
+        const h = Math.floor(hCandidate);
+        const cellX = offsetX + tile.col * cellW + tile.layer * layerOffset;
+        const cellY = offsetY + tile.row * cellH + (params.layers - tile.layer - 1) * layerOffset;
+        const x = Math.floor(cellX + (cellW - w) / 2);
+        const y = Math.floor(cellY + (cellH - h) / 2);
+        rects.set(tile.id, { x, y, w, h });
       }
       return rects;
     },
@@ -684,8 +699,9 @@
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
 
-        // 简洁的面板与描边
-        this.createRoundedRectPath(ctx, r.x, r.y, r.w, r.h, cornerRadius);
+        // 简洁的面板与描边（3:2 矩形改为小圆角）
+        const rectRadius = Math.max(4, Math.floor(Math.min(r.w, r.h) * 0.12));
+        this.createRoundedRectPath(ctx, r.x, r.y, r.w, r.h, rectRadius);
         ctx.fillStyle = faceColor;
         ctx.fill();
         ctx.lineWidth = 3;
@@ -694,7 +710,8 @@
 
         // 符号立体感（仅对 emoji 增加轻微阴影与细描边，不改变卡片平面风格）
         const symbol = getSymbolForType(tile.type);
-        const fontSize = Math.floor(r.h * 0.5);
+        // 矩形比例更宽，图标可更大：占高的 62%
+        const fontSize = Math.floor(r.h * 0.62);
         const sx = r.x + r.w/2;
         const sy = r.y + r.h/2 + 1; // 略微下移以居中
         ctx.font = `${fontSize}px system-ui`;
