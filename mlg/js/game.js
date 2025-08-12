@@ -341,17 +341,21 @@
     getLevelParams(level){
       const tier = Math.floor((level - 1) / 3); // 每 3 关提升一档
       const isMobile = (this.cssWidth || window.innerWidth || 0) <= 640;
-      // 每层减少平铺规模（更少的行列），但整体增大层数
+      // 基础行列与层数
       let rows = clamp(5 + Math.floor(tier / 2), 5, 8);
       let cols = clamp(5 + Math.floor(tier / 2), 5, 8);
-      const layers = clamp(7 + Math.floor(tier * 1.5), 7, 12);
-      // 移动端将行列各-1（最低 4），放大单元格，提升点击面积
+      let layers = clamp(7 + Math.floor(tier * 1.5), 7, 12);
+      let coverDensity = clamp(0.42 + tier * 0.03, 0.42, 0.62);
+      // 移动端优化：减少“平铺密度”，增加层数，减小单张尺寸
+      // - 行列各 +1，使单元格变小
+      // - 层数 +2，维持挑战强度
+      // - 每层密度 -0.08，减少同屏拥挤
       if (isMobile){
-        rows = clamp(rows - 1, 4, rows);
-        cols = clamp(cols - 1, 4, cols);
+        rows = clamp(rows + 1, 5, 9);
+        cols = clamp(cols + 1, 5, 9);
+        layers = clamp(layers + 2, 8, 14);
+        coverDensity = clamp(coverDensity - 0.08, 0.32, 0.52);
       }
-      // 降低每层密度，使单层更稀疏
-      const coverDensity = clamp(0.42 + tier * 0.03, 0.42, 0.62);
       // 适度的类型数量，避免过于重复或过分离散
       const typeCount = clamp(12 + tier * 2, 12, Math.min(SYMBOLS.length - 1, 28));
       return { rows, cols, layers, typeCount, coverDensity };
@@ -456,7 +460,7 @@
       for (const tile of this.tiles){
         const x = Math.floor(offsetX + tile.col * cellSize + tile.layer * layerOffset);
         const y = Math.floor(offsetY + tile.row * cellSize + (params.layers - tile.layer - 1) * layerOffset);
-        const whFactor = isMobile ? 0.98 : 0.95; // 移动端尽量占满格
+        const whFactor = isMobile ? 0.93 : 0.95; // 移动端略收缩，避免图标过大
         rects.set(tile.id, { x, y, w: Math.floor(cellSize * whFactor), h: Math.floor(cellSize * whFactor) });
       }
       return rects;
