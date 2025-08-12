@@ -17,7 +17,7 @@ body {
 
 /* 暗色主题 */
 body.dark-theme {
-  --bg-color: #000000;
+  --bg-color: #0b0b0c;
   --text-color-primary: #ffffff;
   --text-color-secondary: #8d8d92;
   --card-bg: #1c1c1e;
@@ -31,7 +31,7 @@ body.dark-theme {
 /* 跟随系统 */
 @media (prefers-color-scheme: dark) {
   body.system-theme {
-    --bg-color: #000000;
+    --bg-color: #0b0b0c;
     --text-color-primary: #ffffff;
     --text-color-secondary: #8d8d92;
     --card-bg: #1c1c1e;
@@ -51,8 +51,10 @@ body {
 
 /* 暗色下画布背景更深，提升对比 */
 body.dark-theme .game-canvas { background: #0f172a !important; }
+body.dark-theme { background: #000000; }
 @media (prefers-color-scheme: dark) {
   body.system-theme .game-canvas { background: #0f172a !important; }
+  body.system-theme { background: #000000; }
 }
 
 /* 亮色下画布更柔和的暖色底 */

@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
   <title>哈吉喵 | NSSA Tools</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800">
+<body class="min-h-screen">
   <header class="border-b site-header" style="background: var(--card-bg); color: var(--text-color-primary);">
     <div class="wrap mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-4">
@@ -21,10 +22,16 @@
         <h1 class="text-xl font-semibold">哈吉喵</h1>
       </div>
       <div class="text-sm flex items-center gap-3">
-        <div class="theme-switcher hidden sm:flex items-center">
-          <button type="button" id="theme-light-btn" title="亮色">L</button>
-          <button type="button" id="theme-dark-btn" title="暗色">D</button>
-          <button type="button" id="theme-system-btn" title="跟随系统">S</button>
+        <div class="theme-switcher hidden sm:flex items-center" aria-label="主题切换">
+          <button type="button" id="theme-light-btn" title="亮色" aria-label="切换为亮色">
+            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95a1 1 0 101.414 1.414l.707-.707a1 1 0 10-1.414-1.414l-.707.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+          </button>
+          <button type="button" id="theme-dark-btn" title="暗色" aria-label="切换为暗色">
+            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+          </button>
+          <button type="button" id="theme-system-btn" title="跟随系统" aria-label="跟随系统">
+            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2h-3l2 3H6l2-3H5a2 2 0 01-2-2V5z"></path></svg>
+          </button>
         </div>
         <span id="user-email" class="text-slate-500"></span>
         <a id="logout-link" href="/auth/logout" class="text-blue-600 hover:text-blue-700">退出</a>
