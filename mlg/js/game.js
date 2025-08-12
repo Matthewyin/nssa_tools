@@ -365,11 +365,18 @@
       const params = this.getLevelParams(level);
       const random = rng(seed);
       const positions = [];
-      // 生成更高层级和更密集的分布
+      // 生成分布：减少总量，提高随机性，允许“成络”遮盖
       for (let z = 0; z < params.layers; z++){
         for (let r = 0; r < params.rows; r++){
           for (let c = 0; c < params.cols; c++){
-            const keep = random() < params.coverDensity;
+            // 基础密度
+            let p = params.coverDensity;
+            // 随机扰动：不同层/行列偏移，增加随机性
+            p += (random() - 0.5) * 0.10; // ±0.05
+            // 边缘略稀疏，中部略密集，构造“成络”结构
+            const edgeFactor = (r===0||c===0||r===params.rows-1||c===params.cols-1) ? -0.06 : +0.04;
+            p = clamp(p + edgeFactor, 0.18, 0.72);
+            const keep = random() < p;
             if (keep) positions.push({ layer: z, row: r, col: c });
           }
         }
@@ -392,17 +399,20 @@
         const j = Math.floor(random() * (i + 1));
         [typesPool[i], typesPool[j]] = [typesPool[j], typesPool[i]];
       }
-      // 将 positions 按层分组并打乱，以减少可见相邻重复
+      // 将 positions 按层分组并打乱；层内随机，层间再交错，提升随机性
       const byLayer = new Map();
       for (const pos of positions){
         if (!byLayer.has(pos.layer)) byLayer.set(pos.layer, []);
         byLayer.get(pos.layer).push(pos);
       }
       for (const arr of byLayer.values()){
+        // Fisher-Yates
         for (let i = arr.length - 1; i > 0; i--){
           const j = Math.floor(random() * (i + 1));
           [arr[i], arr[j]] = [arr[j], arr[i]];
         }
+        // 打乱后再按“蛇形”排序，形成局部连贯性
+        arr.sort((a,b)=> (a.row + (a.col%2)) - (b.row + (b.col%2)) + (random() - 0.5));
       }
       // 合并层序，交错从各层取，进一步降低相邻重复
       const merged = [];
@@ -450,9 +460,10 @@
       const cellW = boardWidth / params.cols;
       const cellH = boardHeight / params.rows;
       const baseCell = Math.min(cellW, cellH);
-      const layerOffset = Math.floor(baseCell * (isMobile ? 0.10 : 0.12));
+      // 为了允许上层完全遮住下层，层间位移设为 0
+      const layerOffset = 0;
       // 使棋盘在考虑层叠横向位移后仍能完整显示在视口内
-      const extraX = Math.max(0, (params.layers - 1) * layerOffset);
+      const extraX = 0;
       // 移动端整体向右下方轻微偏移
       const nudgeX = isMobile ? 8 : 0;
       const nudgeY = isMobile ? 6 : 0;
@@ -474,8 +485,8 @@
         }
         const w = Math.floor(wCandidate);
         const h = Math.floor(hCandidate);
-        const cellX = offsetX + tile.col * cellW + tile.layer * layerOffset;
-        const cellY = offsetY + tile.row * cellH + (params.layers - tile.layer - 1) * layerOffset;
+        const cellX = offsetX + tile.col * cellW;
+        const cellY = offsetY + tile.row * cellH;
         const x = Math.floor(cellX + (cellW - w) / 2);
         const y = Math.floor(cellY + (cellH - h) / 2);
         rects.set(tile.id, { x, y, w, h });
