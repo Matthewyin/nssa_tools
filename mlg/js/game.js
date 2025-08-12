@@ -457,7 +457,7 @@
       const offsetX = Math.max(8, Math.floor((this.cssWidth - contentWidth) / 2) + nudgeX);
       const offsetY = padding + nudgeY;
       const rects = new Map();
-      const whFactor = isMobile ? 0.93 : 0.95; // 收缩比例
+      const whFactor = isMobile ? 0.80 : 0.85; // 更小的框，避免超出显示范围
       for (const tile of this.tiles){
         // 以正方形自适应到单元内，水平/垂直居中
         const maxW = cellW * whFactor;
@@ -703,10 +703,10 @@
 
         // 符号立体感（仅对 emoji 增加轻微阴影与细描边，不改变卡片平面风格）
         const symbol = getSymbolForType(tile.type);
-        // 方形内的符号字号（占高约 50%）
-        const fontSize = Math.floor(r.h * 0.5);
+        // 图标尽量充满图片框（占高约 82%）
+        const fontSize = Math.floor(Math.min(r.w, r.h) * 0.82);
         const sx = r.x + r.w/2;
-        const sy = r.y + r.h/2 + 1; // 略微下移以居中
+        const sy = r.y + r.h/2; // 居中
         ctx.font = `${fontSize}px system-ui`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
