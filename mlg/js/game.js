@@ -453,22 +453,24 @@
       const layerOffset = Math.floor(baseCell * (isMobile ? 0.10 : 0.12));
       // 使棋盘在考虑层叠横向位移后仍能完整显示在视口内
       const extraX = Math.max(0, (params.layers - 1) * layerOffset);
-      // 移动端整体左移一点，避免右侧内容被裁剪
-      const mobileNudge = isMobile ? 10 : 0;
+      // 移动端整体向右下方轻微偏移
+      const nudgeX = isMobile ? 8 : 0;
+      const nudgeY = isMobile ? 6 : 0;
       const contentWidth = cellW * params.cols + extraX;
-      const offsetX = Math.max(8, Math.floor((this.cssWidth - contentWidth) / 2) - mobileNudge);
-      const offsetY = padding;
+      const offsetX = Math.max(8, Math.floor((this.cssWidth - contentWidth) / 2) + nudgeX);
+      const offsetY = padding + nudgeY;
       const rects = new Map();
       const whFactor = isMobile ? 0.93 : 0.95; // 收缩比例
       for (const tile of this.tiles){
-        // 以 3:2（宽:高）矩形自适应到单元内，水平/垂直居中
+        // 以 3:2（高:宽）矩形自适应到单元内，水平/垂直居中（即 w:h = 2:3）
         const maxW = cellW * whFactor;
         const maxH = cellH * whFactor;
-        let wCandidate = Math.min(maxW, maxH * 3/2);
-        let hCandidate = wCandidate * 2/3;
+        const ratioW = 2, ratioH = 3;
+        let wCandidate = Math.min(maxW, maxH * (ratioW/ratioH));
+        let hCandidate = wCandidate * (ratioH/ratioW);
         if (hCandidate > maxH){
           hCandidate = maxH;
-          wCandidate = hCandidate * 3/2;
+          wCandidate = hCandidate * (ratioW/ratioH);
         }
         const w = Math.floor(wCandidate);
         const h = Math.floor(hCandidate);
