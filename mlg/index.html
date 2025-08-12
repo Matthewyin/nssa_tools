@@ -40,24 +40,26 @@
   </header>
 
   <main class="mx-auto max-w-5xl px-4 py-6" style="color: var(--text-color-primary)">
-    <div id="top-bar" class="flex items-center justify-between mb-4 flex-wrap gap-3">
+    <div id="top-bar" class="flex items-center justify-between mb-4 gap-3">
       <div class="flex items-center gap-2 text-sm flex-wrap">
         <div class="hud-pill"><span class="icon">🎯</span><span>关卡</span><span id="level">1</span></div>
         <div class="hud-pill"><span class="icon">⭐</span><span>难度</span><span id="difficulty">入门</span></div>
         <div class="hud-pill" id="hud-moves"><span class="icon">👣</span><span>步数</span><span id="moves">--</span></div>
         <!-- 计时功能已移除 -->
       </div>
-      <div class="controls flex flex-wrap items-center gap-2">
-        <button id="btn-add" class="btn btn-secondary" aria-label="增加道具">➕ 增加道具</button>
-        <button id="btn-shuffle" class="btn btn-secondary" aria-label="洗牌">🔀 洗牌</button>
-        <button id="btn-undo" class="btn btn-secondary" aria-label="撤销">↩️ 撤销</button>
-        <button id="btn-restart" class="btn btn-primary" aria-label="重开">🔄 重开</button>
+      <div class="controls flex items-center gap-2">
+        <button id="btn-add" class="btn btn-secondary hidden sm:inline-flex" aria-label="增加道具">➕ 增加道具</button>
+        <div class="hidden sm:flex items-center gap-2">
+          <button id="btn-shuffle" class="btn btn-secondary" aria-label="洗牌">🔀 洗牌</button>
+          <button id="btn-undo" class="btn btn-secondary" aria-label="撤销">↩️ 撤销</button>
+          <button id="btn-restart" class="btn btn-primary" aria-label="重开">🔄 重开</button>
+        </div>
         <button id="btn-more" class="btn btn-secondary sm:hidden" aria-label="更多">⋯</button>
         <div id="more-panel" class="add-panel hidden" role="menu" aria-hidden="true">
-          <button class="menu-item" data-action="add">增加道具</button>
           <button class="menu-item" data-action="shuffle">洗牌</button>
           <button class="menu-item" data-action="undo">撤销</button>
           <button class="menu-item" data-action="restart">重开</button>
+          <button class="menu-item" data-action="add">增加道具</button>
         </div>
         <!-- 内置增加道具面板 -->
         <div id="add-panel" class="add-panel hidden" role="menu" aria-hidden="true">

@@ -340,10 +340,16 @@
     // --- Level Generation ---
     getLevelParams(level){
       const tier = Math.floor((level - 1) / 3); // 每 3 关提升一档
+      const isMobile = (this.cssWidth || window.innerWidth || 0) <= 640;
       // 每层减少平铺规模（更少的行列），但整体增大层数
-      const rows = clamp(5 + Math.floor(tier / 2), 5, 8);
-      const cols = clamp(5 + Math.floor(tier / 2), 5, 8);
+      let rows = clamp(5 + Math.floor(tier / 2), 5, 8);
+      let cols = clamp(5 + Math.floor(tier / 2), 5, 8);
       const layers = clamp(7 + Math.floor(tier * 1.5), 7, 12);
+      // 移动端将行列各-1（最低 4），放大单元格，提升点击面积
+      if (isMobile){
+        rows = clamp(rows - 1, 4, rows);
+        cols = clamp(cols - 1, 4, cols);
+      }
       // 降低每层密度，使单层更稀疏
       const coverDensity = clamp(0.42 + tier * 0.03, 0.42, 0.62);
       // 适度的类型数量，避免过于重复或过分离散
@@ -432,12 +438,13 @@
     computeTileRects(){
       // compute pixel rects for each tile based on rows/cols and layer offset
       const params = this.getLevelParams(this.state.level);
-      const padding = 16; // CSS px
+      const isMobile = this.cssWidth <= 640;
+      const padding = isMobile ? 8 : 16; // 移动端更小内边距
       const boardWidth = this.cssWidth - padding * 2;
       // 在移动端使用可用高度，自适应
-      const boardHeight = Math.max(120, this.cssHeight - padding * 2 - 80); // 留出阴影空间
+      const boardHeight = Math.max(120, this.cssHeight - padding * 2 - 80);
       const cellSize = Math.min(boardWidth / params.cols, boardHeight / params.rows);
-      const layerOffset = Math.floor(cellSize * 0.12);
+      const layerOffset = Math.floor(cellSize * (isMobile ? 0.10 : 0.12));
       // 使棋盘在考虑层叠横向位移后仍能完整显示在视口内
       const extraX = Math.max(0, (params.layers - 1) * layerOffset);
       // 移动端整体左移一点，避免右侧内容被裁剪
@@ -449,7 +456,8 @@
       for (const tile of this.tiles){
         const x = Math.floor(offsetX + tile.col * cellSize + tile.layer * layerOffset);
         const y = Math.floor(offsetY + tile.row * cellSize + (params.layers - tile.layer - 1) * layerOffset);
-        rects.set(tile.id, { x, y, w: Math.floor(cellSize * 0.95), h: Math.floor(cellSize * 0.95) });
+        const whFactor = isMobile ? 0.98 : 0.95; // 移动端尽量占满格
+        rects.set(tile.id, { x, y, w: Math.floor(cellSize * whFactor), h: Math.floor(cellSize * whFactor) });
       }
       return rects;
     },
