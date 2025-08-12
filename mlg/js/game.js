@@ -20,8 +20,20 @@
     };
   }
 
+  // 柔和暖色调配色（减少冷色系）
   const COLOR_PALETTE = [
-    '#ef4444','#f97316','#f59e0b','#84cc16','#10b981','#06b6d4','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#a3e635','#f472b6'
+    '#f87171', // warm red 400
+    '#fb923c', // orange 400
+    '#f59e0b', // amber 500
+    '#fbbf24', // amber 400
+    '#fdba74', // orange 300
+    '#fca5a5', // rose 300
+    '#f472b6', // pink 400 (偏暖)
+    '#a3e635', // lime 400 (偏暖的绿)
+    '#86efac', // green 300（柔和）
+    '#fde68a', // amber 200（浅）
+    '#fcd34d', // amber 300
+    '#fdba74'  // orange 300（备用）
   ];
 
   // 更丰富的符号集（动物/水果/形状/物品等），用于不同类型的牌
@@ -607,7 +619,7 @@
       const h = this.cssHeight;
       ctx.clearRect(0,0,w,h);
       // 背景颜色根据主题由 CSS 控制画布容器；此处作为兜底
-      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-color')?.trim() || '#f1f5f9';
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-color')?.trim() || '#fff7ed';
       ctx.fillRect(0,0,w,h);
 
       // 统计槽位中类型计数，用于“近三连”棋盘引导（计数==2）
@@ -625,18 +637,35 @@
       for (const tile of sorted){
         if (tile.status !== 'board') continue; // 只渲染棋盘上的牌
         const r = rects.get(tile.id);
-        // shadow by layer
+        // shadow by layer（更柔和的暖色背景下提升阴影对比）
         ctx.save();
         ctx.translate(0, 0);
-        ctx.fillStyle = 'rgba(0,0,0,0.08)';
-        ctx.fillRect(r.x + 3, r.y + 3, r.w, r.h);
+        ctx.fillStyle = 'rgba(0,0,0,0.12)';
+        ctx.fillRect(r.x + 4, r.y + 4, r.w, r.h);
         // face
         const color = COLOR_PALETTE[tile.type % COLOR_PALETTE.length];
-        ctx.fillStyle = '#ffffff';
+        const faceColor = '#fff7ed'; // 暖色系象牙白
+        ctx.fillStyle = faceColor;
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
         ctx.fillRect(r.x, r.y, r.w, r.h);
         ctx.strokeRect(r.x, r.y, r.w, r.h);
+        // bevel 高光与暗边，增强立体感
+        // 顶/左高光
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(r.x + 1, r.y + r.h - 2);
+        ctx.lineTo(r.x + 1, r.y + 1);
+        ctx.lineTo(r.x + r.w - 2, r.y + 1);
+        ctx.stroke();
+        // 右/底内阴影
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.beginPath();
+        ctx.moveTo(r.x + r.w - 2, r.y + 2);
+        ctx.lineTo(r.x + r.w - 2, r.y + r.h - 2);
+        ctx.lineTo(r.x + 2, r.y + r.h - 2);
+        ctx.stroke();
         // symbol
         ctx.fillStyle = color;
         ctx.font = `${Math.floor(r.h*0.5)}px system-ui`;

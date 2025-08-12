@@ -55,6 +55,9 @@ body.dark-theme .game-canvas { background: #0f172a !important; }
   body.system-theme .game-canvas { background: #0f172a !important; }
 }
 
+/* 亮色下画布更柔和的暖色底 */
+body .game-canvas { background: #fff7ed; }
+
 /* 卡片容器（画布外壳） */
 .mlg-card {
   background: var(--card-bg);
