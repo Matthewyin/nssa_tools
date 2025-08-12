@@ -855,8 +855,52 @@
         }
         
         // --- 用户数据管理 ---
+        // 使用更稳定的 key（基于邮箱），并向后兼容旧的 UID key
+        function getStableUserKey() {
+            const email = (currentUser?.email || '').toLowerCase();
+            return `webhook_tasks_v2_${email}`;
+        }
+        function getLegacyUserKey() {
+            return `webhook_tasks_${currentUser?.uid}`;
+        }
         function getUserTaskKey() {
-            return `webhook_tasks_${currentUser.uid}`;
+            return getStableUserKey();
+        }
+        function migrateLegacyTasksIfNeeded() {
+            if (!currentUser) return;
+            try {
+                const stableKey = getStableUserKey();
+                const legacyKey = getLegacyUserKey();
+                const hasStable = !!localStorage.getItem(stableKey);
+                if (hasStable) return;
+
+                // 1) 先尝试从旧 UID key 迁移
+                const legacyJson = localStorage.getItem(legacyKey);
+                if (legacyJson) {
+                    localStorage.setItem(stableKey, legacyJson);
+                    return;
+                }
+
+                // 2) 扫描所有可能的旧 key（webhook_tasks_*），选择任务数量最多的作为迁移来源
+                let bestKey = null;
+                let bestCount = -1;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (!k || !k.startsWith('webhook_tasks_')) continue;
+                    try {
+                        const arr = JSON.parse(localStorage.getItem(k));
+                        if (Array.isArray(arr) && arr.length > bestCount) {
+                            bestCount = arr.length;
+                            bestKey = k;
+                        }
+                    } catch {}
+                }
+                if (bestKey) {
+                    localStorage.setItem(stableKey, localStorage.getItem(bestKey));
+                }
+            } catch (e) {
+                console.warn('任务迁移失败:', e);
+            }
         }
         
         function loadUserTasks() {
@@ -866,7 +910,8 @@
             taskTimers.forEach(timerId => clearTimeout(timerId));
             taskTimers.clear();
             
-            // 加载用户特定的任务
+            // 加载用户特定的任务（支持迁移）
+            migrateLegacyTasksIfNeeded();
             const tasksJson = localStorage.getItem(getUserTaskKey());
             tasks = tasksJson ? JSON.parse(tasksJson) : [];
             

@@ -199,6 +199,23 @@
         let gameMode = 'pve', aiDifficulty = 1, playerColor = 1, aiPlayer;
         let isAIThinking = false;
 
+        // --- Persistence for wins ---
+        const GOMOKU_STORAGE_KEY = 'gomoku_wins_v1';
+        function saveWinsToStorage() {
+            try {
+                localStorage.setItem(GOMOKU_STORAGE_KEY, JSON.stringify({ blackWins, whiteWins }));
+            } catch (e) {}
+        }
+        function loadWinsFromStorage() {
+            try {
+                const raw = localStorage.getItem(GOMOKU_STORAGE_KEY);
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                if (typeof data.blackWins === 'number') blackWins = data.blackWins;
+                if (typeof data.whiteWins === 'number') whiteWins = data.whiteWins;
+            } catch (e) {}
+        }
+
         // --- Main Game Logic ---
         function initGame() {
             gameMode = document.querySelector('input[name="game-mode"]:checked').value;
@@ -258,6 +275,7 @@
             gameOver = true;
             if (currentPlayer === 1) blackWins++; else whiteWins++;
             updateStats();
+            saveWinsToStorage();
             triggerConfetti();
             drawWinningLine(winningLine);
             updateStatus();
@@ -307,6 +325,7 @@
                     if (whiteWins > 0) whiteWins--;
                 }
                 updateStats();
+                saveWinsToStorage();
                 confettiContainer.innerHTML = '';
             }
             
@@ -477,9 +496,12 @@
         document.querySelectorAll('input[name="game-mode"]').forEach(el => el.addEventListener('change', toggleAISettings));
 
         // --- Game Start ---
+        loadWinsFromStorage();
         toggleAISettings();
         initGame();
         updateStats();
+        // 保存胜负统计于离开页面时
+        window.addEventListener('beforeunload', saveWinsToStorage);
     </script>
 </body>
 </html>
