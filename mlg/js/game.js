@@ -509,7 +509,10 @@
 
     // --- Geometry & Rules ---
     computeTileRects(){
-      // 基于行列与层级计算“前方面”矩形；同列对齐（去除横向层偏移），纵向仅使用层偏移，适配 3:2 比例
+      // 基于行列与层级计算“前方面”矩形；
+      // - 左侧对齐：每行从左开始布置
+      // - 同层级紧凑：同一层内的同一行按出现顺序紧密排列
+      // - 纵向仍保留层级向上偏移
       const params = this.getLevelParams(this.state.level);
       const isMobile = this.cssWidth <= 640;
       const padding = isMobile ? 8 : 16;
@@ -519,7 +522,7 @@
       const cellH = boardHeight / params.rows;
       const baseCell = Math.min(cellW, cellH);
       const layerOffset = Math.floor(baseCell * (isMobile ? 0.10 : 0.12));
-      // 横向不再为层叠预留空间，保证同列对齐
+      // 左侧对齐：整行内容相对于画布水平居中后的左边缘开始
       const contentWidth = cellW * params.cols;
       const offsetX = Math.max(8, Math.floor((this.cssWidth - contentWidth) / 2));
       const offsetY = padding;
@@ -527,22 +530,39 @@
       // 紧凑布局比例与边距
       const ratioW = 3, ratioH = 2; // 前方面比例 3:2
       const whFactor = isMobile ? 0.94 : 0.96;
-      for (const tile of this.tiles){
-        const maxW = cellW * whFactor;
-        const maxH = cellH * whFactor;
-        // 适配 3:2 比例，尽量充满单元
-        let w = Math.floor(Math.min(maxW, Math.floor(maxH * (ratioW/ratioH))));
-        let h = Math.floor(w / (ratioW/ratioH));
-        // 若高度仍超出，回退按高度限制
-        if (h > maxH){
-          h = Math.floor(maxH);
-          w = Math.floor(h * (ratioW/ratioH));
+      const gapX = Math.max(2, Math.floor(baseCell * 0.06));
+      // 按 layer+row 分组并按原 col 排序，便于稳定紧凑布局
+      const groupMap = new Map();
+      for (const t of this.tiles){
+        const key = `${t.layer}-${t.row}`;
+        if (!groupMap.has(key)) groupMap.set(key, []);
+        groupMap.get(key).push(t);
+      }
+      for (const [key, arr] of groupMap){
+        arr.sort((a,b)=> a.col - b.col);
+        const sample = arr[0];
+        const row = sample.row;
+        const layer = sample.layer;
+        // 以单元高来决定前方面高，保证纵向不溢出
+        const maxH = Math.floor(cellH * whFactor);
+        let wByH = Math.floor(maxH * (ratioW/ratioH));
+        let hByH = Math.floor(wByH / (ratioW/ratioH));
+        // 行内紧凑：如果总宽超出行宽，则按行宽收缩
+        const rowContentWidth = contentWidth; // 可用宽度（去除两侧 padding 后）
+        const n = arr.length;
+        let w = wByH;
+        if (n > 0){
+          const maxWPerItem = Math.floor((rowContentWidth - (n - 1) * gapX) / n);
+          w = Math.min(wByH, maxWPerItem);
         }
-        const cellX = offsetX + tile.col * cellW; // 同列对齐，不加横向层偏移
-        const cellY = offsetY + tile.row * cellH + (params.layers - tile.layer - 1) * layerOffset; // 仅纵向层偏移
-        const x = Math.floor(cellX + (cellW - w) / 2);
-        const y = Math.floor(cellY + (cellH - h) / 2);
-        rects.set(tile.id, { x, y, w, h });
+        let h = Math.floor(w / (ratioW/ratioH));
+        const baseY = offsetY + row * cellH + (params.layers - layer - 1) * layerOffset;
+        for (let i = 0; i < arr.length; i++){
+          const tile = arr[i];
+          const x = Math.floor(offsetX + i * (w + gapX)); // 左侧对齐 + 紧凑分布
+          const y = Math.floor(baseY + (cellH - h) / 2);
+          rects.set(tile.id, { x, y, w, h });
+        }
       }
       return rects;
     },
