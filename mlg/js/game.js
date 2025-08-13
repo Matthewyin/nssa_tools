@@ -90,23 +90,32 @@
       // const D2 = { x: D.x + d,  y: D.y - d   };
 
       ctx.save();
-      // 顶面
-      ctx.beginPath();
-      ctx.moveTo(A.x, A.y);
-      ctx.lineTo(B.x, B.y);
-      ctx.lineTo(B2.x, B2.y);
-      ctx.lineTo(A2.x, A2.y);
-      ctx.closePath();
+      // 顶面（圆角四边形）
+      const roundedQuadPath = (ctx, P0, P1, P2, P3, rad)=>{
+        const pts = [P0,P1,P2,P3];
+        const lerp = (p, q, t)=> ({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t });
+        ctx.beginPath();
+        for (let i=0;i<4;i++){
+          const prev = pts[(i+3)%4];
+          const curr = pts[i];
+          const next = pts[(i+1)%4];
+          const d1 = Math.hypot(curr.x - prev.x, curr.y - prev.y) || 1;
+          const d2 = Math.hypot(next.x - curr.x, next.y - curr.y) || 1;
+          const rr = Math.min(rad, d1/3, d2/3);
+          const pA = lerp(curr, prev, rr/d1);
+          const pB = lerp(curr, next, rr/d2);
+          if (i===0) ctx.moveTo(pA.x, pA.y); else ctx.lineTo(pA.x, pA.y);
+          ctx.quadraticCurveTo(curr.x, curr.y, pB.x, pB.y);
+        }
+        ctx.closePath();
+      };
+      const sideRadius = Math.max(2, Math.floor(radius * 0.5));
+      roundedQuadPath(ctx, A, B, B2, A2, sideRadius);
       ctx.fillStyle = topColor;
       ctx.fill();
 
-      // 右侧面
-      ctx.beginPath();
-      ctx.moveTo(B.x, B.y);
-      ctx.lineTo(C.x, C.y);
-      ctx.lineTo(C2.x, C2.y);
-      ctx.lineTo(B2.x, B2.y);
-      ctx.closePath();
+      // 右侧面（圆角四边形）
+      roundedQuadPath(ctx, B, C, C2, B2, sideRadius);
       ctx.fillStyle = rightColor;
       ctx.fill();
 
@@ -500,37 +509,37 @@
 
     // --- Geometry & Rules ---
     computeTileRects(){
-      // compute pixel rects for each tile based on rows/cols and layer offset
+      // 基于行列与层级计算“前方面”矩形；同列对齐（去除横向层偏移），纵向仅使用层偏移，适配 3:2 比例
       const params = this.getLevelParams(this.state.level);
       const isMobile = this.cssWidth <= 640;
-      const padding = isMobile ? 8 : 16; // 移动端更小内边距
+      const padding = isMobile ? 8 : 16;
       const boardWidth = this.cssWidth - padding * 2;
       const boardHeight = Math.max(120, this.cssHeight - padding * 2 - 80);
-      // 使用非等比单元尺寸；方形牌在单元内居中
       const cellW = boardWidth / params.cols;
       const cellH = boardHeight / params.rows;
       const baseCell = Math.min(cellW, cellH);
-      // 恢复层间位移
       const layerOffset = Math.floor(baseCell * (isMobile ? 0.10 : 0.12));
-      // 使棋盘在考虑层叠横向位移后仍能完整显示在视口内
-      const extraX = Math.max(0, (params.layers - 1) * layerOffset);
-      // 恢复至之前的偏移策略：移动端向左轻微偏移，避免右侧裁剪
-      const nudgeX = isMobile ? -10 : 0;
-      const nudgeY = 0;
-      const contentWidth = cellW * params.cols + extraX;
-      const offsetX = Math.max(8, Math.floor((this.cssWidth - contentWidth) / 2) + nudgeX);
-      const offsetY = padding + nudgeY;
+      // 横向不再为层叠预留空间，保证同列对齐
+      const contentWidth = cellW * params.cols;
+      const offsetX = Math.max(8, Math.floor((this.cssWidth - contentWidth) / 2));
+      const offsetY = padding;
       const rects = new Map();
-      const whFactor = isMobile ? 0.80 : 0.85; // 更小的框，避免超出显示范围
+      // 紧凑布局比例与边距
+      const ratioW = 3, ratioH = 2; // 前方面比例 3:2
+      const whFactor = isMobile ? 0.94 : 0.96;
       for (const tile of this.tiles){
-        // 以正方形自适应到单元内，水平/垂直居中
         const maxW = cellW * whFactor;
         const maxH = cellH * whFactor;
-        const side = Math.floor(Math.min(maxW, maxH));
-        const w = side;
-        const h = side;
-        const cellX = offsetX + tile.col * cellW + tile.layer * layerOffset;
-        const cellY = offsetY + tile.row * cellH + (params.layers - tile.layer - 1) * layerOffset;
+        // 适配 3:2 比例，尽量充满单元
+        let w = Math.floor(Math.min(maxW, Math.floor(maxH * (ratioW/ratioH))));
+        let h = Math.floor(w / (ratioW/ratioH));
+        // 若高度仍超出，回退按高度限制
+        if (h > maxH){
+          h = Math.floor(maxH);
+          w = Math.floor(h * (ratioW/ratioH));
+        }
+        const cellX = offsetX + tile.col * cellW; // 同列对齐，不加横向层偏移
+        const cellY = offsetY + tile.row * cellH + (params.layers - tile.layer - 1) * layerOffset; // 仅纵向层偏移
         const x = Math.floor(cellX + (cellW - w) / 2);
         const y = Math.floor(cellY + (cellH - h) / 2);
         rects.set(tile.id, { x, y, w, h });
