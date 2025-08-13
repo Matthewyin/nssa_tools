@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MLG 立方体渲染测试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body class="min-h-screen">
+  <main class="mx-auto max-w-5xl px-4 py-6" style="color: var(--text-color-primary)">
+    <h1 class="text-2xl font-bold mb-4">MLG 立方体渲染效果测试</h1>
+    <p class="mb-4 text-sm text-gray-600">
+      测试修改后的立方体渲染效果，背景色已更新为 #F9FBE7（浅黄绿色）
+    </p>
+    
+    <div id="game-container" class="game-container mlg-card" style="background: var(--card-bg);">
+      <canvas id="test-canvas" class="game-canvas" style="height: 400px;"></canvas>
+    </div>
+    
+    <div class="mt-4 text-sm text-gray-600">
+      <p>渲染特点：</p>
+      <ul class="list-disc list-inside mt-2">
+        <li>浅黄绿色背景：#F9FBE7，温暖柔和</li>
+        <li>层级颜色：顶层最亮 #E8F5E8，逐级变暗到底层 #A0B8A0</li>
+        <li>立体边框：主边框 + 高光边框 + 侧面阴影</li>
+        <li>符号透明度：层级越高越清晰</li>
+      </ul>
+    </div>
+  </main>
+
+  <script src="js/game.js"></script>
+  <script>
+    // 简单的测试渲染
+    const canvas = document.getElementById('test-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 设置画布尺寸
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    
+    // 测试立方体数据
+    const testTiles = [
+      { layer: 0, type: 0, x: 50, y: 50 },
+      { layer: 1, type: 1, x: 100, y: 100 },
+      { layer: 2, type: 2, x: 150, y: 150 },
+      { layer: 3, type: 3, x: 200, y: 200 },
+    ];
+    
+    // 清空画布并设置背景
+    ctx.fillStyle = '#F9FBE7';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 测试符号
+    const symbols = ['🐱', '🐶', '🐭', '🐹'];
+    
+    // 绘制测试立方体
+    testTiles.forEach((tile, index) => {
+      const frontW = 80;
+      const frontH = 80;
+      const depth = 16;
+      
+      // 使用MLG的drawCuboid方法
+      if (window.MLG && window.MLG.drawCuboid) {
+        window.MLG.drawCuboid(ctx, tile.x, tile.y, frontW, frontH, depth, {
+          actualLayer: tile.layer
+        });
+        
+        // 绘制符号
+        const fontSize = Math.floor(Math.min(frontW, frontH) * 0.6);
+        ctx.font = `${fontSize}px system-ui`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const maxLayers = 4;
+        if (tile.layer === maxLayers - 1) {
+          ctx.fillStyle = 'rgba(31, 41, 55, 1)';
+        } else {
+          const layerDiff = (maxLayers - 1) - tile.layer;
+          const symbolOpacity = Math.max(0.4, 1 - (layerDiff * 0.2));
+          ctx.fillStyle = `rgba(31, 41, 55, ${symbolOpacity})`;
+        }
+        ctx.fillText(symbols[index], tile.x + frontW / 2, tile.y + frontH / 2);
+      }
+    });
+    
+    // 添加说明文字
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('层级 0-3 立方体渲染测试', 10, 10);
+  </script>
+</body>
+</html>

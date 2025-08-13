@@ -943,7 +943,7 @@
           .getPropertyValue("background-color")
           ?.trim();
       } catch {}
-      ctx.fillStyle = canvasBg && canvasBg !== "" ? canvasBg : "#fff7ed";
+      ctx.fillStyle = canvasBg && canvasBg !== "" ? canvasBg : "#F9FBE7";
       ctx.fillRect(0, 0, w, h);
 
       // 统计槽位中类型计数，用于“近三连”棋盘引导（计数==2）
@@ -977,69 +977,51 @@
           } catch {}
           return false;
         })();
-        const accentColor = COLOR_PALETTE[tile.type % COLOR_PALETTE.length];
-        const faceColor = isDark ? "#0f172a" : "#fff7ed";
+        // 颜色由drawCuboid内部的层级颜色系统处理
+        const accentColor = null; // 不再使用，由层级颜色系统处理
+        const faceColor = null; // 不再使用
 
-        // 立体长方体参数：前方面宽高 = 2:3；厚度比例调整
-        const padding = Math.max(2, Math.floor(Math.min(r.w, r.h) * 0.03));
-        const ratioW = 2;
-        const ratioH = 3;
-        const depthAbs = 0.3; // 厚度比例调整为 0.3
-        const dFactor = depthAbs / ratioW; // depth 与像素宽 frontW 的关系
-        // 设 frontW = k，则 totalW = k*(1 + dFactor)，totalH = k*(ratioH/ratioW + dFactor)
-        const maxTotalW = Math.max(12, r.w - padding * 2);
-        const maxTotalH = Math.max(12, r.h - padding * 2);
-        const kByW = maxTotalW / (1 + dFactor);
-        const kByH = maxTotalH / (ratioH / ratioW + dFactor);
-        const k = Math.max(8, Math.floor(Math.min(kByW, kByH)));
-        let frontW = k;
-        let frontH = Math.floor((k * ratioH) / ratioW);
-        let depth = Math.max(3, Math.floor(k * dFactor));
-        // 使整个长方体（包含左侧面与底面）在 r 内居中
-        const totalW = frontW + depth;
-        const totalH = frontH + depth;
-        const frontX = Math.floor(r.x + (r.w - totalW) / 2 + depth); // 为左侧面留出空间
-        const frontY = Math.floor(r.y + (r.h - totalH) / 2); // 为底面留出空间
+        // 使用测试文件的固定立方体参数
+        const frontW = r.w; // 使用computeTileRects计算的宽度
+        const frontH = r.h; // 使用computeTileRects计算的高度
+        const depth = Math.floor(frontW * 0.2); // 深度比例 0.2，与测试文件一致
+        const frontX = r.x;
+        const frontY = r.y;
 
-        // 优化阴影效果，适应左下倾斜方向
-        ctx.shadowColor = isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.25)";
-        ctx.shadowBlur = Math.max(2, Math.floor(depth * 0.4));
-        ctx.shadowOffsetX = -Math.floor(depth * 0.25); // 向左偏移
-        ctx.shadowOffsetY = Math.floor(depth * 0.35); // 向下偏移
+        // 移除阴影效果，与测试文件保持一致
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
 
         // 绘制 3D 长方体（方向：向右上）
         this.drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, {
-          faceColor,
-          accentColor,
           actualLayer: tile.layer, // 传递层级信息
         });
 
-        // 符号（绘制在前方面中央）
+        // 符号（绘制在前方面中央）- 与测试文件一致
         const symbol = getSymbolForType(tile.type);
-        // 占前方面高度的 70%，稍微缩小以适应新比例
-        const fontSize = Math.floor(frontH * 0.7);
+        // 立方体前面是正方形，图标大小接近整个前面
+        const fontSize = Math.floor(Math.min(frontW, frontH) * 0.9); // 前面的90%作为字体大小
         const sx = frontX + frontW / 2;
         const sy = frontY + frontH / 2; // 前方面中心
         ctx.font = `${fontSize}px system-ui`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
-        // 优化符号的立体阴影效果
-        ctx.fillStyle = isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.3)";
-        ctx.fillText(
-          symbol,
-          sx + Math.max(1, Math.floor(depth * 0.1)),
-          sy + Math.max(1, Math.floor(depth * 0.15))
-        );
-
-        // 主体符号使用白色或深色，确保对比度
-        ctx.fillStyle = isDark ? "#ffffff" : "#1f2937";
+        // 主符号 - 根据层级调整颜色
+        // 层级越高符号越清晰
+        const maxLayers = 4;
+        if (tile.layer === maxLayers - 1) {
+          // 最高层级符号：深色，高对比度
+          ctx.fillStyle = 'rgba(31, 41, 55, 1)';
+        } else {
+          // 较低层级符号：层级越低越透明
+          const layerDiff = (maxLayers - 1) - tile.layer;
+          const symbolOpacity = Math.max(0.4, 1 - (layerDiff * 0.2)); // 最低40%透明度
+          ctx.fillStyle = `rgba(31, 41, 55, ${symbolOpacity})`;
+        }
         ctx.fillText(symbol, sx, sy);
-
-        // 细描边增强可读性
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.8)";
-        if (ctx.strokeText) ctx.strokeText(symbol, sx, sy);
 
         const covered = tile.status === "board" && this.isCovered(tile, rects);
         // overlay for non-selectable
