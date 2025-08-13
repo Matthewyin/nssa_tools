@@ -20,20 +20,24 @@
     };
   }
 
-  // 柔和暖色调配色（减少冷色系）
+  // 优化的立方体配色方案 - 饱和度适中，适合立体效果
   const COLOR_PALETTE = [
-    '#f87171', // warm red 400
-    '#fb923c', // orange 400
-    '#f59e0b', // amber 500
-    '#fbbf24', // amber 400
-    '#fdba74', // orange 300
-    '#fca5a5', // rose 300
-    '#f472b6', // pink 400 (偏暖)
-    '#a3e635', // lime 400 (偏暖的绿)
-    '#86efac', // green 300（柔和）
-    '#fde68a', // amber 200（浅）
-    '#fcd34d', // amber 300
-    '#fdba74'  // orange 300（备用）
+    '#ef4444', // red 500 - 鲜艳红色
+    '#f97316', // orange 500 - 橙色
+    '#eab308', // yellow 500 - 黄色
+    '#22c55e', // green 500 - 绿色
+    '#06b6d4', // cyan 500 - 青色
+    '#3b82f6', // blue 500 - 蓝色
+    '#8b5cf6', // violet 500 - 紫色
+    '#ec4899', // pink 500 - 粉色
+    '#f59e0b', // amber 500 - 琥珀色
+    '#84cc16', // lime 500 - 青柠色
+    '#14b8a6', // teal 500 - 蓝绿色
+    '#6366f1', // indigo 500 - 靛蓝色
+    '#d946ef', // fuchsia 500 - 紫红色
+    '#f43f5e', // rose 500 - 玫瑰色
+    '#a855f7', // purple 500 - 紫色
+    '#0ea5e9'  // sky 500 - 天蓝色
   ];
 
   // 更丰富的符号集（动物/水果/形状/物品等），用于不同类型的牌
@@ -72,10 +76,15 @@
     // frontX, frontY 为前方面的左上角；frontW、frontH 为前方面尺寸；depth 为挤出深度像素
     drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options){
       const o = options || {};
+      const accentColor = o.accentColor || '#f87171';
       const faceColor = o.faceColor || '#fff7ed';
-      const topColor = o.topColor || '#2f2f2f'; // 顶部深灰
-      const rightColor = o.rightColor || '#2f2f2f'; // 深灰色侧边
-      const radius = Math.max(4, Math.floor(Math.min(frontW, frontH) * 0.12));
+      
+      // 根据主色调生成立体效果的颜色
+      const topColor = this.adjustHexColor(accentColor, -0.25); // 顶面稍暗
+      const rightColor = this.adjustHexColor(accentColor, -0.4); // 右侧面更暗
+      const frontColor = accentColor; // 前面使用主色调
+      
+      const radius = Math.max(3, Math.floor(Math.min(frontW, frontH) * 0.08));
       const d = Math.max(1, Math.floor(depth));
 
       // 预计算关键点
@@ -87,10 +96,10 @@
       const A2 = { x: A.x + d,  y: A.y - d   };
       const B2 = { x: B.x + d,  y: B.y - d   };
       const C2 = { x: C.x + d,  y: C.y - d   };
-      // const D2 = { x: D.x + d,  y: D.y - d   };
 
       ctx.save();
-      // 顶面（圆角四边形）
+      
+      // 绘制圆角四边形的辅助函数
       const roundedQuadPath = (ctx, P0, P1, P2, P3, rad)=>{
         const pts = [P0,P1,P2,P3];
         const lerp = (p, q, t)=> ({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t });
@@ -109,20 +118,39 @@
         }
         ctx.closePath();
       };
-      const sideRadius = Math.max(2, Math.floor(radius * 0.5));
+      
+      const sideRadius = Math.max(2, Math.floor(radius * 0.6));
+      
+      // 顶面（使用渐变效果）
       roundedQuadPath(ctx, A, B, B2, A2, sideRadius);
-      ctx.fillStyle = topColor;
+      const topGradient = ctx.createLinearGradient(A.x, A.y, A2.x, A2.y);
+      topGradient.addColorStop(0, topColor);
+      topGradient.addColorStop(1, this.adjustHexColor(topColor, -0.15));
+      ctx.fillStyle = topGradient;
       ctx.fill();
 
-      // 右侧面（圆角四边形）
+      // 右侧面（使用渐变效果）
       roundedQuadPath(ctx, B, C, C2, B2, sideRadius);
-      ctx.fillStyle = rightColor;
+      const rightGradient = ctx.createLinearGradient(B.x, B.y, C2.x, C2.y);
+      rightGradient.addColorStop(0, rightColor);
+      rightGradient.addColorStop(1, this.adjustHexColor(rightColor, -0.15));
+      ctx.fillStyle = rightGradient;
       ctx.fill();
 
-      // 前方面（圆角）
+      // 前方面（使用渐变效果增强立体感）
       this.createRoundedRectPath(ctx, fx, fy, fw, fh, radius);
-      ctx.fillStyle = faceColor;
+      const frontGradient = ctx.createLinearGradient(fx, fy, fx + fw, fy + fh);
+      frontGradient.addColorStop(0, this.adjustHexColor(frontColor, 0.1));
+      frontGradient.addColorStop(0.5, frontColor);
+      frontGradient.addColorStop(1, this.adjustHexColor(frontColor, -0.1));
+      ctx.fillStyle = frontGradient;
       ctx.fill();
+      
+      // 添加细微的边框增强立体效果
+      ctx.strokeStyle = this.adjustHexColor(frontColor, -0.2);
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      
       ctx.restore();
     },
     // 绘制圆角矩形路径，便于统一的卡片外形
@@ -521,16 +549,16 @@
       const cellW = boardWidth / params.cols;
       const cellH = boardHeight / params.rows;
       const baseCell = Math.min(cellW, cellH);
-      const layerOffset = Math.floor(baseCell * (isMobile ? 0.10 : 0.12));
-      // 左侧对齐：整行内容相对于画布水平居中后的左边缘开始
+      const layerOffset = Math.floor(baseCell * (isMobile ? 0.12 : 0.15)); // 增加层级偏移
+      // 居中对齐：整行内容相对于画布居中
       const contentWidth = cellW * params.cols;
-      const offsetX = Math.max(8, Math.floor((this.cssWidth - contentWidth) / 2));
-      const offsetY = padding;
+      const offsetX = Math.max(12, Math.floor((this.cssWidth - contentWidth) / 2));
+      const offsetY = padding + Math.floor(layerOffset * 2); // 为顶层留出空间
       const rects = new Map();
-      // 紧凑布局比例与边距
-      const ratioW = 3, ratioH = 2; // 前方面比例 3:2
-      const whFactor = isMobile ? 0.94 : 0.96;
-      const gapX = Math.max(2, Math.floor(baseCell * 0.06));
+      // 优化布局比例与边距 - 更接近正方形的立方体
+      const ratioW = 4, ratioH = 3; // 前方面比例调整为 4:3，更接近正方形
+      const whFactor = isMobile ? 0.92 : 0.94;
+      const gapX = Math.max(3, Math.floor(baseCell * 0.08)); // 增加间距
       // 按 layer+row 分组并按原 col 排序，便于稳定紧凑布局
       const groupMap = new Map();
       for (const t of this.tiles){
@@ -557,9 +585,13 @@
         }
         let h = Math.floor(w / (ratioW/ratioH));
         const baseY = offsetY + row * cellH + (params.layers - layer - 1) * layerOffset;
+        // 计算行内居中偏移
+        const rowTotalWidth = n * w + (n - 1) * gapX;
+        const rowStartX = Math.floor(offsetX + (contentWidth - rowTotalWidth) / 2);
+        
         for (let i = 0; i < arr.length; i++){
           const tile = arr[i];
-          const x = Math.floor(offsetX + i * (w + gapX)); // 左侧对齐 + 紧凑分布
+          const x = Math.floor(rowStartX + i * (w + gapX)); // 行内居中分布
           const y = Math.floor(baseY + (cellH - h) / 2);
           rects.set(tile.id, { x, y, w, h });
         }
@@ -785,32 +817,32 @@
         const accentColor = COLOR_PALETTE[tile.type % COLOR_PALETTE.length];
         const faceColor = isDark ? '#0f172a' : '#fff7ed';
 
-        // 立体长方体参数：前方面宽高 = 3:2；厚度与宽的比例 = 0.25（整体比例 3:2:0.25）
-        const padding = Math.max(1, Math.floor(Math.min(r.w, r.h) * 0.02));
-        const ratioW = 3;
-        const ratioH = 2;
-        const depthAbs = 0.25; // 与宽的同一比例单位（当宽=3）
+        // 立体长方体参数：前方面宽高 = 4:3；厚度比例优化
+        const padding = Math.max(2, Math.floor(Math.min(r.w, r.h) * 0.03));
+        const ratioW = 4;
+        const ratioH = 3;
+        const depthAbs = 0.35; // 增加厚度比例，让立体效果更明显
         const dFactor = depthAbs / ratioW; // depth 与像素宽 frontW 的关系
         // 设 frontW = k，则 totalW = k*(1 + dFactor)，totalH = k*(ratioH/ratioW + dFactor)
-        const maxTotalW = Math.max(8, r.w - padding*2);
-        const maxTotalH = Math.max(8, r.h - padding*2);
+        const maxTotalW = Math.max(12, r.w - padding*2);
+        const maxTotalH = Math.max(12, r.h - padding*2);
         const kByW = maxTotalW / (1 + dFactor);
         const kByH = maxTotalH / (ratioH/ratioW + dFactor);
-        const k = Math.max(6, Math.floor(Math.min(kByW, kByH)));
+        const k = Math.max(8, Math.floor(Math.min(kByW, kByH)));
         let frontW = k;
         let frontH = Math.floor(k * ratioH / ratioW);
-        let depth = Math.max(2, Math.floor(k * dFactor));
+        let depth = Math.max(3, Math.floor(k * dFactor));
         // 使整个长方体（包含顶面与右面）在 r 内居中
         const totalW = frontW + depth;
         const totalH = frontH + depth;
         const frontX = Math.floor(r.x + (r.w - totalW)/2);
         const frontY = Math.floor(r.y + (r.h - totalH)/2 + depth);
 
-        // 轻微阴影，增强立体感
-        ctx.shadowColor = isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.18)';
-        ctx.shadowBlur = Math.max(1, Math.floor(depth * 0.3));
-        ctx.shadowOffsetX = Math.floor(depth * 0.18);
-        ctx.shadowOffsetY = Math.floor(depth * 0.28);
+        // 优化阴影效果，增强立体感
+        ctx.shadowColor = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.25)';
+        ctx.shadowBlur = Math.max(2, Math.floor(depth * 0.4));
+        ctx.shadowOffsetX = Math.floor(depth * 0.25);
+        ctx.shadowOffsetY = Math.floor(depth * 0.35);
 
         // 绘制 3D 长方体（方向：向右上）
         this.drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, {
@@ -820,51 +852,69 @@
 
         // 符号（绘制在前方面中央）
         const symbol = getSymbolForType(tile.type);
-        // 占前方面高度的 76%
-        const fontSize = Math.floor(frontH * 0.76);
+        // 占前方面高度的 70%，稍微缩小以适应新比例
+        const fontSize = Math.floor(frontH * 0.70);
         const sx = frontX + frontW/2;
         const sy = frontY + frontH/2; // 前方面中心
         ctx.font = `${fontSize}px system-ui`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        // 轻微立体阴影
-        ctx.fillStyle = isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.22)';
-        ctx.fillText(symbol, sx + Math.max(1, Math.floor(depth*0.08)), sy + Math.max(1, Math.floor(depth*0.12)));
-        // 主体
-        ctx.fillStyle = accentColor;
+        
+        // 优化符号的立体阴影效果
+        ctx.fillStyle = isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.3)';
+        ctx.fillText(symbol, sx + Math.max(1, Math.floor(depth*0.1)), sy + Math.max(1, Math.floor(depth*0.15)));
+        
+        // 主体符号使用白色或深色，确保对比度
+        ctx.fillStyle = isDark ? '#ffffff' : '#1f2937';
         ctx.fillText(symbol, sx, sy);
-        // 细描边
-        ctx.lineWidth = 0.8;
-        ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.18)';
+        
+        // 细描边增强可读性
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)';
         if (ctx.strokeText) ctx.strokeText(symbol, sx, sy);
 
         const covered = (tile.status==='board' && this.isCovered(tile, rects));
         // overlay for non-selectable
         if (covered){
-          // 暗色下使用浅色半透明覆盖，亮色下使用深色半透明覆盖
-          ctx.fillStyle = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.12)';
+          // 优化覆盖效果，使用更明显的遮罩
+          ctx.fillStyle = isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.6)';
           // 仅覆盖前方面区域
-          const cornerRadius = Math.max(6, Math.floor(Math.min(frontW, frontH) * 0.12));
+          const cornerRadius = Math.max(4, Math.floor(Math.min(frontW, frontH) * 0.08));
           this.createRoundedRectPath(ctx, frontX, frontY, frontW, frontH, cornerRadius);
           ctx.fill();
+          
+          // 添加"锁定"图标或效果
+          ctx.fillStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+          const lockSize = Math.min(frontW, frontH) * 0.3;
+          ctx.font = `${lockSize}px system-ui`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('🔒', frontX + frontW/2, frontY + frontH/2);
         }
         // near-triple guidance highlight (only for selectable tiles)
         if (!covered && nearTripleTypes.has(tile.type)){
           ctx.save();
-          ctx.strokeStyle = 'rgba(14,165,233,0.8)'; // cyan-500-ish
-          ctx.lineWidth = 3;
-          if (ctx.setLineDash) ctx.setLineDash([6,4]);
-          this.createRoundedRectPath(ctx, frontX+2, frontY+2, frontW-4, frontH-4, Math.max(4, Math.floor(Math.min(frontW, frontH) * 0.12)-2));
+          // 使用发光效果
+          ctx.shadowColor = '#22c55e';
+          ctx.shadowBlur = 8;
+          ctx.strokeStyle = '#22c55e'; // green-500
+          ctx.lineWidth = 2;
+          if (ctx.setLineDash) ctx.setLineDash([8,4]);
+          this.createRoundedRectPath(ctx, frontX-1, frontY-1, frontW+2, frontH+2, Math.max(4, Math.floor(Math.min(frontW, frontH) * 0.08)));
           ctx.stroke();
           if (ctx.setLineDash) ctx.setLineDash([]);
           ctx.restore();
         }
         // highlight
         if (this.highlightTileId === tile.id){
-          ctx.strokeStyle = '#0ea5e9';
-          ctx.lineWidth = 5;
-          this.createRoundedRectPath(ctx, frontX-2, frontY-2, frontW+4, frontH+4, Math.max(6, Math.floor(Math.min(frontW, frontH) * 0.12)));
+          ctx.save();
+          ctx.shadowColor = '#3b82f6';
+          ctx.shadowBlur = 10;
+          ctx.strokeStyle = '#3b82f6'; // blue-500
+          ctx.lineWidth = 3;
+          this.createRoundedRectPath(ctx, frontX-2, frontY-2, frontW+4, frontH+4, Math.max(4, Math.floor(Math.min(frontW, frontH) * 0.08)));
           ctx.stroke();
+          ctx.restore();
         }
         ctx.restore();
       }
