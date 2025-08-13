@@ -5,12 +5,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .btn:hover{filter:brightness(.98)}
 .btn:active{transform:translateY(1px)}
 .btn:disabled{opacity:.6;cursor:not-allowed;filter:saturate(0.7)}
-.game-container{position:relative;width:100%;max-width:960px;margin:0 auto;background:var(--card-bg,#FFF8E1);border-radius:1rem;border:1px solid var(--card-border, rgba(0,0,0,.1));padding:12px}
+.game-container{position:relative;width:100%;max-width:960px;margin:0 auto;background:var(--card-bg,#334155);border-radius:1rem;border:1px solid var(--card-border, rgba(255,255,255,.1));padding:12px}
 .game-canvas{width:100%;height:56vh;max-height:calc(100vh - 220px);min-height:240px;background:#f8fafc;border-radius:.75rem;display:block}
 .slot-bar{margin-top:12px;min-height:64px;background:var(--card-bg,#f1f5f9);border:1px solid var(--card-border, rgba(0,0,0,.06));border-radius:.75rem;display:flex;flex-wrap:nowrap;gap:8px;align-items:center;padding:8px}
 .slot-bar::-webkit-scrollbar{display:none}
 .slot-bar{scrollbar-width:none}
-.slot-item{width:48px;height:48px;border:2px solid #cbd5e1;border-radius:.5rem;display:flex;align-items:center;justify-content:center;background:var(--card-bg,#FFF8E1)}
+.slot-item{width:48px;height:48px;border:2px solid #64748b;border-radius:.5rem;display:flex;align-items:center;justify-content:center;background:var(--card-bg,#334155)}
 .slot-item.near{box-shadow:0 0 0 2px rgba(14,165,233,.35) inset}
 .slot-item.empty{background:#fff1e6;border-style:dashed;color:#cbd5e1}
 .slot-emoji{font-size:24px;line-height:1}

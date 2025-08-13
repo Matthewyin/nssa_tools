@@ -938,7 +938,7 @@
           .getPropertyValue("background-color")
           ?.trim();
       } catch {}
-      ctx.fillStyle = canvasBg && canvasBg !== "" ? canvasBg : "#FFF8E1";
+      ctx.fillStyle = canvasBg && canvasBg !== "" ? canvasBg : "#1E293B";
       ctx.fillRect(0, 0, w, h);
 
       // 统计槽位中类型计数，用于“近三连”棋盘引导（计数==2）
