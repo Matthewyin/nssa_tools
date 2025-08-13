@@ -42,6 +42,8 @@
     <div class="mt-4 text-sm text-gray-600">
       <p>测试场景：</p>
       <ul class="list-disc list-inside mt-2">
+        <li>背景色：#FFF8E1（浅黄色）</li>
+        <li>简化立方体：只保留正面和底面阴影</li>
         <li>位置(0,0): 层0 + 层2，层2为顶层显示亮色</li>
         <li>位置(1,0): 只有层1，层1为顶层显示亮色</li>
         <li>位置(2,0): 层0 + 层1 + 层3，层3为顶层显示亮色</li>
@@ -85,7 +87,7 @@
     
     function renderTest() {
       // 清空画布并设置背景
-      ctx.fillStyle = '#f5f5f7';
+      ctx.fillStyle = '#FFF8E1';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       // 计算每个位置的顶层信息

@@ -168,45 +168,20 @@
       borderColor = depthColors[colorIndex].border;
 
       const radius = 6;
-      const thickness = Math.floor(frontW * 0.1); // 厚度为宽度的0.1倍
+      const shadowOffset = 3; // 底面阴影偏移
 
       ctx.save();
 
-      // 绘制右侧厚度面（体现厚度）
-      if (thickness > 0) {
-        const sideColor = this.adjustHexColor(frontColor, -0.2); // 侧面稍暗
-        ctx.fillStyle = sideColor;
-        ctx.beginPath();
-        ctx.moveTo(frontX + frontW, frontY + radius);
-        ctx.lineTo(frontX + frontW + thickness, frontY + radius - thickness);
-        ctx.lineTo(frontX + frontW + thickness, frontY + frontH - radius - thickness);
-        ctx.lineTo(frontX + frontW, frontY + frontH - radius);
-        ctx.closePath();
-        ctx.fill();
+      // 绘制底面阴影（简单的立体效果）
+      const shadowColor = this.adjustHexColor(frontColor, -0.3); // 底面更暗
+      ctx.fillStyle = shadowColor;
+      this.createRoundedRectPath(ctx, frontX + shadowOffset, frontY + shadowOffset, frontW, frontH, radius);
+      ctx.fill();
 
-        // 侧面边框
-        ctx.strokeStyle = this.adjustHexColor(borderColor, -0.1);
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      // 绘制顶部厚度面（体现厚度）
-      if (thickness > 0) {
-        const topColor = this.adjustHexColor(frontColor, -0.15); // 顶面稍暗
-        ctx.fillStyle = topColor;
-        ctx.beginPath();
-        ctx.moveTo(frontX + radius, frontY);
-        ctx.lineTo(frontX + radius + thickness, frontY - thickness);
-        ctx.lineTo(frontX + frontW - radius + thickness, frontY - thickness);
-        ctx.lineTo(frontX + frontW - radius, frontY);
-        ctx.closePath();
-        ctx.fill();
-
-        // 顶面边框
-        ctx.strokeStyle = this.adjustHexColor(borderColor, -0.1);
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
+      // 底面边框
+      ctx.strokeStyle = this.adjustHexColor(borderColor, -0.2);
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
       // 绘制主体矩形（正面）
       this.createRoundedRectPath(ctx, frontX, frontY, frontW, frontH, radius);
@@ -963,7 +938,7 @@
           .getPropertyValue("background-color")
           ?.trim();
       } catch {}
-      ctx.fillStyle = canvasBg && canvasBg !== "" ? canvasBg : "#f5f5f7";
+      ctx.fillStyle = canvasBg && canvasBg !== "" ? canvasBg : "#FFF8E1";
       ctx.fillRect(0, 0, w, h);
 
       // 统计槽位中类型计数，用于“近三连”棋盘引导（计数==2）

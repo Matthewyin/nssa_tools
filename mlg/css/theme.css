@@ -5,7 +5,7 @@ body {
   --bg-color: #f5f5f7;
   --text-color-primary: #1d1d1f;
   --text-color-secondary: #6e6e73;
-  --card-bg: #f5f5f7;
+  --card-bg: #FFF8E1;
   --card-border: rgba(0, 0, 0, 0.1);
   --input-bg: #f2f2f7;
   --input-border: #8e8e93;
@@ -57,8 +57,8 @@ body.dark-theme { background: #000000; }
   body.system-theme { background: #000000; }
 }
 
-/* 亮色下画布背景与页面背景一致 */
-body .game-canvas { background: #f5f5f7; }
+/* 亮色下画布背景为浅黄色 */
+body .game-canvas { background: #FFF8E1; }
 
 /* 卡片容器（画布外壳） */
 .mlg-card {
