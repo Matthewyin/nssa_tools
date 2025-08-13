@@ -220,7 +220,6 @@
       this.state = this.loadState();
       this.history = [];
       this.highlightTileId = null;
-      this.timer = null;
       this.warnedNearFull = false;
       this.initCanvas();
       this.bindUI();
@@ -238,12 +237,6 @@
             ? this.state.slotCapacity
             : 8;
         this.highlightTileId = null;
-        // 确保存在开始时间
-        if (typeof this.state.startedAt !== "number") {
-          this.state.startedAt = Date.now();
-          this.saveState();
-        }
-        this.startTimer();
         this.updateHud();
         this.render();
       } else {
@@ -274,7 +267,6 @@
           slot: [],
           history: [],
           slotCapacity: 8,
-          startedAt: Date.now(),
         };
         const merged = raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
         // 迁移与矫正：去掉提示道具，确保存在洗牌/撤销条目
@@ -297,7 +289,7 @@
         if (!Array.isArray(merged.tiles)) merged.tiles = [];
         if (!Array.isArray(merged.slot)) merged.slot = [];
         if (!Array.isArray(merged.history)) merged.history = [];
-        if (typeof merged.startedAt !== "number") merged.startedAt = Date.now();
+        // startedAt字段已移除（计时功能删除）
         return merged;
       } catch {
         return {
@@ -321,7 +313,6 @@
           slot: this.slot || [],
           history: this.history || [],
           slotCapacity: typeof SLOT_CAPACITY === "number" ? SLOT_CAPACITY : 8,
-          startedAt: this.state.startedAt,
         };
         localStorage.setItem(
           getStorageKey(this.user),
@@ -490,10 +481,7 @@
         diffEl.textContent =
           DIFFICULTY_LABELS[Math.floor((this.state.level - 1) / 3)] ||
           DIFFICULTY_LABELS[0];
-      const movesEl = document.getElementById("moves");
-      const moves = Array.isArray(this.history) ? this.history.length : 0;
-      if (movesEl) movesEl.textContent = String(moves);
-      // 计时功能已移除，不再更新用时
+      // 计步和计时功能已移除
 
       // 同步道具按钮可用状态与提示
       const shuffleBtn = document.getElementById("btn-shuffle");
@@ -508,13 +496,7 @@
       syncBtn(undoBtn, this.getItem("undo"));
     },
 
-    startTimer() {
-      // 计时功能已移除
-      if (this.timer) {
-        clearInterval(this.timer);
-        this.timer = null;
-      }
-    },
+
 
     // --- Game Loop ---
     newGame(keepLevel) {
@@ -534,9 +516,6 @@
         undoItem.remainingUses = 1;
         this.undoStepBudget = 2;
       }
-      // 计时器重置
-      this.state.startedAt = Date.now();
-      this.startTimer();
       this.warnedNearFull = false;
       // 更新持久化快照字段
       this.state.tiles = this.tiles;
@@ -1147,11 +1126,7 @@
         this.slot.length >= Math.max(1, SLOT_CAPACITY - 1) &&
         this.slot.length < SLOT_CAPACITY;
       container.classList.toggle("warning", nearFull);
-      // 同步到 HUD 胶囊的预警样式
-      const hudMoves = document.getElementById("hud-moves");
-      if (hudMoves) {
-        hudMoves.classList.toggle("warning", nearFull);
-      }
+      // HUD预警样式已移除（计步功能删除）
       if (nearFull && !this.warnedNearFull) {
         this.showMessage("注意：槽位即将满", "warn");
         this.warnedNearFull = true;
