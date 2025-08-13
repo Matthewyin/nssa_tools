@@ -92,23 +92,37 @@
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width;
       canvas.height = rect.height;
-      
+
       // 清空画布并设置背景
       ctx.fillStyle = '#1E293B';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       const { cubeWidth, cubeHeight } = calculateCubeSize();
-      
-      // 绘制一些测试立方体
-      const testTiles = [
-        { x: 100, y: 100, isTop: true, depth: 0 },
-        { x: 200, y: 100, isTop: true, depth: 1 },
-        { x: 300, y: 100, isTop: true, depth: 2 },
-        { x: 400, y: 100, isTop: true, depth: 3 },
-        { x: 150, y: 220, isTop: true, depth: 0 },
-        { x: 250, y: 220, isTop: false, depth: 1 },
-        { x: 350, y: 220, isTop: false, depth: 2 },
-      ];
+
+      // 计算居中的网格布局
+      const cols = 4;
+      const rows = 3;
+      const gridWidth = cols * cubeWidth;
+      const gridHeight = rows * cubeHeight;
+
+      // 居中计算
+      const startX = Math.floor((canvas.width - gridWidth) / 2);
+      const startY = Math.floor((canvas.height - gridHeight) / 2);
+
+      // 生成居中的测试立方体
+      const testTiles = [];
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          if (Math.random() > 0.3) { // 70%概率生成立方体
+            testTiles.push({
+              x: startX + col * cubeWidth,
+              y: startY + row * cubeHeight,
+              isTop: Math.random() > 0.3,
+              depth: Math.floor(Math.random() * 4)
+            });
+          }
+        }
+      }
       
       const symbols = ['🌟', '🎯', '🎲', '🔮', '💎', '⭐', '🏆'];
       

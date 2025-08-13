@@ -754,9 +754,28 @@
       const totalWidth = baseGridWidth + maxLayerOffset;
       const totalHeight = baseGridHeight + maxLayerOffset;
 
-      // 计算居中位置，确保所有层级都能显示
-      const startX = Math.floor((this.cssWidth - totalWidth) / 2);
-      const startY = Math.floor((this.cssHeight - totalHeight) / 2);
+      // 智能居中计算
+      let startX, startY;
+
+      if (totalWidth <= this.cssWidth) {
+        // 内容能完全显示，居中
+        startX = Math.floor((this.cssWidth - totalWidth) / 2);
+      } else {
+        // 内容超出画布，优先显示基础网格的中心
+        const availableWidth = this.cssWidth - 20; // 留20px边距
+        const gridCenterOffset = Math.floor((availableWidth - baseGridWidth) / 2);
+        startX = Math.max(10, gridCenterOffset);
+      }
+
+      if (totalHeight <= this.cssHeight) {
+        // 内容能完全显示，居中
+        startY = Math.floor((this.cssHeight - totalHeight) / 2);
+      } else {
+        // 内容超出画布，优先显示基础网格的中心
+        const availableHeight = this.cssHeight - 20; // 留20px边距
+        const gridCenterOffset = Math.floor((availableHeight - baseGridHeight) / 2);
+        startY = Math.max(10, gridCenterOffset);
+      }
       // 为每个tile计算位置
       for (const tile of this.tiles) {
         if (tile.status !== "board") continue;

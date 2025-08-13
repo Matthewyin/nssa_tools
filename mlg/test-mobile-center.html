@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MLG 手机端居中测试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body class="min-h-screen">
+  <main class="mx-auto max-w-5xl px-4 py-6" style="color: var(--text-color-primary)">
+    <h1 class="text-xl font-bold mb-2 text-white">手机端居中测试</h1>
+    <p class="mb-4 text-xs text-gray-300">验证立方体在手机上是否正确居中显示</p>
+    
+    <div class="bg-slate-800 p-3 rounded-lg mb-4">
+      <h3 class="text-sm font-semibold mb-2 text-white">当前状态</h3>
+      <div class="text-xs text-gray-300 space-y-1">
+        <div>屏幕: <span id="screen-info"></span></div>
+        <div>画布: <span id="canvas-info"></span></div>
+        <div>网格: <span id="grid-info"></span></div>
+        <div>居中: <span id="center-info"></span></div>
+      </div>
+    </div>
+    
+    <div id="game-container" class="game-container mlg-card" style="background: var(--card-bg);">
+      <canvas id="test-canvas" class="game-canvas" style="height: 300px;"></canvas>
+    </div>
+    
+    <div class="mt-4 text-xs text-gray-300 bg-slate-800 p-3 rounded-lg">
+      <p class="font-semibold mb-1">居中策略：</p>
+      <ul class="list-disc list-inside space-y-1">
+        <li>内容适合画布：完全居中</li>
+        <li>内容超出画布：优先显示网格中心</li>
+        <li>保持最小边距：10px</li>
+        <li>考虑层级偏移：45度角偏移</li>
+      </ul>
+    </div>
+  </main>
+
+  <script src="js/game.js"></script>
+  <script>
+    const canvas = document.getElementById('test-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    function calculateLayout() {
+      const screenWidth = window.innerWidth;
+      const baseCubeWidth = 60;
+      
+      // 屏幕缩放
+      let screenScale = 1;
+      if (screenWidth <= 480) {
+        screenScale = 0.6;
+      } else if (screenWidth <= 640) {
+        screenScale = 0.7;
+      } else if (screenWidth <= 768) {
+        screenScale = 0.85;
+      }
+      
+      const cubeWidth = Math.floor(baseCubeWidth * screenScale);
+      const cubeHeight = Math.floor(cubeWidth * 2.2 / 2);
+      
+      // 模拟游戏网格（手机上通常是较大的网格）
+      const cols = screenWidth <= 480 ? 8 : 7;
+      const rows = screenWidth <= 480 ? 10 : 9;
+      const layers = 4;
+      
+      const baseGridWidth = cols * cubeWidth;
+      const baseGridHeight = rows * cubeHeight;
+      
+      // 层级偏移
+      const maxLayerOffset = (layers - 1) * cubeWidth * 0.5 * Math.cos(Math.PI / 4);
+      const totalWidth = baseGridWidth + maxLayerOffset;
+      const totalHeight = baseGridHeight + maxLayerOffset;
+      
+      return {
+        screenWidth,
+        screenScale,
+        cubeWidth,
+        cubeHeight,
+        cols,
+        rows,
+        layers,
+        baseGridWidth,
+        baseGridHeight,
+        totalWidth,
+        totalHeight,
+        maxLayerOffset
+      };
+    }
+    
+    function calculateCenter(layout, canvasWidth, canvasHeight) {
+      let startX, startY;
+      
+      if (layout.totalWidth <= canvasWidth) {
+        startX = Math.floor((canvasWidth - layout.totalWidth) / 2);
+      } else {
+        const availableWidth = canvasWidth - 20;
+        const gridCenterOffset = Math.floor((availableWidth - layout.baseGridWidth) / 2);
+        startX = Math.max(10, gridCenterOffset);
+      }
+      
+      if (layout.totalHeight <= canvasHeight) {
+        startY = Math.floor((canvasHeight - layout.totalHeight) / 2);
+      } else {
+        const availableHeight = canvasHeight - 20;
+        const gridCenterOffset = Math.floor((availableHeight - layout.baseGridHeight) / 2);
+        startY = Math.max(10, gridCenterOffset);
+      }
+      
+      return { startX, startY };
+    }
+    
+    function updateInfo() {
+      const layout = calculateLayout();
+      const rect = canvas.getBoundingClientRect();
+      const center = calculateCenter(layout, rect.width, rect.height);
+      
+      document.getElementById('screen-info').textContent = 
+        `${layout.screenWidth}px (${(layout.screenScale * 100).toFixed(0)}%)`;
+      document.getElementById('canvas-info').textContent = 
+        `${Math.floor(rect.width)}×${Math.floor(rect.height)}px`;
+      document.getElementById('grid-info').textContent = 
+        `${layout.cols}×${layout.rows} (${layout.cubeWidth}×${layout.cubeHeight}px)`;
+      document.getElementById('center-info').textContent = 
+        `起点(${center.startX}, ${center.startY})`;
+    }
+    
+    function renderTest() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      
+      // 背景
+      ctx.fillStyle = '#1E293B';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const layout = calculateLayout();
+      const center = calculateCenter(layout, canvas.width, canvas.height);
+      
+      // 绘制网格边界（调试用）
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(center.startX, center.startY, layout.baseGridWidth, layout.baseGridHeight);
+      
+      // 绘制总边界（包含层级偏移）
+      ctx.strokeStyle = 'rgba(255, 255, 0, 0.3)';
+      ctx.strokeRect(center.startX, center.startY, layout.totalWidth, layout.totalHeight);
+      
+      // 绘制一些示例立方体
+      const testPositions = [
+        { col: 0, row: 0, layer: 0 },
+        { col: 1, row: 0, layer: 1 },
+        { col: 2, row: 0, layer: 2 },
+        { col: 0, row: 1, layer: 0 },
+        { col: 1, row: 1, layer: 1 },
+        { col: layout.cols - 1, row: 0, layer: 0 },
+        { col: layout.cols - 1, row: layout.rows - 1, layer: 0 },
+        { col: 0, row: layout.rows - 1, layer: 0 },
+      ];
+      
+      const symbols = ['🌟', '🎯', '🎲', '🔮', '💎', '⭐', '🏆', '🎁'];
+      
+      testPositions.forEach((pos, index) => {
+        if (pos.col >= layout.cols || pos.row >= layout.rows) return;
+        
+        const baseX = center.startX + pos.col * layout.cubeWidth;
+        const baseY = center.startY + pos.row * layout.cubeHeight;
+        
+        // 45度角偏移
+        const halfGrid = layout.cubeWidth * 0.5;
+        const angle45 = Math.PI / 4;
+        const layerOffsetX = pos.layer * halfGrid * Math.cos(angle45);
+        const layerOffsetY = pos.layer * halfGrid * Math.sin(angle45);
+        
+        const x = baseX + layerOffsetX;
+        const y = baseY + layerOffsetY;
+        
+        // 绘制立方体
+        if (window.MLG && window.MLG.drawCuboid) {
+          const depth = 12;
+          window.MLG.drawCuboid(ctx, x, y, layout.cubeWidth, layout.cubeHeight, depth, {
+            actualLayer: pos.layer,
+            isTopAtPosition: true,
+            relativeDepth: 0
+          });
+          
+          // 绘制符号
+          const fontSize = Math.floor(Math.min(layout.cubeWidth, layout.cubeHeight) * 0.6);
+          ctx.font = `${fontSize}px system-ui`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(31, 41, 55, 1)';
+          ctx.fillText(symbols[index], x + layout.cubeWidth / 2, y + layout.cubeHeight / 2);
+        }
+      });
+      
+      // 绘制中心线（调试用）
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.moveTo(0, canvas.height / 2);
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+      
+      // 标题
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.font = '14px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText('手机端居中测试', canvas.width / 2, 10);
+      
+      ctx.font = '10px system-ui';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillText(`网格: ${layout.cols}×${layout.rows}, 立方体: ${layout.cubeWidth}×${layout.cubeHeight}px`, canvas.width / 2, 30);
+    }
+    
+    // 初始化
+    updateInfo();
+    renderTest();
+    
+    // 监听变化
+    window.addEventListener('resize', () => {
+      updateInfo();
+      renderTest();
+    });
+  </script>
+</body>
+</html>
