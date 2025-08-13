@@ -12,7 +12,10 @@
   <main class="mx-auto max-w-5xl px-4 py-6" style="color: var(--text-color-primary)">
     <h1 class="text-2xl font-bold mb-4">MLG 立方体渲染效果测试</h1>
     <p class="mb-4 text-sm text-gray-600">
-      测试修改后的立方体渲染效果，背景色已更新为 #F9FBE7（浅黄绿色）
+      测试修改后的立方体渲染效果：背景色与页面一致，手机端自动缩放
+    </p>
+    <p class="mb-4 text-xs text-gray-500">
+      屏幕宽度: <span id="screen-width"></span>px | 缩放比例: <span id="scale-info"></span>
     </p>
     
     <div id="game-container" class="game-container mlg-card" style="background: var(--card-bg);">
@@ -22,7 +25,8 @@
     <div class="mt-4 text-sm text-gray-600">
       <p>渲染特点：</p>
       <ul class="list-disc list-inside mt-2">
-        <li>浅黄绿色背景：#F9FBE7，温暖柔和</li>
+        <li>背景色与页面一致：#f5f5f7</li>
+        <li>响应式缩放：手机端自动缩小立方体</li>
         <li>层级颜色：顶层最亮 #E8F5E8，逐级变暗到底层 #A0B8A0</li>
         <li>立体边框：主边框 + 高光边框 + 侧面阴影</li>
         <li>符号透明度：层级越高越清晰</li>
@@ -49,18 +53,33 @@
       { layer: 3, type: 3, x: 200, y: 200 },
     ];
     
+    // 显示屏幕信息
+    const screenWidth = window.innerWidth;
+    let scale = 1;
+    if (screenWidth <= 480) {
+      scale = 0.6;
+    } else if (screenWidth <= 640) {
+      scale = 0.7;
+    } else if (screenWidth <= 768) {
+      scale = 0.85;
+    }
+
+    document.getElementById('screen-width').textContent = screenWidth;
+    document.getElementById('scale-info').textContent = scale;
+
     // 清空画布并设置背景
-    ctx.fillStyle = '#F9FBE7';
+    ctx.fillStyle = '#f5f5f7';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // 测试符号
     const symbols = ['🐱', '🐶', '🐭', '🐹'];
     
-    // 绘制测试立方体
+    // 绘制测试立方体 - 使用响应式大小
     testTiles.forEach((tile, index) => {
-      const frontW = 80;
-      const frontH = 80;
-      const depth = 16;
+      const baseFrontW = 80;
+      const frontW = Math.floor(baseFrontW * scale);
+      const frontH = Math.floor(frontW * 2.2 / 2);
+      const depth = Math.floor(frontW * 0.2);
       
       // 使用MLG的drawCuboid方法
       if (window.MLG && window.MLG.drawCuboid) {
@@ -92,6 +111,68 @@
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText('层级 0-3 立方体渲染测试', 10, 10);
+
+    // 监听窗口大小变化
+    function handleResize() {
+      // 重新渲染
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      // 更新屏幕信息并重新绘制
+      const newScreenWidth = window.innerWidth;
+      let newScale = 1;
+      if (newScreenWidth <= 480) {
+        newScale = 0.6;
+      } else if (newScreenWidth <= 640) {
+        newScale = 0.7;
+      } else if (newScreenWidth <= 768) {
+        newScale = 0.85;
+      }
+
+      document.getElementById('screen-width').textContent = newScreenWidth;
+      document.getElementById('scale-info').textContent = newScale;
+
+      // 重新绘制所有内容
+      ctx.fillStyle = '#f5f5f7';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      testTiles.forEach((tile, index) => {
+        const baseFrontW = 80;
+        const frontW = Math.floor(baseFrontW * newScale);
+        const frontH = Math.floor(frontW * 2.2 / 2);
+        const depth = Math.floor(frontW * 0.2);
+
+        if (window.MLG && window.MLG.drawCuboid) {
+          window.MLG.drawCuboid(ctx, tile.x, tile.y, frontW, frontH, depth, {
+            actualLayer: tile.layer
+          });
+
+          const fontSize = Math.floor(Math.min(frontW, frontH) * 0.6);
+          ctx.font = `${fontSize}px system-ui`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          const maxLayers = 4;
+          if (tile.layer === maxLayers - 1) {
+            ctx.fillStyle = 'rgba(31, 41, 55, 1)';
+          } else {
+            const layerDiff = (maxLayers - 1) - tile.layer;
+            const symbolOpacity = Math.max(0.4, 1 - (layerDiff * 0.2));
+            ctx.fillStyle = `rgba(31, 41, 55, ${symbolOpacity})`;
+          }
+          ctx.fillText(symbols[index], tile.x + frontW / 2, tile.y + frontH / 2);
+        }
+      });
+
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.font = '14px system-ui';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('层级 0-3 立方体渲染测试', 10, 10);
+    }
+
+    window.addEventListener('resize', handleResize);
   </script>
 </body>
 </html>

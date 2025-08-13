@@ -684,8 +684,20 @@
       // - 同层级紧凑：同一层内的同一行按出现顺序紧密排列
       // - 纵向仍保留层级向上偏移
       const params = this.getLevelParams(this.state.level);
-      // 固定立方体大小，不随画布变化
-      const cubeWidth = 60; // 固定宽度60px
+      // 响应式立方体大小 - 根据屏幕宽度自动缩放
+      const screenWidth = window.innerWidth;
+      const baseCubeWidth = 60; // 基础宽度60px
+      let scale = 1;
+
+      if (screenWidth <= 480) {
+        scale = 0.6; // 超小屏幕（iPhone SE等）
+      } else if (screenWidth <= 640) {
+        scale = 0.7; // 小屏幕手机
+      } else if (screenWidth <= 768) {
+        scale = 0.85; // 平板竖屏
+      }
+
+      const cubeWidth = Math.floor(baseCubeWidth * scale);
       const cubeHeight = Math.floor(cubeWidth * 2.2 / 2); // 2.2:2 比例，高度为宽度的1.1倍
       const maxLayers = 4; // 最多4层
       const rects = new Map();
@@ -943,7 +955,7 @@
           .getPropertyValue("background-color")
           ?.trim();
       } catch {}
-      ctx.fillStyle = canvasBg && canvasBg !== "" ? canvasBg : "#F9FBE7";
+      ctx.fillStyle = canvasBg && canvasBg !== "" ? canvasBg : "#f5f5f7";
       ctx.fillRect(0, 0, w, h);
 
       // 统计槽位中类型计数，用于“近三连”棋盘引导（计数==2）
