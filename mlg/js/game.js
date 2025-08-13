@@ -144,20 +144,28 @@
     drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options) {
       const o = options || {};
       const actualLayer = o.actualLayer || 0;
-      const maxLayers = 4;
+      const isTopAtPosition = o.isTopAtPosition || false; // 是否为当前位置的顶层
+      const relativeDepth = o.relativeDepth || 0; // 相对深度（0=顶层，1=下一层，等等）
       let frontColor, borderColor;
 
-      // 每个层级都有不同的颜色，从顶层最亮到底层最暗
-      const layerColors = [
-        { front: '#A0B8A0', border: '#1A3010' }, // 层级0（底层）：最暗
-        { front: '#B0C8B0', border: '#1F3515' }, // 层级1：较暗
-        { front: '#C0D8C0', border: '#243A1A' }, // 层级2：稍亮
-        { front: '#E8F5E8', border: '#2D5016' }  // 层级3（顶层）：最亮
+      // 新的颜色方案：基于相对深度而非绝对层级
+      const depthColors = [
+        { front: '#FFFDE7', border: '#F57F17' }, // 顶层：最亮黄色
+        { front: '#B0BEC5', border: '#37474F' }, // 下一层：蓝灰色
+        { front: '#90A4AE', border: '#263238' }, // 更下层：深蓝灰色
+        { front: '#546E7A', border: '#102027' }  // 最下层：最深蓝灰色
       ];
 
-      const colorIndex = Math.min(actualLayer, layerColors.length - 1);
-      frontColor = layerColors[colorIndex].front;
-      borderColor = layerColors[colorIndex].border;
+      // 如果是当前位置的顶层，使用顶层颜色；否则根据相对深度选择颜色
+      let colorIndex;
+      if (isTopAtPosition) {
+        colorIndex = 0; // 顶层颜色
+      } else {
+        colorIndex = Math.min(relativeDepth + 1, depthColors.length - 1);
+      }
+
+      frontColor = depthColors[colorIndex].front;
+      borderColor = depthColors[colorIndex].border;
 
       const radius = 6;
       const thickness = Math.floor(frontW * 0.1); // 厚度为宽度的0.1倍
@@ -972,6 +980,26 @@
       );
 
       const rects = this.computeTileRects();
+
+      // 计算每个位置的顶层信息
+      const positionTopLayers = new Map(); // 存储每个位置(col,row)的最高层级
+      const positionTiles = new Map(); // 存储每个位置的所有立方体
+
+      for (const tile of this.tiles) {
+        if (tile.status !== "board") continue;
+        const posKey = `${tile.col},${tile.row}`;
+
+        if (!positionTiles.has(posKey)) {
+          positionTiles.set(posKey, []);
+        }
+        positionTiles.get(posKey).push(tile);
+
+        const currentMax = positionTopLayers.get(posKey) || -1;
+        if (tile.layer > currentMax) {
+          positionTopLayers.set(posKey, tile.layer);
+        }
+      }
+
       // draw tiles from bottom to top (lower layer first)
       const sorted = [...this.tiles].sort((a, b) => a.layer - b.layer);
       for (const tile of sorted) {
@@ -1006,9 +1034,17 @@
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
 
+        // 计算当前立方体在其位置的相对深度
+        const posKey = `${tile.col},${tile.row}`;
+        const topLayerAtPos = positionTopLayers.get(posKey);
+        const isTopAtPosition = tile.layer === topLayerAtPos;
+        const relativeDepth = topLayerAtPos - tile.layer; // 0=顶层，1=下一层，等等
+
         // 绘制 3D 长方体（方向：向右上）
         this.drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, {
           actualLayer: tile.layer, // 传递层级信息
+          isTopAtPosition: isTopAtPosition, // 是否为当前位置的顶层
+          relativeDepth: relativeDepth // 相对深度
         });
 
         // 符号（绘制在前方面中央）- 与测试文件一致
@@ -1021,16 +1057,14 @@
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
-        // 主符号 - 根据层级调整颜色
-        // 层级越高符号越清晰
-        const maxLayers = 4;
-        if (tile.layer === maxLayers - 1) {
-          // 最高层级符号：深色，高对比度
+        // 主符号 - 根据相对深度调整颜色
+        // 顶层符号最清晰，下层逐渐透明
+        if (isTopAtPosition) {
+          // 当前位置顶层符号：深色，高对比度
           ctx.fillStyle = 'rgba(31, 41, 55, 1)';
         } else {
-          // 较低层级符号：层级越低越透明
-          const layerDiff = (maxLayers - 1) - tile.layer;
-          const symbolOpacity = Math.max(0.4, 1 - (layerDiff * 0.2)); // 最低40%透明度
+          // 下层符号：相对深度越大越透明
+          const symbolOpacity = Math.max(0.3, 1 - (relativeDepth * 0.25)); // 最低30%透明度
           ctx.fillStyle = `rgba(31, 41, 55, ${symbolOpacity})`;
         }
         ctx.fillText(symbol, sx, sy);

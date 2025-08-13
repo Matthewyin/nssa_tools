@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MLG 业务逻辑测试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body class="min-h-screen">
+  <main class="mx-auto max-w-5xl px-4 py-6" style="color: var(--text-color-primary)">
+    <h1 class="text-2xl font-bold mb-4">MLG 业务逻辑测试</h1>
+    <p class="mb-4 text-sm text-gray-600">
+      测试新的业务逻辑：每个位置的最上层立方体都显示为顶层亮色
+    </p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div>
+        <h3 class="text-lg font-semibold mb-2">示例说明</h3>
+        <ul class="text-sm text-gray-600 space-y-1">
+          <li>• 位置A: 层0(底) + 层2(顶) → 层2显示亮色</li>
+          <li>• 位置B: 只有层1 → 层1显示亮色</li>
+          <li>• 位置C: 层0(底) + 层1(中) + 层3(顶) → 层3显示亮色</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold mb-2">颜色方案</h3>
+        <ul class="text-sm text-gray-600 space-y-1">
+          <li>• 顶层: <span class="inline-block w-4 h-4 bg-yellow-100 border rounded"></span> #FFFDE7</li>
+          <li>• 下一层: <span class="inline-block w-4 h-4 bg-blue-200 border rounded"></span> #B0BEC5</li>
+          <li>• 更下层: <span class="inline-block w-4 h-4 bg-blue-300 border rounded"></span> #90A4AE</li>
+          <li>• 最下层: <span class="inline-block w-4 h-4 bg-blue-500 border rounded"></span> #546E7A</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div id="game-container" class="game-container mlg-card" style="background: var(--card-bg);">
+      <canvas id="test-canvas" class="game-canvas" style="height: 400px;"></canvas>
+    </div>
+    
+    <div class="mt-4 text-sm text-gray-600">
+      <p>测试场景：</p>
+      <ul class="list-disc list-inside mt-2">
+        <li>位置(0,0): 层0 + 层2，层2为顶层显示亮色</li>
+        <li>位置(1,0): 只有层1，层1为顶层显示亮色</li>
+        <li>位置(2,0): 层0 + 层1 + 层3，层3为顶层显示亮色</li>
+        <li>符号透明度：顶层100%，下层逐渐透明</li>
+      </ul>
+    </div>
+  </main>
+
+  <script src="js/game.js"></script>
+  <script>
+    // 业务逻辑测试
+    const canvas = document.getElementById('test-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 设置画布尺寸
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    
+    // 测试立方体数据 - 演示业务逻辑
+    const testTiles = [
+      // 位置(0,0): 层0(底层) + 层2(顶层)
+      { layer: 0, type: 0, x: 80, y: 150, col: 0, row: 0 },
+      { layer: 2, type: 1, x: 80, y: 150, col: 0, row: 0 },
+      
+      // 位置(1,0): 只有层1(单独顶层)
+      { layer: 1, type: 2, x: 200, y: 150, col: 1, row: 0 },
+      
+      // 位置(2,0): 层0(底层) + 层1(中层) + 层3(顶层)
+      { layer: 0, type: 3, x: 320, y: 150, col: 2, row: 0 },
+      { layer: 1, type: 4, x: 320, y: 150, col: 2, row: 0 },
+      { layer: 3, type: 5, x: 320, y: 150, col: 2, row: 0 },
+      
+      // 位置(3,0): 层0(底层) + 层1(顶层)
+      { layer: 0, type: 6, x: 440, y: 150, col: 3, row: 0 },
+      { layer: 1, type: 7, x: 440, y: 150, col: 3, row: 0 },
+    ];
+    
+    // 测试符号
+    const symbols = ['🐱', '🐶', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+    
+    function renderTest() {
+      // 清空画布并设置背景
+      ctx.fillStyle = '#f5f5f7';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // 计算每个位置的顶层信息
+      const positionTopLayers = new Map();
+      testTiles.forEach(tile => {
+        const posKey = `${tile.col},${tile.row}`;
+        const currentMax = positionTopLayers.get(posKey) || -1;
+        if (tile.layer > currentMax) {
+          positionTopLayers.set(posKey, tile.layer);
+        }
+      });
+      
+      // 按层级排序，先绘制底层
+      const sortedTiles = [...testTiles].sort((a, b) => a.layer - b.layer);
+      
+      // 绘制所有立方体
+      sortedTiles.forEach((tile, index) => {
+        const frontW = 60;
+        const frontH = 66;
+        const depth = 12;
+        
+        // 计算相对深度
+        const posKey = `${tile.col},${tile.row}`;
+        const topLayerAtPos = positionTopLayers.get(posKey);
+        const isTopAtPosition = tile.layer === topLayerAtPos;
+        const relativeDepth = topLayerAtPos - tile.layer;
+        
+        // 使用MLG的drawCuboid方法
+        if (window.MLG && window.MLG.drawCuboid) {
+          window.MLG.drawCuboid(ctx, tile.x, tile.y, frontW, frontH, depth, {
+            actualLayer: tile.layer,
+            isTopAtPosition: isTopAtPosition,
+            relativeDepth: relativeDepth
+          });
+          
+          // 绘制符号
+          const fontSize = Math.floor(Math.min(frontW, frontH) * 0.6);
+          ctx.font = `${fontSize}px system-ui`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          
+          // 使用新的符号透明度逻辑
+          if (isTopAtPosition) {
+            ctx.fillStyle = 'rgba(31, 41, 55, 1)';
+          } else {
+            const symbolOpacity = Math.max(0.3, 1 - (relativeDepth * 0.25));
+            ctx.fillStyle = `rgba(31, 41, 55, ${symbolOpacity})`;
+          }
+          ctx.fillText(symbols[tile.type], tile.x + frontW / 2, tile.y + frontH / 2);
+        }
+        
+        // 添加位置和层级标签
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.font = '12px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const label = `(${tile.col},${tile.row}) L${tile.layer}${isTopAtPosition ? ' 顶' : ''}`;
+        ctx.fillText(label, tile.x + frontW / 2, tile.y + frontH + 5);
+      });
+      
+      // 添加说明文字
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.font = '16px system-ui';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('业务逻辑测试：每个位置的最上层立方体显示亮色', 20, 20);
+      
+      ctx.font = '14px system-ui';
+      ctx.fillText('位置A: (0,0) 层0+层2', 80, 280);
+      ctx.fillText('位置B: (1,0) 层1', 200, 280);
+      ctx.fillText('位置C: (2,0) 层0+层1+层3', 320, 280);
+      ctx.fillText('位置D: (3,0) 层0+层1', 440, 280);
+    }
+    
+    // 初始渲染
+    renderTest();
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      renderTest();
+    });
+  </script>
+</body>
+</html>

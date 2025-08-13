@@ -27,9 +27,10 @@
       <ul class="list-disc list-inside mt-2">
         <li>背景色与页面一致：#f5f5f7</li>
         <li>响应式缩放：手机端自动缩小立方体</li>
-        <li>层级颜色：顶层最亮 #E8F5E8，逐级变暗到底层 #A0B8A0</li>
+        <li>新颜色方案：顶层 #FFFDE7，下层 #B0BEC5，更下层 #90A4AE，最下层 #546E7A</li>
+        <li>业务逻辑：每个位置的最上层立方体都显示为顶层亮色</li>
         <li>立体边框：主边框 + 高光边框 + 侧面阴影</li>
-        <li>符号透明度：层级越高越清晰</li>
+        <li>符号透明度：顶层最清晰，下层逐渐透明</li>
       </ul>
     </div>
   </main>
@@ -45,12 +46,14 @@
     canvas.width = rect.width;
     canvas.height = rect.height;
     
-    // 测试立方体数据
+    // 测试立方体数据 - 模拟不同位置的顶层情况
     const testTiles = [
-      { layer: 0, type: 0, x: 50, y: 50 },
-      { layer: 1, type: 1, x: 100, y: 100 },
-      { layer: 2, type: 2, x: 150, y: 150 },
-      { layer: 3, type: 3, x: 200, y: 200 },
+      { layer: 0, type: 0, x: 50, y: 50, col: 0, row: 0 },   // 位置(0,0)的底层
+      { layer: 2, type: 1, x: 50, y: 50, col: 0, row: 0 },   // 位置(0,0)的顶层
+      { layer: 1, type: 2, x: 150, y: 50, col: 1, row: 0 },  // 位置(1,0)的顶层
+      { layer: 0, type: 3, x: 250, y: 50, col: 2, row: 0 },  // 位置(2,0)的底层
+      { layer: 1, type: 4, x: 250, y: 50, col: 2, row: 0 },  // 位置(2,0)的中层
+      { layer: 3, type: 5, x: 250, y: 50, col: 2, row: 0 },  // 位置(2,0)的顶层
     ];
     
     // 显示屏幕信息
@@ -74,31 +77,48 @@
     // 测试符号
     const symbols = ['🐱', '🐶', '🐭', '🐹'];
     
-    // 绘制测试立方体 - 使用响应式大小
+    // 计算每个位置的顶层信息
+    const positionTopLayers = new Map();
+    testTiles.forEach(tile => {
+      const posKey = `${tile.col},${tile.row}`;
+      const currentMax = positionTopLayers.get(posKey) || -1;
+      if (tile.layer > currentMax) {
+        positionTopLayers.set(posKey, tile.layer);
+      }
+    });
+
+    // 绘制测试立方体 - 使用响应式大小和新逻辑
     testTiles.forEach((tile, index) => {
       const baseFrontW = 80;
       const frontW = Math.floor(baseFrontW * scale);
       const frontH = Math.floor(frontW * 2.2 / 2);
       const depth = Math.floor(frontW * 0.2);
-      
+
+      // 计算相对深度
+      const posKey = `${tile.col},${tile.row}`;
+      const topLayerAtPos = positionTopLayers.get(posKey);
+      const isTopAtPosition = tile.layer === topLayerAtPos;
+      const relativeDepth = topLayerAtPos - tile.layer;
+
       // 使用MLG的drawCuboid方法
       if (window.MLG && window.MLG.drawCuboid) {
         window.MLG.drawCuboid(ctx, tile.x, tile.y, frontW, frontH, depth, {
-          actualLayer: tile.layer
+          actualLayer: tile.layer,
+          isTopAtPosition: isTopAtPosition,
+          relativeDepth: relativeDepth
         });
-        
+
         // 绘制符号
         const fontSize = Math.floor(Math.min(frontW, frontH) * 0.6);
         ctx.font = `${fontSize}px system-ui`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        
-        const maxLayers = 4;
-        if (tile.layer === maxLayers - 1) {
+
+        // 使用新的符号透明度逻辑
+        if (isTopAtPosition) {
           ctx.fillStyle = 'rgba(31, 41, 55, 1)';
         } else {
-          const layerDiff = (maxLayers - 1) - tile.layer;
-          const symbolOpacity = Math.max(0.4, 1 - (layerDiff * 0.2));
+          const symbolOpacity = Math.max(0.3, 1 - (relativeDepth * 0.25));
           ctx.fillStyle = `rgba(31, 41, 55, ${symbolOpacity})`;
         }
         ctx.fillText(symbols[index], tile.x + frontW / 2, tile.y + frontH / 2);
@@ -143,9 +163,17 @@
         const frontH = Math.floor(frontW * 2.2 / 2);
         const depth = Math.floor(frontW * 0.2);
 
+        // 计算相对深度
+        const posKey = `${tile.col},${tile.row}`;
+        const topLayerAtPos = positionTopLayers.get(posKey);
+        const isTopAtPosition = tile.layer === topLayerAtPos;
+        const relativeDepth = topLayerAtPos - tile.layer;
+
         if (window.MLG && window.MLG.drawCuboid) {
           window.MLG.drawCuboid(ctx, tile.x, tile.y, frontW, frontH, depth, {
-            actualLayer: tile.layer
+            actualLayer: tile.layer,
+            isTopAtPosition: isTopAtPosition,
+            relativeDepth: relativeDepth
           });
 
           const fontSize = Math.floor(Math.min(frontW, frontH) * 0.6);
@@ -153,12 +181,11 @@
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
 
-          const maxLayers = 4;
-          if (tile.layer === maxLayers - 1) {
+          // 使用新的符号透明度逻辑
+          if (isTopAtPosition) {
             ctx.fillStyle = 'rgba(31, 41, 55, 1)';
           } else {
-            const layerDiff = (maxLayers - 1) - tile.layer;
-            const symbolOpacity = Math.max(0.4, 1 - (layerDiff * 0.2));
+            const symbolOpacity = Math.max(0.3, 1 - (relativeDepth * 0.25));
             ctx.fillStyle = `rgba(31, 41, 55, ${symbolOpacity})`;
           }
           ctx.fillText(symbols[index], tile.x + frontW / 2, tile.y + frontH / 2);
