@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MLG 白色顶层测试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body class="min-h-screen">
+  <main class="mx-auto max-w-5xl px-4 py-6" style="color: var(--text-color-primary)">
+    <h1 class="text-2xl font-bold mb-4">MLG 白色顶层测试</h1>
+    <p class="mb-4 text-sm text-gray-600">
+      测试新的顶层立方体颜色：纯白色 #FFFFFF，在浅黄色背景上的视觉效果
+    </p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div>
+        <h3 class="text-lg font-semibold mb-2">颜色对比</h3>
+        <ul class="text-sm text-gray-600 space-y-1">
+          <li>• 背景色：#FFF8E1（浅黄色）</li>
+          <li>• 顶层：#FFFFFF（纯白色）</li>
+          <li>• 边框：#CCCCCC（浅灰色）</li>
+          <li>• 对比度：高对比度，清晰可见</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold mb-2">视觉效果</h3>
+        <ul class="text-sm text-gray-600 space-y-1">
+          <li>• 突出显示：顶层立方体更加醒目</li>
+          <li>• 层次分明：白色与蓝灰色形成对比</li>
+          <li>• 简洁美观：符合现代设计风格</li>
+          <li>• 易于识别：快速区分顶层和下层</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div id="game-container" class="game-container mlg-card" style="background: var(--card-bg);">
+      <canvas id="test-canvas" class="game-canvas" style="height: 500px;"></canvas>
+    </div>
+    
+    <div class="mt-4 text-sm text-gray-600">
+      <p>测试场景：</p>
+      <ul class="list-disc list-inside mt-2">
+        <li>多层堆叠：展示白色顶层与下层的对比</li>
+        <li>单独顶层：不同位置的独立顶层都显示白色</li>
+        <li>符号清晰度：白色背景上的深色符号</li>
+        <li>边框效果：浅灰色边框与白色正面的搭配</li>
+      </ul>
+    </div>
+  </main>
+
+  <script src="js/game.js"></script>
+  <script>
+    // 白色顶层测试
+    const canvas = document.getElementById('test-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 设置画布尺寸
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    
+    // 测试立方体数据 - 展示白色顶层效果
+    const testTiles = [
+      // 第一组：多层堆叠，顶层显示白色
+      { layer: 0, type: 0, x: 80, y: 200, col: 0, row: 0 },   // 底层
+      { layer: 1, type: 1, x: 80, y: 200, col: 0, row: 0 },   // 中层
+      { layer: 2, type: 2, x: 80, y: 200, col: 0, row: 0 },   // 顶层（白色）
+      
+      // 第二组：双层堆叠
+      { layer: 0, type: 3, x: 200, y: 200, col: 1, row: 0 },  // 底层
+      { layer: 1, type: 4, x: 200, y: 200, col: 1, row: 0 },  // 顶层（白色）
+      
+      // 第三组：单独顶层
+      { layer: 2, type: 5, x: 320, y: 200, col: 2, row: 0 },  // 单独顶层（白色）
+      
+      // 第四组：四层堆叠
+      { layer: 0, type: 6, x: 440, y: 200, col: 3, row: 0 },  // 最底层
+      { layer: 1, type: 7, x: 440, y: 200, col: 3, row: 0 },  // 第二层
+      { layer: 2, type: 8, x: 440, y: 200, col: 3, row: 0 },  // 第三层
+      { layer: 3, type: 9, x: 440, y: 200, col: 3, row: 0 },  // 顶层（白色）
+      
+      // 第五组：不同高度的单独顶层
+      { layer: 0, type: 10, x: 560, y: 200, col: 4, row: 0 }, // 单独顶层（白色）
+      { layer: 1, type: 11, x: 680, y: 200, col: 5, row: 0 }, // 单独顶层（白色）
+    ];
+    
+    // 测试符号
+    const symbols = ['🌟', '🎯', '🎲', '🔮', '💎', '⭐', '🏆', '👑', '🎪', '🎨', '🎭', '🎪'];
+    
+    function renderTest() {
+      // 清空画布并设置背景
+      ctx.fillStyle = '#FFF8E1';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // 计算每个位置的顶层信息
+      const positionTopLayers = new Map();
+      testTiles.forEach(tile => {
+        const posKey = `${tile.col},${tile.row}`;
+        const currentMax = positionTopLayers.get(posKey) || -1;
+        if (tile.layer > currentMax) {
+          positionTopLayers.set(posKey, tile.layer);
+        }
+      });
+      
+      // 按层级排序，先绘制底层
+      const sortedTiles = [...testTiles].sort((a, b) => a.layer - b.layer);
+      
+      // 绘制所有立方体
+      sortedTiles.forEach((tile, index) => {
+        const frontW = 80;
+        const frontH = 80;
+        const depth = 12;
+        
+        // 计算相对深度
+        const posKey = `${tile.col},${tile.row}`;
+        const topLayerAtPos = positionTopLayers.get(posKey);
+        const isTopAtPosition = tile.layer === topLayerAtPos;
+        const relativeDepth = topLayerAtPos - tile.layer;
+        
+        // 使用MLG的drawCuboid方法
+        if (window.MLG && window.MLG.drawCuboid) {
+          window.MLG.drawCuboid(ctx, tile.x, tile.y, frontW, frontH, depth, {
+            actualLayer: tile.layer,
+            isTopAtPosition: isTopAtPosition,
+            relativeDepth: relativeDepth
+          });
+          
+          // 绘制符号
+          const fontSize = Math.floor(Math.min(frontW, frontH) * 0.5);
+          ctx.font = `${fontSize}px system-ui`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          
+          // 使用新的符号透明度逻辑
+          if (isTopAtPosition) {
+            ctx.fillStyle = 'rgba(31, 41, 55, 1)';
+          } else {
+            const symbolOpacity = Math.max(0.3, 1 - (relativeDepth * 0.25));
+            ctx.fillStyle = `rgba(31, 41, 55, ${symbolOpacity})`;
+          }
+          ctx.fillText(symbols[tile.type], tile.x + frontW / 2, tile.y + frontH / 2);
+        }
+        
+        // 添加层级标签
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.font = '12px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const label = `L${tile.layer}${isTopAtPosition ? ' 顶' : ''}`;
+        ctx.fillText(label, tile.x + frontW / 2, tile.y + frontH + 5);
+      });
+      
+      // 添加位置标签
+      const positions = [
+        { x: 80, label: '3层堆叠' },
+        { x: 200, label: '2层堆叠' },
+        { x: 320, label: '单独L2' },
+        { x: 440, label: '4层堆叠' },
+        { x: 560, label: '单独L0' },
+        { x: 680, label: '单独L1' }
+      ];
+      
+      positions.forEach(pos => {
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.font = '14px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(pos.label, pos.x + 40, 320);
+      });
+      
+      // 添加说明文字
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.font = '18px system-ui';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('白色顶层测试：每个位置的最上层立方体显示为纯白色', 20, 20);
+      
+      ctx.font = '14px system-ui';
+      ctx.fillText('背景：#FFF8E1 | 顶层：#FFFFFF | 边框：#CCCCCC', 20, 50);
+      
+      // 颜色图例
+      const legendY = 80;
+      const legendItems = [
+        { color: '#FFFFFF', border: '#CCCCCC', label: '顶层' },
+        { color: '#B0BEC5', border: '#37474F', label: '下一层' },
+        { color: '#90A4AE', border: '#263238', label: '更下层' },
+        { color: '#546E7A', border: '#102027', label: '最下层' }
+      ];
+      
+      legendItems.forEach((item, index) => {
+        const x = 20 + index * 120;
+        
+        // 绘制小方块
+        ctx.fillStyle = item.color;
+        ctx.fillRect(x, legendY, 20, 20);
+        ctx.strokeStyle = item.border;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, legendY, 20, 20);
+        
+        // 绘制标签
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.font = '12px system-ui';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.label, x + 25, legendY + 10);
+      });
+    }
+    
+    // 初始渲染
+    renderTest();
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      renderTest();
+    });
+  </script>
+</body>
+</html>

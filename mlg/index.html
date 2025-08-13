@@ -40,13 +40,24 @@
   </header>
 
   <main class="mx-auto max-w-5xl px-4 py-6" style="color: var(--text-color-primary)">
-    <div id="top-bar" class="flex items-center justify-between mb-4 gap-3">
+    <!-- 顶部信息栏 - 只保留游戏状态信息 -->
+    <div id="top-bar" class="flex items-center justify-center mb-4 gap-3">
       <div class="flex items-center gap-2 text-sm flex-wrap">
         <div class="hud-pill"><span class="icon">🎯</span><span>关卡</span><span id="level">1</span></div>
         <div class="hud-pill"><span class="icon">⭐</span><span>难度</span><span id="difficulty">入门</span></div>
         <div class="hud-pill" id="hud-moves"><span class="icon">👣</span><span>步数</span><span id="moves">--</span></div>
         <!-- 计时功能已移除 -->
       </div>
+    </div>
+
+    <!-- 游戏画布 -->
+    <div id="game-container" class="game-container mlg-card" style="background: var(--card-bg);">
+      <canvas id="game-canvas" class="game-canvas"></canvas>
+      <div id="slot-bar" class="slot-bar" style="overflow-x: auto; white-space: nowrap;"></div>
+    </div>
+
+    <!-- 底部功能按钮 -->
+    <div id="bottom-controls" class="flex items-center justify-center mt-4 gap-3">
       <div class="controls flex items-center gap-2">
         <button id="btn-add" class="btn btn-secondary hidden sm:inline-flex" aria-label="增加道具">➕ 增加道具</button>
         <div class="hidden sm:flex items-center gap-2">
@@ -68,11 +79,6 @@
           <button class="menu-item" data-action="undo">撤销 +1</button>
         </div>
       </div>
-    </div>
-
-    <div id="game-container" class="game-container mlg-card" style="background: var(--card-bg);">
-      <canvas id="game-canvas" class="game-canvas"></canvas>
-      <div id="slot-bar" class="slot-bar" style="overflow-x: auto; white-space: nowrap;"></div>
     </div>
 
     <p class="mt-4 text-xs text-slate-500">说明：每关默认 洗牌×1、撤销×1（一次撤销最多两步），不可跨关累加；槽位默认 8，可通过“增加道具”选择扩容（+1）、洗牌（+1）或撤销（+1）。难度每 3 关提升，且自 5 层起始并逐步增加，同时优化了图片排列的随机性与相邻去重。</p>

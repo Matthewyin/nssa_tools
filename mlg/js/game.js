@@ -150,7 +150,7 @@
 
       // 新的颜色方案：基于相对深度而非绝对层级
       const depthColors = [
-        { front: '#FFFDE7', border: '#F57F17' }, // 顶层：最亮黄色
+        { front: '#FFFFFF', border: '#CCCCCC' }, // 顶层：纯白色
         { front: '#B0BEC5', border: '#37474F' }, // 下一层：蓝灰色
         { front: '#90A4AE', border: '#263238' }, // 更下层：深蓝灰色
         { front: '#546E7A', border: '#102027' }  // 最下层：最深蓝灰色

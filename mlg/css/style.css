@@ -6,7 +6,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .btn:active{transform:translateY(1px)}
 .btn:disabled{opacity:.6;cursor:not-allowed;filter:saturate(0.7)}
 .game-container{position:relative;width:100%;max-width:960px;margin:0 auto;background:var(--card-bg,#FFF8E1);border-radius:1rem;border:1px solid var(--card-border, rgba(0,0,0,.1));padding:12px}
-.game-canvas{width:100%;height:56vh;max-height:calc(100vh - 220px);min-height:240px;background:#f8fafc;border-radius:.75rem;display:block}
+.game-canvas{width:100%;height:65vh;max-height:calc(100vh - 180px);min-height:300px;background:#f8fafc;border-radius:.75rem;display:block}
 .slot-bar{margin-top:12px;min-height:64px;background:var(--card-bg,#f1f5f9);border:1px solid var(--card-border, rgba(0,0,0,.06));border-radius:.75rem;display:flex;flex-wrap:nowrap;gap:8px;align-items:center;padding:8px}
 .slot-bar::-webkit-scrollbar{display:none}
 .slot-bar{scrollbar-width:none}
@@ -18,7 +18,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 /* 增加道具内置面板 */
 .controls{position:relative}
 .add-panel.hidden{display:none}
-.add-panel{position:absolute;top:100%;right:0;margin-top:.5rem;background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:.5rem;box-shadow:0 10px 20px rgba(0,0,0,.08);padding:.25rem;z-index:20}
+.add-panel{position:absolute;bottom:100%;right:0;margin-bottom:.5rem;background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:.5rem;box-shadow:0 10px 20px rgba(0,0,0,.08);padding:.25rem;z-index:20}
 .add-panel .menu-item{display:block;width:100%;text-align:left;padding:.5rem .75rem;border-radius:.375rem}
 .add-panel .menu-item:hover{background:#f1f5f9}
 
@@ -61,8 +61,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   /* 减少容器与页面的左右边距，给画布更多空间 */
   .game-container{padding:8px}
   main{padding-left:8px;padding-right:8px}
+  /* 移动端画布高度优化 */
+  .game-canvas{height:70vh;max-height:calc(100vh - 160px)}
 }
 
 @media (min-width: 1024px){
-  .game-canvas{height:60vh}
+  .game-canvas{height:70vh;max-height:calc(100vh - 160px)}
 }
