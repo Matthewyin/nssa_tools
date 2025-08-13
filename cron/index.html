@@ -435,14 +435,48 @@
         }
 
         function scheduleNext(task) {
-            if (!task.isActive) return;
-            if (taskTimers.has(task.id)) clearTimeout(taskTimers.get(task.id));
+            if (!task.isActive) {
+                console.log(`任务 ${task.name} 已停用，跳过调度`);
+                return;
+            }
+
+            // 清除现有定时器
+            if (taskTimers.has(task.id)) {
+                clearTimeout(taskTimers.get(task.id));
+                console.log(`清除任务 ${task.name} 的现有定时器`);
+            }
+
             const timeToNextRun = Math.max(0, task.nextRun - Date.now());
+            const nextRunTime = new Date(task.nextRun).toLocaleString();
+
+            console.log(`调度任务 ${task.name}:`);
+            console.log(`- 下次执行时间: ${nextRunTime}`);
+            console.log(`- 距离执行还有: ${Math.round(timeToNextRun / 1000)} 秒`);
+
+            // 如果时间间隔太长（超过24小时），使用较短的检查间隔
+            const maxInterval = 24 * 60 * 60 * 1000; // 24小时
+            const actualInterval = Math.min(timeToNextRun, maxInterval);
+
             const timerId = setTimeout(async () => {
+                console.log(`定时器触发，准备执行任务: ${task.name}`);
+
+                // 如果这是一个长间隔的检查，重新计算时间
+                if (timeToNextRun > maxInterval) {
+                    console.log(`长间隔任务 ${task.name} 重新调度`);
+                    const currentTask = tasks.find(t => t.id === task.id);
+                    if (currentTask && currentTask.isActive) {
+                        scheduleNext(currentTask);
+                    }
+                    return;
+                }
+
+                // 执行任务
                 await executeTask(task);
                 const currentTask = tasks.find(t => t.id === task.id);
                 if (currentTask && currentTask.isActive) {
                     currentTask.nextRun = calculateNextRun(currentTask);
+                    console.log(`任务 ${task.name} 执行完成，下次执行: ${new Date(currentTask.nextRun).toLocaleString()}`);
+
                     // 只更新当前任务的UI，而不是重新渲染整个列表
                     updateTaskUI(currentTask.id);
                     if (currentUser) {
@@ -450,8 +484,10 @@
                     }
                     scheduleNext(currentTask);
                 }
-            }, timeToNextRun);
+            }, actualInterval);
+
             taskTimers.set(task.id, timerId);
+            console.log(`任务 ${task.name} 定时器已设置，ID: ${timerId}`);
         }
 
         // --- 弹窗 (Modal) 逻辑 ---
@@ -568,6 +604,7 @@
                         <button class="edit-btn action-btn">编辑</button>
                         <button class="toggle-active-btn action-btn">${task.isActive ? '暂停' : '启动'}</button>
                         <button class="run-now-btn action-btn">立即触发</button>
+                        <button class="debug-btn action-btn" style="background: #6366f1; color: white;">调试</button>
                         <button class="delete-btn action-btn text-red-500">删除</button>
                     </div>
                 `;
@@ -697,8 +734,53 @@
                 executeTask(task);
             } else if (button.classList.contains('edit-btn')) {
                 openModal('edit', taskId);
+            } else if (button.classList.contains('debug-btn')) {
+                showTaskDebugInfo(task);
             }
         });
+
+        // --- 调试功能 ---
+        function showTaskDebugInfo(task) {
+            const hasTimer = taskTimers.has(task.id);
+            const timerId = taskTimers.get(task.id);
+            const nextRunTime = new Date(task.nextRun).toLocaleString();
+            const timeToNext = Math.round((task.nextRun - Date.now()) / 1000);
+
+            const debugInfo = `
+任务调试信息：${task.name}
+
+基本信息：
+- 任务ID: ${task.id}
+- 状态: ${task.isActive ? '启用' : '停用'}
+- 创建时间: ${new Date(task.createdAt).toLocaleString()}
+
+调度信息：
+- 调度类型: ${task.scheduleType === 'advanced' ? '高级定时' : '简单间隔'}
+- 下次执行: ${nextRunTime}
+- 距离执行: ${timeToNext > 0 ? timeToNext + ' 秒' : '已过期'}
+
+定时器状态：
+- 定时器存在: ${hasTimer ? '是' : '否'}
+- 定时器ID: ${timerId || '无'}
+- 页面可见: ${document.visibilityState}
+- 窗口焦点: ${document.hasFocus() ? '是' : '否'}
+
+请求配置：
+- URL: ${task.url}
+- 方法: ${task.method}
+- 请求体: ${task.body || '无'}
+
+${task.scheduleType === 'advanced' ?
+`高级配置：
+- 执行日期: ${task.days?.map(d => ['日','一','二','三','四','五','六'][d]).join('、') || '无'}
+- 执行时间: ${task.time}` :
+`简单配置：
+- 间隔: ${task.interval}
+- 单位: ${task.unit}`}
+            `;
+
+            alert(debugInfo);
+        }
 
         // --- 导入导出功能 ---
         function exportTasks() {
@@ -934,11 +1016,73 @@
             }
         }
         
+        // --- 页面可见性检测和定时器恢复 ---
+        function setupVisibilityHandling() {
+            // 监听页面可见性变化
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    console.log('页面重新可见，检查并恢复定时器');
+                    restoreTimers();
+                } else {
+                    console.log('页面隐藏，定时器可能被浏览器限制');
+                }
+            });
+
+            // 监听窗口焦点变化
+            window.addEventListener('focus', () => {
+                console.log('窗口获得焦点，恢复定时器');
+                restoreTimers();
+            });
+
+            // 定期检查定时器状态（每分钟）
+            setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    checkAndRestoreTimers();
+                }
+            }, 60000);
+        }
+
+        function restoreTimers() {
+            console.log('开始恢复定时器...');
+            tasks.forEach(task => {
+                if (task.isActive) {
+                    // 检查是否错过了执行时间
+                    if (Date.now() > task.nextRun) {
+                        console.log(`任务 ${task.name} 错过了执行时间，重新计算`);
+                        task.nextRun = calculateNextRun(task);
+                    }
+                    scheduleNext(task);
+                }
+            });
+            if (currentUser) {
+                localStorage.setItem(getUserTaskKey(), JSON.stringify(tasks));
+            }
+            renderTasks();
+        }
+
+        function checkAndRestoreTimers() {
+            let needsRestore = false;
+            tasks.forEach(task => {
+                if (task.isActive && !taskTimers.has(task.id)) {
+                    console.log(`发现任务 ${task.name} 缺少定时器，需要恢复`);
+                    needsRestore = true;
+                }
+            });
+
+            if (needsRestore) {
+                console.log('检测到缺失的定时器，执行恢复');
+                restoreTimers();
+            }
+        }
+
         // --- 初始化 ---
         function initialize() {
             // 初始化主题
             initializeTheme();
             console.log('主题初始化完成');
+
+            // 设置页面可见性处理
+            setupVisibilityHandling();
             
             // 监听认证状态变化
             firebase.auth().onAuthStateChanged(async user => {
