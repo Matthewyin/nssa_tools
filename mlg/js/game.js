@@ -139,15 +139,27 @@
       }
     },
 
-    // 绘制立方体（长方体）: 前面 + 右侧面 + 顶面
+    // 绘制立方体（长方体）: 前面 + 右侧面 + 顶面 - 层级颜色系统
     // frontX, frontY 为前方面的左上角；frontW、frontH 为前方面尺寸；depth 为挤出深度像素
     drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options) {
       const o = options || {};
-      const accentColor = o.accentColor || "#dc8a8a";
-      const frontColor = accentColor;
-      const borderColor = this.adjustHexColor(accentColor, -0.3);
-      
-      const radius = 6; // 固定圆角半径，与测试文件一致
+      const actualLayer = o.actualLayer || 0;
+      const maxLayers = 4;
+      let frontColor, borderColor;
+
+      // 每个层级都有不同的颜色，从顶层最亮到底层最暗
+      const layerColors = [
+        { front: '#A0B8A0', border: '#1A3010' }, // 层级0（底层）：最暗
+        { front: '#B0C8B0', border: '#1F3515' }, // 层级1：较暗
+        { front: '#C0D8C0', border: '#243A1A' }, // 层级2：稍亮
+        { front: '#E8F5E8', border: '#2D5016' }  // 层级3（顶层）：最亮
+      ];
+
+      const colorIndex = Math.min(actualLayer, layerColors.length - 1);
+      frontColor = layerColors[colorIndex].front;
+      borderColor = layerColors[colorIndex].border;
+
+      const radius = 6;
       const thickness = Math.floor(frontW * 0.1); // 厚度为宽度的0.1倍
 
       ctx.save();
@@ -187,7 +199,7 @@
         ctx.lineWidth = 1;
         ctx.stroke();
       }
-      
+
       // 绘制主体矩形（正面）
       this.createRoundedRectPath(ctx, frontX, frontY, frontW, frontH, radius);
       ctx.fillStyle = frontColor;
@@ -1023,6 +1035,7 @@
         this.drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, {
           faceColor,
           accentColor,
+          actualLayer: tile.layer, // 传递层级信息
         });
 
         // 符号（绘制在前方面中央）
