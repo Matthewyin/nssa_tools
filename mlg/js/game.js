@@ -754,27 +754,32 @@
       const totalWidth = baseGridWidth + maxLayerOffset;
       const totalHeight = baseGridHeight + maxLayerOffset;
 
-      // 智能居中计算
+      // 智能居中计算 - 考虑层级偏移对视觉中心的影响
       let startX, startY;
 
+      // 计算视觉中心偏移：层级偏移会让视觉重心向右下移动
+      // 我们需要向左上补偿这个偏移，让整体看起来居中
+      const visualCenterOffsetX = maxLayerOffset * 0.5; // 补偿一半的层级偏移
+      const visualCenterOffsetY = maxLayerOffset * 0.5;
+
       if (totalWidth <= this.cssWidth) {
-        // 内容能完全显示，居中
-        startX = Math.floor((this.cssWidth - totalWidth) / 2);
+        // 内容能完全显示，居中并补偿视觉偏移
+        startX = Math.floor((this.cssWidth - totalWidth) / 2) - visualCenterOffsetX;
       } else {
         // 内容超出画布，优先显示基础网格的中心
         const availableWidth = this.cssWidth - 20; // 留20px边距
         const gridCenterOffset = Math.floor((availableWidth - baseGridWidth) / 2);
-        startX = Math.max(10, gridCenterOffset);
+        startX = Math.max(10, gridCenterOffset - visualCenterOffsetX);
       }
 
       if (totalHeight <= this.cssHeight) {
-        // 内容能完全显示，居中
-        startY = Math.floor((this.cssHeight - totalHeight) / 2);
+        // 内容能完全显示，居中并补偿视觉偏移
+        startY = Math.floor((this.cssHeight - totalHeight) / 2) - visualCenterOffsetY;
       } else {
         // 内容超出画布，优先显示基础网格的中心
         const availableHeight = this.cssHeight - 20; // 留20px边距
         const gridCenterOffset = Math.floor((availableHeight - baseGridHeight) / 2);
-        startY = Math.max(10, gridCenterOffset);
+        startY = Math.max(10, gridCenterOffset - visualCenterOffsetY);
       }
       // 为每个tile计算位置
       for (const tile of this.tiles) {

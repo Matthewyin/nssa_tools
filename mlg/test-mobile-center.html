@@ -34,6 +34,15 @@
         <li>内容超出画布：优先显示网格中心</li>
         <li>保持最小边距：10px</li>
         <li>考虑层级偏移：45度角偏移</li>
+        <li><strong>视觉中心补偿：向左上偏移以抵消层级偏移的视觉影响</strong></li>
+      </ul>
+      <p class="font-semibold mt-2 mb-1">可视化说明：</p>
+      <ul class="list-disc list-inside space-y-1">
+        <li>白色虚线：基础网格边界</li>
+        <li>黄色虚线：包含层级偏移的总边界</li>
+        <li>青色虚线：原始位置（未补偿）</li>
+        <li>青色箭头：视觉中心补偿偏移</li>
+        <li>红色十字：画布几何中心</li>
       </ul>
     </div>
   </main>
@@ -91,24 +100,30 @@
     
     function calculateCenter(layout, canvasWidth, canvasHeight) {
       let startX, startY;
-      
+
+      // 计算视觉中心偏移：层级偏移会让视觉重心向右下移动
+      const visualCenterOffsetX = layout.maxLayerOffset * 0.5;
+      const visualCenterOffsetY = layout.maxLayerOffset * 0.5;
+
       if (layout.totalWidth <= canvasWidth) {
-        startX = Math.floor((canvasWidth - layout.totalWidth) / 2);
+        // 内容能完全显示，居中并补偿视觉偏移
+        startX = Math.floor((canvasWidth - layout.totalWidth) / 2) - visualCenterOffsetX;
       } else {
         const availableWidth = canvasWidth - 20;
         const gridCenterOffset = Math.floor((availableWidth - layout.baseGridWidth) / 2);
-        startX = Math.max(10, gridCenterOffset);
+        startX = Math.max(10, gridCenterOffset - visualCenterOffsetX);
       }
-      
+
       if (layout.totalHeight <= canvasHeight) {
-        startY = Math.floor((canvasHeight - layout.totalHeight) / 2);
+        // 内容能完全显示，居中并补偿视觉偏移
+        startY = Math.floor((canvasHeight - layout.totalHeight) / 2) - visualCenterOffsetY;
       } else {
         const availableHeight = canvasHeight - 20;
         const gridCenterOffset = Math.floor((availableHeight - layout.baseGridHeight) / 2);
-        startY = Math.max(10, gridCenterOffset);
+        startY = Math.max(10, gridCenterOffset - visualCenterOffsetY);
       }
-      
-      return { startX, startY };
+
+      return { startX, startY, visualCenterOffsetX, visualCenterOffsetY };
     }
     
     function updateInfo() {
@@ -122,8 +137,8 @@
         `${Math.floor(rect.width)}×${Math.floor(rect.height)}px`;
       document.getElementById('grid-info').textContent = 
         `${layout.cols}×${layout.rows} (${layout.cubeWidth}×${layout.cubeHeight}px)`;
-      document.getElementById('center-info').textContent = 
-        `起点(${center.startX}, ${center.startY})`;
+      document.getElementById('center-info').textContent =
+        `起点(${center.startX}, ${center.startY}) 偏移(${Math.round(center.visualCenterOffsetX)}, ${Math.round(center.visualCenterOffsetY)})`;
     }
     
     function renderTest() {
@@ -142,10 +157,47 @@
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.lineWidth = 1;
       ctx.strokeRect(center.startX, center.startY, layout.baseGridWidth, layout.baseGridHeight);
-      
+
       // 绘制总边界（包含层级偏移）
       ctx.strokeStyle = 'rgba(255, 255, 0, 0.3)';
       ctx.strokeRect(center.startX, center.startY, layout.totalWidth, layout.totalHeight);
+
+      // 绘制视觉中心偏移指示
+      if (center.visualCenterOffsetX > 0 || center.visualCenterOffsetY > 0) {
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+
+        // 原始中心位置（未补偿）
+        const originalX = center.startX + center.visualCenterOffsetX;
+        const originalY = center.startY + center.visualCenterOffsetY;
+        ctx.strokeRect(originalX, originalY, layout.baseGridWidth, layout.baseGridHeight);
+
+        // 绘制偏移箭头
+        ctx.setLineDash([]);
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(originalX, originalY);
+        ctx.lineTo(center.startX, center.startY);
+        ctx.stroke();
+
+        // 箭头头部
+        const angle = Math.atan2(center.startY - originalY, center.startX - originalX);
+        const arrowLength = 10;
+        ctx.beginPath();
+        ctx.moveTo(center.startX, center.startY);
+        ctx.lineTo(
+          center.startX - arrowLength * Math.cos(angle - Math.PI / 6),
+          center.startY - arrowLength * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.moveTo(center.startX, center.startY);
+        ctx.lineTo(
+          center.startX - arrowLength * Math.cos(angle + Math.PI / 6),
+          center.startY - arrowLength * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.stroke();
+      }
       
       // 绘制一些示例立方体
       const testPositions = [
