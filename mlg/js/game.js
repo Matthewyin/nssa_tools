@@ -1,7 +1,28 @@
 (function () {
   // 槽位容量改为可变，默认 8
   let SLOT_CAPACITY = 8;
-  const DIFFICULTY_LABELS = ["入门", "进阶", "高手", "大师", "宗师"];
+  // 无穷关卡难度标签系统
+  function getDifficultyLabel(level) {
+    if (level <= 5) return "入门";
+    if (level <= 15) return "进阶";
+    if (level <= 30) return "高手";
+    if (level <= 50) return "大师";
+    if (level <= 80) return "宗师";
+    if (level <= 120) return "传说";
+    if (level <= 200) return "史诗";
+    if (level <= 300) return "神话";
+    if (level <= 500) return "至尊";
+
+    // 超过500关的超级难度
+    const superLevel = Math.floor((level - 500) / 100);
+    const superLabels = ["无极", "混沌", "太初", "永恒", "无限"];
+    if (superLevel < superLabels.length) {
+      return superLabels[superLevel];
+    }
+
+    // 终极难度：显示具体等级
+    return `无限+${superLevel - superLabels.length + 1}`;
+  }
 
   function getStorageKey(user) {
     return `cat_${(user && user.uid) || "guest"}`;
@@ -477,10 +498,7 @@
       const levelEl = document.getElementById("level");
       const diffEl = document.getElementById("difficulty");
       if (levelEl) levelEl.textContent = this.state.level;
-      if (diffEl)
-        diffEl.textContent =
-          DIFFICULTY_LABELS[Math.floor((this.state.level - 1) / 3)] ||
-          DIFFICULTY_LABELS[0];
+      if (diffEl) diffEl.textContent = getDifficultyLabel(this.state.level);
       // 计步和计时功能已移除
 
       // 同步道具按钮可用状态与提示
@@ -533,37 +551,98 @@
 
     // --- Level Generation ---
     getLevelParams(level) {
-      // 使用测试文件的固定布局参数
-      const rows = 9; // 固定9行
-      const cols = 7; // 固定7列
-      const layers = 4; // 固定4层
-      const coverDensity = 0.6; // 固定密度
-      const typeCount = clamp(
-        12 + Math.floor((level - 1) / 3) * 2,
-        12,
-        Math.min(SYMBOLS.length - 1, 28)
+      // 无穷关卡系统：动态计算关卡参数
+
+      // 层级数量：8到16层，随关卡递增
+      const baseLayers = 8;
+      const maxLayers = 16;
+      const layerIncrement = Math.floor((level - 1) / 5); // 每5关增加1层
+      const layers = Math.min(baseLayers + layerIncrement, maxLayers);
+
+      // 符号类型数量：初始15个，每关增加2个
+      const baseSymbols = 15;
+      const symbolsPerLevel = 2;
+      const typeCount = Math.min(
+        baseSymbols + (level - 1) * symbolsPerLevel,
+        SYMBOLS.length // 不超过可用符号总数
       );
-      return { rows, cols, layers, typeCount, coverDensity };
+
+      // 立方体数量：初始60个，按关卡比例增加
+      const baseCubeCount = 60;
+      const cubeGrowthRate = 1.1; // 每关增长10%
+      const targetCubeCount = Math.floor(baseCubeCount * Math.pow(cubeGrowthRate, level - 1));
+
+      // 网格尺寸：根据立方体数量和层级动态调整
+      const baseGridSize = 7 * 9; // 基础63格
+      const gridGrowthFactor = Math.sqrt(targetCubeCount / baseCubeCount);
+      const newGridSize = Math.ceil(baseGridSize * gridGrowthFactor);
+
+      // 计算最优的行列比例（接近4:3或16:9）
+      const aspectRatio = 1.4; // 宽高比
+      const cols = Math.ceil(Math.sqrt(newGridSize * aspectRatio));
+      const rows = Math.ceil(newGridSize / cols);
+
+      // 密度调整：确保生成目标数量的立方体
+      const maxPossibleCubes = cols * rows * layers * 0.6; // 假设最大60%填充率
+      const coverDensity = Math.min(0.8, targetCubeCount / maxPossibleCubes);
+
+      console.log(`关卡 ${level} 参数:`, {
+        layers,
+        typeCount,
+        targetCubeCount,
+        cols,
+        rows,
+        coverDensity: coverDensity.toFixed(2)
+      });
+
+      return {
+        rows,
+        cols,
+        layers,
+        typeCount,
+        coverDensity,
+        targetCubeCount
+      };
     },
 
     generateLevel(level, seed) {
       const params = this.getLevelParams(level);
       const random = rng(seed);
       const positions = [];
-      // 使用测试文件的层级概率分布
+
+      // 新的生成策略：先生成所有可能位置，然后按目标数量筛选
+      const allPositions = [];
       for (let layer = 0; layer < params.layers; layer++) {
         for (let row = 0; row < params.rows; row++) {
           for (let col = 0; col < params.cols; col++) {
-            // 每层每个位置独立随机决定是否放置立方体
-            // 底层概率稍高，上层概率递减，形成金字塔效果
-            const probability = 0.6 - (layer * 0.1); // 层0: 60%, 层1: 50%, 层2: 40%, 层3: 30%
-            if (random() < probability) {
-              positions.push({ layer, row, col });
-            }
+            // 计算每个位置的权重（底层权重高，上层权重低）
+            const layerWeight = 1 - (layer / params.layers) * 0.5; // 底层权重1.0，顶层权重0.5
+            allPositions.push({ layer, row, col, weight: layerWeight });
           }
         }
       }
-      // 保证位置数量可被 3 整除
+
+      // 按权重随机排序
+      allPositions.sort((a, b) => {
+        const aScore = a.weight * random();
+        const bScore = b.weight * random();
+        return bScore - aScore;
+      });
+
+      // 选择目标数量的位置
+      let targetCount = params.targetCubeCount;
+      // 确保数量是3的倍数（三消游戏）
+      targetCount = Math.floor(targetCount / 3) * 3;
+
+      // 从排序后的位置中选择前targetCount个
+      for (let i = 0; i < Math.min(targetCount, allPositions.length); i++) {
+        const pos = allPositions[i];
+        positions.push({ layer: pos.layer, row: pos.row, col: pos.col });
+      }
+
+      console.log(`关卡 ${level} 生成了 ${positions.length} 个立方体 (目标: ${targetCount})`);
+
+      // 如果位置不足，补充到最接近的3的倍数
       const remainder = positions.length % 3;
       if (remainder !== 0) {
         positions.splice(0, remainder);
@@ -646,22 +725,29 @@
       // - 同层级紧凑：同一层内的同一行按出现顺序紧密排列
       // - 纵向仍保留层级向上偏移
       const params = this.getLevelParams(this.state.level);
-      // 响应式立方体大小 - 根据屏幕宽度自动缩放
+      // 响应式立方体大小 - 根据屏幕宽度和网格大小自动缩放
       const screenWidth = window.innerWidth;
       const baseCubeWidth = 60; // 基础宽度60px
-      let scale = 1;
 
+      // 根据屏幕大小的基础缩放
+      let screenScale = 1;
       if (screenWidth <= 480) {
-        scale = 0.6; // 超小屏幕（iPhone SE等）
+        screenScale = 0.6; // 超小屏幕（iPhone SE等）
       } else if (screenWidth <= 640) {
-        scale = 0.7; // 小屏幕手机
+        screenScale = 0.7; // 小屏幕手机
       } else if (screenWidth <= 768) {
-        scale = 0.85; // 平板竖屏
+        screenScale = 0.85; // 平板竖屏
       }
 
-      const cubeWidth = Math.floor(baseCubeWidth * scale);
+      // 根据网格大小的自适应缩放
+      const baseGridCols = 7; // 基础网格列数
+      const gridScale = Math.min(1, baseGridCols / params.cols); // 网格越大，立方体越小
+
+      // 综合缩放因子
+      const finalScale = screenScale * gridScale;
+      const cubeWidth = Math.floor(baseCubeWidth * finalScale);
       const cubeHeight = Math.floor(cubeWidth * 2.2 / 2); // 2.2:2 比例，高度为宽度的1.1倍
-      const maxLayers = 4; // 最多4层
+      const maxLayers = params.layers; // 使用动态层级数
       const rects = new Map();
       
       // 根据立方体大小和层级偏移计算总布局空间
