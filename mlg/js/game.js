@@ -139,32 +139,50 @@
       }
     },
 
-    // 绘制立方体（长方体）: 前面 + 底面厚度
+    // 绘制立方体（长方体）: 前面 + 右侧面 + 顶面
     // frontX, frontY 为前方面的左上角；frontW、frontH 为前方面尺寸；depth 为挤出深度像素
     drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options) {
       const o = options || {};
       const accentColor = o.accentColor || "#dc8a8a";
-      const borderColor = this.adjustHexColor(accentColor, -0.3);
       const frontColor = accentColor;
+      const borderColor = this.adjustHexColor(accentColor, -0.3);
       
-      const radius = Math.max(3, Math.floor(Math.min(frontW, frontH) * 0.08));
+      const radius = 6; // 固定圆角半径，与测试文件一致
       const thickness = Math.floor(frontW * 0.1); // 厚度为宽度的0.1倍
 
       ctx.save();
 
-      // 绘制底面厚度（体现厚度）
+      // 绘制右侧厚度面（体现厚度）
       if (thickness > 0) {
-        const bottomColor = this.adjustHexColor(frontColor, -0.25); // 底面较暗
-        ctx.fillStyle = bottomColor;
+        const sideColor = this.adjustHexColor(frontColor, -0.2); // 侧面稍暗
+        ctx.fillStyle = sideColor;
         ctx.beginPath();
-        ctx.moveTo(frontX + radius, frontY + frontH);
-        ctx.lineTo(frontX + radius + thickness, frontY + frontH + thickness);
-        ctx.lineTo(frontX + frontW - radius + thickness, frontY + frontH + thickness);
-        ctx.lineTo(frontX + frontW - radius, frontY + frontH);
+        ctx.moveTo(frontX + frontW, frontY + radius);
+        ctx.lineTo(frontX + frontW + thickness, frontY + radius - thickness);
+        ctx.lineTo(frontX + frontW + thickness, frontY + frontH - radius - thickness);
+        ctx.lineTo(frontX + frontW, frontY + frontH - radius);
         ctx.closePath();
         ctx.fill();
-        
-        // 底面边框
+
+        // 侧面边框
+        ctx.strokeStyle = this.adjustHexColor(borderColor, -0.1);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // 绘制顶部厚度面（体现厚度）
+      if (thickness > 0) {
+        const topColor = this.adjustHexColor(frontColor, -0.15); // 顶面稍暗
+        ctx.fillStyle = topColor;
+        ctx.beginPath();
+        ctx.moveTo(frontX + radius, frontY);
+        ctx.lineTo(frontX + radius + thickness, frontY - thickness);
+        ctx.lineTo(frontX + frontW - radius + thickness, frontY - thickness);
+        ctx.lineTo(frontX + frontW - radius, frontY);
+        ctx.closePath();
+        ctx.fill();
+
+        // 顶面边框
         ctx.strokeStyle = this.adjustHexColor(borderColor, -0.1);
         ctx.lineWidth = 1;
         ctx.stroke();
