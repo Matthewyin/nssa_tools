@@ -766,32 +766,21 @@
         const accentColor = COLOR_PALETTE[tile.type % COLOR_PALETTE.length];
         const faceColor = isDark ? '#0f172a' : '#fff7ed';
 
-        // 立体长方体参数：前方面宽高 = 2:3；厚度与宽的比例 = 0.25（对应 2:3:0.5）
+        // 立体长方体参数：前方面宽高 = 3:2；厚度与宽的比例 = 0.25（整体比例 3:2:0.25）
         const padding = Math.max(2, Math.floor(Math.min(r.w, r.h) * 0.04));
-        // 先占位厚度，保证整体（前方面+厚度）不超出 r
-        const roughDepth = Math.max(4, Math.floor(Math.min(r.w, r.h) * 0.12));
-        // 计算可用空间（需为整体边界预留 depth）
-        let usableW = Math.max(8, r.w - roughDepth - padding*2);
-        let usableH = Math.max(8, r.h - roughDepth - padding*2);
-        // 在可用空间内放置 2:3 的前方面
-        const targetRatio = 2/3;
-        let frontW = usableW;
-        let frontH = Math.floor(frontW / targetRatio);
-        if (frontH > usableH){
-          frontH = usableH;
-          frontW = Math.floor(frontH * targetRatio);
-        }
-        // 根据 2:3:0.5 换算出 depth：depth = frontW * (0.5/2) = 0.25 * frontW
-        let depth = Math.max(4, Math.floor(frontW * 0.25));
-        // 如果 depth 太大导致越界，则收缩一次
-        if (frontW + depth + padding*2 > r.w || frontH + depth + padding*2 > r.h){
-          const scaleW = (r.w - padding*2) / (frontW + depth);
-          const scaleH = (r.h - padding*2) / (frontH + depth);
-          const scale = Math.max(0.5, Math.min(scaleW, scaleH));
-          frontW = Math.floor(frontW * scale);
-          frontH = Math.floor(frontH * scale);
-          depth = Math.max(3, Math.floor(frontW * 0.25));
-        }
+        const ratioW = 3;
+        const ratioH = 2;
+        const depthAbs = 0.25; // 与宽的同一比例单位（当宽=3）
+        const dFactor = depthAbs / ratioW; // depth 与像素宽 frontW 的关系
+        // 设 frontW = k，则 totalW = k*(1 + dFactor)，totalH = k*(ratioH/ratioW + dFactor)
+        const maxTotalW = Math.max(8, r.w - padding*2);
+        const maxTotalH = Math.max(8, r.h - padding*2);
+        const kByW = maxTotalW / (1 + dFactor);
+        const kByH = maxTotalH / (ratioH/ratioW + dFactor);
+        const k = Math.max(6, Math.floor(Math.min(kByW, kByH)));
+        let frontW = k;
+        let frontH = Math.floor(k * ratioH / ratioW);
+        let depth = Math.max(2, Math.floor(k * dFactor));
         // 使整个长方体（包含顶面与右面）在 r 内居中
         const totalW = frontW + depth;
         const totalH = frontH + depth;
@@ -804,7 +793,7 @@
         ctx.shadowOffsetX = Math.floor(depth * 0.25);
         ctx.shadowOffsetY = Math.floor(depth * 0.35);
 
-        // 绘制 3D 长方体
+        // 绘制 3D 长方体（方向：向右上）
         this.drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, {
           faceColor,
           accentColor
@@ -812,8 +801,8 @@
 
         // 符号（绘制在前方面中央）
         const symbol = getSymbolForType(tile.type);
-        // 占前方面高度的 78%
-        const fontSize = Math.floor(frontH * 0.78);
+        // 占前方面高度的 76%
+        const fontSize = Math.floor(frontH * 0.76);
         const sx = frontX + frontW/2;
         const sy = frontY + frontH/2; // 前方面中心
         ctx.font = `${fontSize}px system-ui`;
