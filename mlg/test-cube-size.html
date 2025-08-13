@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MLG 立方体尺寸测试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body class="min-h-screen">
+  <main class="mx-auto max-w-5xl px-4 py-6" style="color: var(--text-color-primary)">
+    <h1 class="text-2xl font-bold mb-4 text-white">MLG 立方体尺寸测试</h1>
+    <p class="mb-4 text-sm text-gray-300">
+      验证立方体尺寸是否恢复到正确大小
+    </p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="bg-slate-800 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold mb-2 text-white">当前屏幕信息</h3>
+        <ul class="text-sm text-gray-300 space-y-1">
+          <li>屏幕宽度: <span id="screen-width"></span>px</li>
+          <li>缩放比例: <span id="scale-factor"></span></li>
+          <li>立方体宽度: <span id="cube-width"></span>px</li>
+          <li>立方体高度: <span id="cube-height"></span>px</li>
+        </ul>
+      </div>
+      <div class="bg-slate-800 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold mb-2 text-white">预期尺寸</h3>
+        <ul class="text-sm text-gray-300 space-y-1">
+          <li>桌面端: 60×66px</li>
+          <li>平板端: 51×56px (85%)</li>
+          <li>手机端: 42×46px (70%)</li>
+          <li>小屏手机: 36×40px (60%)</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div id="game-container" class="game-container mlg-card" style="background: var(--card-bg);">
+      <canvas id="test-canvas" class="game-canvas" style="height: 400px;"></canvas>
+    </div>
+    
+    <div class="mt-4 text-sm text-gray-300 bg-slate-800 p-4 rounded-lg">
+      <p class="font-semibold mb-2">尺寸说明：</p>
+      <ul class="list-disc list-inside space-y-1">
+        <li>基础宽度：60px（桌面端）</li>
+        <li>高度比例：宽度 × 1.1（2.2:2比例）</li>
+        <li>响应式缩放：根据屏幕宽度自动调整</li>
+        <li>无网格缩放：立方体大小不受网格大小影响</li>
+      </ul>
+    </div>
+  </main>
+
+  <script src="js/game.js"></script>
+  <script>
+    // 立方体尺寸测试
+    const canvas = document.getElementById('test-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    function calculateCubeSize() {
+      const screenWidth = window.innerWidth;
+      const baseCubeWidth = 60; // 基础宽度60px
+      
+      // 根据屏幕大小的基础缩放（与游戏中相同的逻辑）
+      let screenScale = 1;
+      if (screenWidth <= 480) {
+        screenScale = 0.6; // 超小屏幕（iPhone SE等）
+      } else if (screenWidth <= 640) {
+        screenScale = 0.7; // 小屏幕手机
+      } else if (screenWidth <= 768) {
+        screenScale = 0.85; // 平板竖屏
+      }
+      
+      const cubeWidth = Math.floor(baseCubeWidth * screenScale);
+      const cubeHeight = Math.floor(cubeWidth * 2.2 / 2); // 2.2:2 比例
+      
+      return { cubeWidth, cubeHeight, screenScale };
+    }
+    
+    function updateInfo() {
+      const screenWidth = window.innerWidth;
+      const { cubeWidth, cubeHeight, screenScale } = calculateCubeSize();
+      
+      document.getElementById('screen-width').textContent = screenWidth;
+      document.getElementById('scale-factor').textContent = (screenScale * 100).toFixed(0) + '%';
+      document.getElementById('cube-width').textContent = cubeWidth;
+      document.getElementById('cube-height').textContent = cubeHeight;
+    }
+    
+    function renderTest() {
+      // 设置画布尺寸
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      
+      // 清空画布并设置背景
+      ctx.fillStyle = '#1E293B';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const { cubeWidth, cubeHeight } = calculateCubeSize();
+      
+      // 绘制一些测试立方体
+      const testTiles = [
+        { x: 100, y: 100, isTop: true, depth: 0 },
+        { x: 200, y: 100, isTop: true, depth: 1 },
+        { x: 300, y: 100, isTop: true, depth: 2 },
+        { x: 400, y: 100, isTop: true, depth: 3 },
+        { x: 150, y: 220, isTop: true, depth: 0 },
+        { x: 250, y: 220, isTop: false, depth: 1 },
+        { x: 350, y: 220, isTop: false, depth: 2 },
+      ];
+      
+      const symbols = ['🌟', '🎯', '🎲', '🔮', '💎', '⭐', '🏆'];
+      
+      testTiles.forEach((tile, index) => {
+        const frontW = cubeWidth;
+        const frontH = cubeHeight;
+        const depth = 12;
+        
+        if (window.MLG && window.MLG.drawCuboid) {
+          window.MLG.drawCuboid(ctx, tile.x, tile.y, frontW, frontH, depth, {
+            actualLayer: 0,
+            isTopAtPosition: tile.isTop,
+            relativeDepth: tile.depth
+          });
+          
+          // 绘制符号
+          const fontSize = Math.floor(Math.min(frontW, frontH) * 0.6);
+          ctx.font = `${fontSize}px system-ui`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(31, 41, 55, 1)';
+          ctx.fillText(symbols[index], tile.x + frontW / 2, tile.y + frontH / 2);
+        }
+        
+        // 显示尺寸标注
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.font = '12px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${frontW}×${frontH}`, tile.x + frontW / 2, tile.y + frontH + 5);
+      });
+      
+      // 添加说明文字
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.font = '18px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`立方体尺寸测试：${cubeWidth}×${cubeHeight}px`, canvas.width / 2, 20);
+      
+      ctx.font = '14px system-ui';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillText('尺寸已恢复到固定大小，不受网格影响', canvas.width / 2, 50);
+    }
+    
+    // 初始化
+    updateInfo();
+    renderTest();
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', () => {
+      updateInfo();
+      renderTest();
+    });
+  </script>
+</body>
+</html>

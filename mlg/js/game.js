@@ -739,13 +739,8 @@
         screenScale = 0.85; // 平板竖屏
       }
 
-      // 根据网格大小的自适应缩放
-      const baseGridCols = 7; // 基础网格列数
-      const gridScale = Math.min(1, baseGridCols / params.cols); // 网格越大，立方体越小
-
-      // 综合缩放因子
-      const finalScale = screenScale * gridScale;
-      const cubeWidth = Math.floor(baseCubeWidth * finalScale);
+      // 保持固定的立方体大小，只根据屏幕大小缩放
+      const cubeWidth = Math.floor(baseCubeWidth * screenScale);
       const cubeHeight = Math.floor(cubeWidth * 2.2 / 2); // 2.2:2 比例，高度为宽度的1.1倍
       const maxLayers = params.layers; // 使用动态层级数
       const rects = new Map();
