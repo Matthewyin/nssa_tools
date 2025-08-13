@@ -1,4 +1,4 @@
-(function () {
+乡里(function () {
   // 槽位容量改为可变，默认 8
   let SLOT_CAPACITY = 8;
   const DIFFICULTY_LABELS = ["入门", "进阶", "高手", "大师", "宗师"];
@@ -139,99 +139,58 @@
       }
     },
 
-    // 绘制立方体（长方体）: 前面、左侧面、底面
+    // 绘制立方体（长方体）: 前面 + 底面厚度
     // frontX, frontY 为前方面的左上角；frontW、frontH 为前方面尺寸；depth 为挤出深度像素
     drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options) {
       const o = options || {};
       const accentColor = o.accentColor || "#dc8a8a";
-      const faceColor = o.faceColor || "#fff7ed";
-
-      // 根据主色调生成立体效果的颜色 - 左下倾斜方向
-      const bottomColor = this.adjustHexColor(accentColor, -0.25); // 底面稍暗
-      const leftColor = this.adjustHexColor(accentColor, -0.4); // 左侧面更暗
-      const frontColor = accentColor; // 前面使用主色调
-
+      const borderColor = this.adjustHexColor(accentColor, -0.3);
+      const frontColor = accentColor;
+      
       const radius = Math.max(3, Math.floor(Math.min(frontW, frontH) * 0.08));
-      const d = Math.max(1, Math.floor(depth));
-
-      // 预计算关键点 - 左下倾斜方向
-      const fx = frontX,
-        fy = frontY,
-        fw = frontW,
-        fh = frontH;
-      const A = { x: fx, y: fy }; // 前左上
-      const B = { x: fx + fw, y: fy }; // 前右上
-      const C = { x: fx + fw, y: fy + fh }; // 前右下
-      const D = { x: fx, y: fy + fh }; // 前左下
-      // 左下倾斜：向左下方偏移
-      const A2 = { x: A.x - d, y: A.y + d }; // 后左上
-      const B2 = { x: B.x - d, y: B.y + d }; // 后右上
-      const C2 = { x: C.x - d, y: C.y + d }; // 后右下
-      const D2 = { x: D.x - d, y: D.y + d }; // 后左下
+      const thickness = Math.floor(frontW * 0.1); // 厚度为宽度的0.1倍
 
       ctx.save();
 
-      // 绘制圆角四边形的辅助函数
-      const roundedQuadPath = (ctx, P0, P1, P2, P3, rad) => {
-        const pts = [P0, P1, P2, P3];
-        const lerp = (p, q, t) => ({
-          x: p.x + (q.x - p.x) * t,
-          y: p.y + (q.y - p.y) * t,
-        });
+      // 绘制底面厚度（体现厚度）
+      if (thickness > 0) {
+        const bottomColor = this.adjustHexColor(frontColor, -0.25); // 底面较暗
+        ctx.fillStyle = bottomColor;
         ctx.beginPath();
-        for (let i = 0; i < 4; i++) {
-          const prev = pts[(i + 3) % 4];
-          const curr = pts[i];
-          const next = pts[(i + 1) % 4];
-          const d1 = Math.hypot(curr.x - prev.x, curr.y - prev.y) || 1;
-          const d2 = Math.hypot(next.x - curr.x, next.y - curr.y) || 1;
-          const rr = Math.min(rad, d1 / 3, d2 / 3);
-          const pA = lerp(curr, prev, rr / d1);
-          const pB = lerp(curr, next, rr / d2);
-          if (i === 0) ctx.moveTo(pA.x, pA.y);
-          else ctx.lineTo(pA.x, pA.y);
-          ctx.quadraticCurveTo(curr.x, curr.y, pB.x, pB.y);
-        }
+        ctx.moveTo(frontX + radius, frontY + frontH);
+        ctx.lineTo(frontX + radius + thickness, frontY + frontH + thickness);
+        ctx.lineTo(frontX + frontW - radius + thickness, frontY + frontH + thickness);
+        ctx.lineTo(frontX + frontW - radius, frontY + frontH);
         ctx.closePath();
-      };
-
-      const sideRadius = Math.max(2, Math.floor(radius * 0.6));
-
-      // 底面（使用渐变效果）- D-C-C2-D2
-      roundedQuadPath(ctx, D, C, C2, D2, sideRadius);
-      const bottomGradient = ctx.createLinearGradient(D.x, D.y, D2.x, D2.y);
-      bottomGradient.addColorStop(0, bottomColor);
-      bottomGradient.addColorStop(1, this.adjustHexColor(bottomColor, -0.15));
-      ctx.fillStyle = bottomGradient;
+        ctx.fill();
+        
+        // 底面边框
+        ctx.strokeStyle = this.adjustHexColor(borderColor, -0.1);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      
+      // 绘制主体矩形（正面）
+      this.createRoundedRectPath(ctx, frontX, frontY, frontW, frontH, radius);
+      ctx.fillStyle = frontColor;
       ctx.fill();
 
-      // 左侧面（使用渐变效果）- A-D-D2-A2
-      roundedQuadPath(ctx, A, D, D2, A2, sideRadius);
-      const leftGradient = ctx.createLinearGradient(A.x, A.y, A2.x, A2.y);
-      leftGradient.addColorStop(0, leftColor);
-      leftGradient.addColorStop(1, this.adjustHexColor(leftColor, -0.15));
-      ctx.fillStyle = leftGradient;
-      ctx.fill();
+      // 绘制主边框
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
 
-      // 前方面（使用渐变效果增强立体感）- A-B-C-D
-      this.createRoundedRectPath(ctx, fx, fy, fw, fh, radius);
-      const frontGradient = ctx.createLinearGradient(fx, fy, fx + fw, fy + fh);
-      frontGradient.addColorStop(0, this.adjustHexColor(frontColor, 0.1));
-      frontGradient.addColorStop(0.5, frontColor);
-      frontGradient.addColorStop(1, this.adjustHexColor(frontColor, -0.1));
-      ctx.fillStyle = frontGradient;
-      ctx.fill();
-
-      // 添加细微的边框增强立体效果
-      ctx.strokeStyle = this.adjustHexColor(frontColor, -0.2);
-      ctx.lineWidth = 0.5;
+      // 绘制内部高光边框（模拟立体效果）
+      this.createRoundedRectPath(ctx, frontX + 2, frontY + 2, frontW - 4, frontH - 4, radius - 2);
+      ctx.strokeStyle = this.adjustHexColor(frontColor, 0.15);
+      ctx.lineWidth = 1;
       ctx.stroke();
 
       ctx.restore();
     },
-    // 绘制圆角矩形路径，便于统一的卡片外形
+    // 绘制圆角矩形路径 - 增强圆角效果
     createRoundedRectPath(ctx, x, y, width, height, radius) {
-      const r = Math.max(2, Math.min(radius || 8, Math.min(width, height) / 4));
+      const r = Math.max(3, Math.min(radius || 10, Math.min(width, height) / 3)); // 增加最小圆角和比例
       ctx.beginPath();
       ctx.moveTo(x + r, y);
       ctx.lineTo(x + width - r, y);
@@ -242,7 +201,6 @@
       ctx.quadraticCurveTo(x, y + height, x, y + height - r);
       ctx.lineTo(x, y + r);
       ctx.quadraticCurveTo(x, y, x + r, y);
-      // 注意：不 closePath，留给调用者按需
     },
     bootstrap(user) {
       this.user = user;
