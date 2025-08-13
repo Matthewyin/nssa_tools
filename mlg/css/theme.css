@@ -58,7 +58,7 @@ body.dark-theme { background: #000000; }
 }
 
 /* 亮色下画布背景为浅黄色 */
-body .game-canvas { background: #FFF8E1; }
+body .game-canvas { background: #BCAAA4; }
 
 /* 卡片容器（画布外壳） */
 .mlg-card {
