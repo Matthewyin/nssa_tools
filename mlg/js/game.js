@@ -73,9 +73,8 @@
     drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options){
       const o = options || {};
       const faceColor = o.faceColor || '#fff7ed';
-      const accentColor = o.accentColor || '#ef4444';
       const topColor = o.topColor || this.adjustHexColor(faceColor, +0.06);
-      const rightColor = o.rightColor || this.adjustHexColor(faceColor, -0.08);
+      const rightColor = o.rightColor || '#2f2f2f'; // 深灰色侧边
       const radius = Math.max(4, Math.floor(Math.min(frontW, frontH) * 0.12));
       const d = Math.max(1, Math.floor(depth));
 
@@ -100,9 +99,6 @@
       ctx.closePath();
       ctx.fillStyle = topColor;
       ctx.fill();
-      ctx.strokeStyle = this.adjustHexColor(accentColor, -0.1);
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
 
       // 右侧面
       ctx.beginPath();
@@ -113,17 +109,11 @@
       ctx.closePath();
       ctx.fillStyle = rightColor;
       ctx.fill();
-      ctx.strokeStyle = this.adjustHexColor(accentColor, -0.15);
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
 
       // 前方面（圆角）
       this.createRoundedRectPath(ctx, fx, fy, fw, fh, radius);
       ctx.fillStyle = faceColor;
       ctx.fill();
-      ctx.lineWidth = 2.5;
-      ctx.strokeStyle = accentColor;
-      ctx.stroke();
       ctx.restore();
     },
     // 绘制圆角矩形路径，便于统一的卡片外形
@@ -767,7 +757,7 @@
         const faceColor = isDark ? '#0f172a' : '#fff7ed';
 
         // 立体长方体参数：前方面宽高 = 3:2；厚度与宽的比例 = 0.25（整体比例 3:2:0.25）
-        const padding = Math.max(2, Math.floor(Math.min(r.w, r.h) * 0.04));
+        const padding = Math.max(1, Math.floor(Math.min(r.w, r.h) * 0.02));
         const ratioW = 3;
         const ratioH = 2;
         const depthAbs = 0.25; // 与宽的同一比例单位（当宽=3）
@@ -789,9 +779,9 @@
 
         // 轻微阴影，增强立体感
         ctx.shadowColor = isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.18)';
-        ctx.shadowBlur = Math.max(2, Math.floor(depth * 0.4));
-        ctx.shadowOffsetX = Math.floor(depth * 0.25);
-        ctx.shadowOffsetY = Math.floor(depth * 0.35);
+        ctx.shadowBlur = Math.max(1, Math.floor(depth * 0.3));
+        ctx.shadowOffsetX = Math.floor(depth * 0.18);
+        ctx.shadowOffsetY = Math.floor(depth * 0.28);
 
         // 绘制 3D 长方体（方向：向右上）
         this.drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, {
