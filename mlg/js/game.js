@@ -571,22 +571,13 @@
 
     // --- Level Generation ---
     getLevelParams(level) {
-      const tier = Math.floor((level - 1) / 3); // 每 3 关提升一档
-      const isMobile = (this.cssWidth || window.innerWidth || 0) <= 640;
-      // 每层减少平铺规模（更少的行列），但整体增大层数
-      let rows = clamp(5 + Math.floor(tier / 2), 5, 8);
-      let cols = clamp(5 + Math.floor(tier / 2), 5, 8);
-      const layers = clamp(7 + Math.floor(tier * 1.5), 7, 12);
-      // 移动端将行列各-1（最低 4），放大单元格，提升点击面积
-      if (isMobile) {
-        rows = clamp(rows - 1, 4, rows);
-        cols = clamp(cols - 1, 4, cols);
-      }
-      // 降低每层密度，使单层更稀疏
-      const coverDensity = clamp(0.42 + tier * 0.03, 0.42, 0.62);
-      // 适度的类型数量，避免过于重复或过分离散
+      // 使用测试文件的固定布局参数
+      const rows = 9; // 固定9行
+      const cols = 7; // 固定7列
+      const layers = 4; // 固定4层
+      const coverDensity = 0.6; // 固定密度
       const typeCount = clamp(
-        12 + tier * 2,
+        12 + Math.floor((level - 1) / 3) * 2,
         12,
         Math.min(SYMBOLS.length - 1, 28)
       );
@@ -597,12 +588,16 @@
       const params = this.getLevelParams(level);
       const random = rng(seed);
       const positions = [];
-      // 生成更高层级和更密集的分布（基础规则）
-      for (let z = 0; z < params.layers; z++) {
-        for (let r = 0; r < params.rows; r++) {
-          for (let c = 0; c < params.cols; c++) {
-            const keep = random() < params.coverDensity;
-            if (keep) positions.push({ layer: z, row: r, col: c });
+      // 使用测试文件的层级概率分布
+      for (let layer = 0; layer < params.layers; layer++) {
+        for (let row = 0; row < params.rows; row++) {
+          for (let col = 0; col < params.cols; col++) {
+            // 每层每个位置独立随机决定是否放置立方体
+            // 底层概率稍高，上层概率递减，形成金字塔效果
+            const probability = 0.6 - (layer * 0.1); // 层0: 60%, 层1: 50%, 层2: 40%, 层3: 30%
+            if (random() < probability) {
+              positions.push({ layer, row, col });
+            }
           }
         }
       }
@@ -689,68 +684,49 @@
       // - 同层级紧凑：同一层内的同一行按出现顺序紧密排列
       // - 纵向仍保留层级向上偏移
       const params = this.getLevelParams(this.state.level);
-      const isMobile = this.cssWidth <= 640;
-      const padding = isMobile ? 8 : 16;
-      const boardWidth = this.cssWidth - padding * 2;
-      const boardHeight = Math.max(120, this.cssHeight - padding * 2 - 80);
-      const cellW = boardWidth / params.cols;
-      const cellH = boardHeight / params.rows;
-      const baseCell = Math.min(cellW, cellH);
-      const layerOffset = Math.floor(baseCell * (isMobile ? 0.12 : 0.15)); // 增加层级偏移
-      // 居中对齐：整行内容相对于画布居中
-      const contentWidth = cellW * params.cols;
-      const offsetX = Math.max(
-        12,
-        Math.floor((this.cssWidth - contentWidth) / 2)
-      );
-      const offsetY = padding + Math.floor(layerOffset * 2); // 为顶层留出空间
+      // 固定立方体大小，不随画布变化
+      const cubeWidth = 60; // 固定宽度60px
+      const cubeHeight = Math.floor(cubeWidth * 2.2 / 2); // 2.2:2 比例，高度为宽度的1.1倍
+      const maxLayers = 4; // 最多4层
       const rects = new Map();
-      // 竖直长方体布局比例与边距
-      const ratioW = 2,
-        ratioH = 3; // 前方面比例调整为 2:3，竖直长方体
-      const whFactor = isMobile ? 0.92 : 0.94;
-      const gapX = Math.max(3, Math.floor(baseCell * 0.08)); // 增加间距
-      // 按 layer+row 分组并按原 col 排序，便于稳定紧凑布局
-      const groupMap = new Map();
-      for (const t of this.tiles) {
-        const key = `${t.layer}-${t.row}`;
-        if (!groupMap.has(key)) groupMap.set(key, []);
-        groupMap.get(key).push(t);
-      }
-      for (const [key, arr] of groupMap) {
-        arr.sort((a, b) => a.col - b.col);
-        const sample = arr[0];
-        const row = sample.row;
-        const layer = sample.layer;
-        // 以单元高来决定前方面高，保证纵向不溢出
-        const maxH = Math.floor(cellH * whFactor);
-        let wByH = Math.floor(maxH * (ratioW / ratioH));
-        let hByH = Math.floor(wByH / (ratioW / ratioH));
-        // 行内紧凑：如果总宽超出行宽，则按行宽收缩
-        const rowContentWidth = contentWidth; // 可用宽度（去除两侧 padding 后）
-        const n = arr.length;
-        let w = wByH;
-        if (n > 0) {
-          const maxWPerItem = Math.floor(
-            (rowContentWidth - (n - 1) * gapX) / n
-          );
-          w = Math.min(wByH, maxWPerItem);
-        }
-        let h = Math.floor(w / (ratioW / ratioH));
-        const baseY =
-          offsetY + row * cellH + (params.layers - layer - 1) * layerOffset;
-        // 计算行内居中偏移
-        const rowTotalWidth = n * w + (n - 1) * gapX;
-        const rowStartX = Math.floor(
-          offsetX + (contentWidth - rowTotalWidth) / 2
-        );
+      
+      // 根据立方体大小和层级偏移计算总布局空间
+      const baseGridWidth = params.cols * cubeWidth;
+      const baseGridHeight = params.rows * cubeHeight;
 
-        for (let i = 0; i < arr.length; i++) {
-          const tile = arr[i];
-          const x = Math.floor(rowStartX + i * (w + gapX)); // 行内居中分布
-          const y = Math.floor(baseY + (cellH - h) / 2);
-          rects.set(tile.id, { x, y, w, h });
-        }
+      // 考虑最大层级的45度偏移
+      const maxLayerOffset = (maxLayers - 1) * cubeWidth * 0.5 * Math.cos(Math.PI / 4);
+      const totalWidth = baseGridWidth + maxLayerOffset;
+      const totalHeight = baseGridHeight + maxLayerOffset;
+
+      // 计算居中位置，确保所有层级都能显示
+      const startX = Math.floor((this.cssWidth - totalWidth) / 2);
+      const startY = Math.floor((this.cssHeight - totalHeight) / 2);
+      // 为每个tile计算位置
+      for (const tile of this.tiles) {
+        if (tile.status !== "board") continue;
+        
+        // 方案C：每层45度角偏移半个格子
+        const baseX = startX + tile.col * cubeWidth;
+        const baseY = startY + tile.row * cubeHeight;
+
+        // 45度角偏移：每层向右下偏移半个格子
+        // 45度角的偏移量 = 半个格子 * cos(45°) 和 sin(45°)
+        const halfGrid = cubeWidth * 0.5;
+        const angle45 = Math.PI / 4; // 45度转弧度
+
+        const layerOffsetX = tile.layer * halfGrid * Math.cos(angle45);
+        const layerOffsetY = tile.layer * halfGrid * Math.sin(angle45);
+
+        const x = baseX + layerOffsetX;
+        const y = baseY + layerOffsetY;
+
+        rects.set(tile.id, { 
+          x: Math.floor(x), 
+          y: Math.floor(y), 
+          w: cubeWidth, 
+          h: cubeHeight 
+        });
       }
       return rects;
     },
