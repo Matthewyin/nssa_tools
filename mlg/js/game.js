@@ -73,7 +73,7 @@
     drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options){
       const o = options || {};
       const faceColor = o.faceColor || '#fff7ed';
-      const topColor = o.topColor || this.adjustHexColor(faceColor, +0.06);
+      const topColor = o.topColor || '#2f2f2f'; // 顶部深灰
       const rightColor = o.rightColor || '#2f2f2f'; // 深灰色侧边
       const radius = Math.max(4, Math.floor(Math.min(frontW, frontH) * 0.12));
       const d = Math.max(1, Math.floor(depth));
