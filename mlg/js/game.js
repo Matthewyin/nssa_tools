@@ -1,4 +1,4 @@
-乡里(function () {
+(function () {
   // 槽位容量改为可变，默认 8
   let SLOT_CAPACITY = 8;
   const DIFFICULTY_LABELS = ["入门", "进阶", "高手", "大师", "宗师"];
