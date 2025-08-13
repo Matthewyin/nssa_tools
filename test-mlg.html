@@ -29,10 +29,11 @@
     <div class="mt-4 text-sm text-gray-600">
       <p>测试新的立方体样式：</p>
       <ul class="list-disc list-inside mt-2">
-        <li>长宽比调整为 4:3（更接近正方形）</li>
-        <li>增强的立体效果和渐变色彩</li>
-        <li>优化的阴影和高亮效果</li>
-        <li>改进的颜色调色板</li>
+        <li>长宽高比调整为 2:3:0.3（竖直长方体）</li>
+        <li>倾斜方向改为左下（左侧面和底面可见）</li>
+        <li>柔和的颜色调色板（降低饱和度）</li>
+        <li>渐变色彩增强立体效果</li>
+        <li>适应新方向的阴影效果</li>
       </ul>
     </div>
   </div>
@@ -47,10 +48,10 @@
     canvas.width = rect.width;
     canvas.height = rect.height;
     
-    // 测试颜色调色板
+    // 测试颜色调色板 - 柔和色调
     const COLOR_PALETTE = [
-      '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6',
-      '#8b5cf6', '#ec4899', '#f59e0b', '#84cc16', '#14b8a6', '#6366f1'
+      '#dc8a8a', '#e6a373', '#d4c078', '#7db88a', '#6bb6c7', '#8bb4f0',
+      '#b19cd9', '#e091b8', '#d4a574', '#a8c77a', '#6ba8a0', '#9ca3f7'
     ];
     
     // 测试符号
@@ -87,25 +88,28 @@
       ctx.quadraticCurveTo(x, y, x + r, y);
     }
     
-    // 绘制立方体
+    // 绘制立方体 - 左下倾斜方向
     function drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options) {
       const o = options || {};
-      const accentColor = o.accentColor || '#f87171';
+      const accentColor = o.accentColor || '#dc8a8a';
       
-      const topColor = adjustHexColor(accentColor, -0.25);
-      const rightColor = adjustHexColor(accentColor, -0.4);
+      const bottomColor = adjustHexColor(accentColor, -0.25);
+      const leftColor = adjustHexColor(accentColor, -0.4);
       const frontColor = accentColor;
       
       const radius = Math.max(3, Math.floor(Math.min(frontW, frontH) * 0.08));
       const d = Math.max(1, Math.floor(depth));
 
       const fx = frontX, fy = frontY, fw = frontW, fh = frontH;
-      const A = { x: fx, y: fy };
-      const B = { x: fx + fw, y: fy };
-      const C = { x: fx + fw, y: fy + fh };
-      const A2 = { x: A.x + d, y: A.y - d };
-      const B2 = { x: B.x + d, y: B.y - d };
-      const C2 = { x: C.x + d, y: C.y - d };
+      const A = { x: fx, y: fy };        // 前左上
+      const B = { x: fx + fw, y: fy };   // 前右上
+      const C = { x: fx + fw, y: fy + fh }; // 前右下
+      const D = { x: fx, y: fy + fh };   // 前左下
+      // 左下倾斜
+      const A2 = { x: A.x - d, y: A.y + d }; // 后左上
+      const B2 = { x: B.x - d, y: B.y + d }; // 后右上
+      const C2 = { x: C.x - d, y: C.y + d }; // 后右下
+      const D2 = { x: D.x - d, y: D.y + d }; // 后左下
 
       ctx.save();
       
@@ -130,23 +134,23 @@
       
       const sideRadius = Math.max(2, Math.floor(radius * 0.6));
       
-      // 顶面
-      roundedQuadPath(ctx, A, B, B2, A2, sideRadius);
-      const topGradient = ctx.createLinearGradient(A.x, A.y, A2.x, A2.y);
-      topGradient.addColorStop(0, topColor);
-      topGradient.addColorStop(1, adjustHexColor(topColor, -0.15));
-      ctx.fillStyle = topGradient;
+      // 底面 D-C-C2-D2
+      roundedQuadPath(ctx, D, C, C2, D2, sideRadius);
+      const bottomGradient = ctx.createLinearGradient(D.x, D.y, D2.x, D2.y);
+      bottomGradient.addColorStop(0, bottomColor);
+      bottomGradient.addColorStop(1, adjustHexColor(bottomColor, -0.15));
+      ctx.fillStyle = bottomGradient;
       ctx.fill();
 
-      // 右侧面
-      roundedQuadPath(ctx, B, C, C2, B2, sideRadius);
-      const rightGradient = ctx.createLinearGradient(B.x, B.y, C2.x, C2.y);
-      rightGradient.addColorStop(0, rightColor);
-      rightGradient.addColorStop(1, adjustHexColor(rightColor, -0.15));
-      ctx.fillStyle = rightGradient;
+      // 左侧面 A-D-D2-A2
+      roundedQuadPath(ctx, A, D, D2, A2, sideRadius);
+      const leftGradient = ctx.createLinearGradient(A.x, A.y, A2.x, A2.y);
+      leftGradient.addColorStop(0, leftColor);
+      leftGradient.addColorStop(1, adjustHexColor(leftColor, -0.15));
+      ctx.fillStyle = leftGradient;
       ctx.fill();
 
-      // 前方面
+      // 前方面 A-B-C-D
       createRoundedRectPath(ctx, fx, fy, fw, fh, radius);
       const frontGradient = ctx.createLinearGradient(fx, fy, fx + fw, fy + fh);
       frontGradient.addColorStop(0, adjustHexColor(frontColor, 0.1));
@@ -181,18 +185,21 @@
       const color = COLOR_PALETTE[i % COLOR_PALETTE.length];
       const symbol = SYMBOLS[i % SYMBOLS.length];
       
-      // 设置阴影
+      // 设置阴影 - 适应左下倾斜
       ctx.shadowColor = 'rgba(0,0,0,0.25)';
       ctx.shadowBlur = 6;
-      ctx.shadowOffsetX = 8;
-      ctx.shadowOffsetY = 12;
+      ctx.shadowOffsetX = -6; // 向左偏移
+      ctx.shadowOffsetY = 10; // 向下偏移
       
       // 绘制立方体
-      const frontW = cubeSize;
-      const frontH = Math.floor(cubeSize * 3 / 4); // 4:3 比例
-      const depth = Math.floor(cubeSize * 0.35);
+      const frontW = Math.floor(cubeSize * 2 / 3); // 2:3 比例的宽度
+      const frontH = cubeSize; // 2:3 比例的高度
+      const depth = Math.floor(cubeSize * 0.3); // 深度比例 0.3
       
-      drawCuboid(ctx, x, y, frontW, frontH, depth, { accentColor: color });
+      // 为左侧面和底面留出空间
+      const adjustedX = x + depth;
+      const adjustedY = y;
+      drawCuboid(ctx, adjustedX, adjustedY, frontW, frontH, depth, { accentColor: color });
       
       // 重置阴影
       ctx.shadowColor = 'transparent';
@@ -201,18 +208,18 @@
       ctx.shadowOffsetY = 0;
       
       // 绘制符号
-      const fontSize = Math.floor(frontH * 0.7);
+      const fontSize = Math.floor(frontH * 0.6); // 适应新的 2:3 比例
       ctx.font = `${fontSize}px system-ui`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
       // 符号阴影
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.fillText(symbol, x + frontW/2 + 2, y + frontH/2 + 3);
+      ctx.fillText(symbol, adjustedX + frontW/2 + 2, adjustedY + frontH/2 + 3);
       
       // 主符号
       ctx.fillStyle = '#1f2937';
-      ctx.fillText(symbol, x + frontW/2, y + frontH/2);
+      ctx.fillText(symbol, adjustedX + frontW/2, adjustedY + frontH/2);
     }
   </script>
 </body>
