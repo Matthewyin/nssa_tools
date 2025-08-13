@@ -52,6 +52,80 @@
   }
 
   const MLG = {
+    // 调整颜色明暗（仅支持 #rrggbb），amount ∈ [-1,1]
+    adjustHexColor(hex, amount){
+      try{
+        const m = /^#?([0-9a-fA-F]{6})$/.exec(String(hex||''));
+        if (!m) return hex;
+        const v = m[1];
+        const r = parseInt(v.slice(0,2),16);
+        const g = parseInt(v.slice(2,4),16);
+        const b = parseInt(v.slice(4,6),16);
+        const clamp255 = (n)=> Math.max(0, Math.min(255, Math.round(n)));
+        const adj = (c)=> clamp255(c + amount*255);
+        const toHex = (n)=> n.toString(16).padStart(2,'0');
+        return `#${toHex(adj(r))}${toHex(adj(g))}${toHex(adj(b))}`;
+      }catch{ return hex; }
+    },
+
+    // 绘制立方体（长方体）: 前面、顶面、右侧面
+    // frontX, frontY 为前方面的左上角；frontW、frontH 为前方面尺寸；depth 为挤出深度像素
+    drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options){
+      const o = options || {};
+      const faceColor = o.faceColor || '#fff7ed';
+      const accentColor = o.accentColor || '#ef4444';
+      const topColor = o.topColor || this.adjustHexColor(faceColor, +0.06);
+      const rightColor = o.rightColor || this.adjustHexColor(faceColor, -0.08);
+      const radius = Math.max(4, Math.floor(Math.min(frontW, frontH) * 0.12));
+      const d = Math.max(1, Math.floor(depth));
+
+      // 预计算关键点
+      const fx = frontX, fy = frontY, fw = frontW, fh = frontH;
+      const A = { x: fx,        y: fy        };
+      const B = { x: fx + fw,   y: fy        };
+      const C = { x: fx + fw,   y: fy + fh   };
+      const D = { x: fx,        y: fy + fh   };
+      const A2 = { x: A.x + d,  y: A.y - d   };
+      const B2 = { x: B.x + d,  y: B.y - d   };
+      const C2 = { x: C.x + d,  y: C.y - d   };
+      // const D2 = { x: D.x + d,  y: D.y - d   };
+
+      ctx.save();
+      // 顶面
+      ctx.beginPath();
+      ctx.moveTo(A.x, A.y);
+      ctx.lineTo(B.x, B.y);
+      ctx.lineTo(B2.x, B2.y);
+      ctx.lineTo(A2.x, A2.y);
+      ctx.closePath();
+      ctx.fillStyle = topColor;
+      ctx.fill();
+      ctx.strokeStyle = this.adjustHexColor(accentColor, -0.1);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // 右侧面
+      ctx.beginPath();
+      ctx.moveTo(B.x, B.y);
+      ctx.lineTo(C.x, C.y);
+      ctx.lineTo(C2.x, C2.y);
+      ctx.lineTo(B2.x, B2.y);
+      ctx.closePath();
+      ctx.fillStyle = rightColor;
+      ctx.fill();
+      ctx.strokeStyle = this.adjustHexColor(accentColor, -0.15);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // 前方面（圆角）
+      this.createRoundedRectPath(ctx, fx, fy, fw, fh, radius);
+      ctx.fillStyle = faceColor;
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = accentColor;
+      ctx.stroke();
+      ctx.restore();
+    },
     // 绘制圆角矩形路径，便于统一的卡片外形
     createRoundedRectPath(ctx, x, y, width, height, radius){
       const r = Math.max(2, Math.min(radius || 8, Math.min(width, height) / 4));
@@ -680,61 +754,90 @@
         const r = rects.get(tile.id);
         ctx.save();
         ctx.translate(0, 0);
-
-        // 配色与外形（保留圆角，但取消立体化效果）
+        // 主题感知的基色
+        const isDark = (function(){
+          try{
+            const t = (localStorage.getItem('mlg_theme')||'light');
+            if (t === 'dark') return true;
+            if (t === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
+          }catch{}
+          return false;
+        })();
         const accentColor = COLOR_PALETTE[tile.type % COLOR_PALETTE.length];
-        const faceColor = '#fff7ed';
-        const cornerRadius = Math.max(6, Math.floor(Math.min(r.w, r.h) * 0.12));
+        const faceColor = isDark ? '#0f172a' : '#fff7ed';
 
-        // 关闭阴影
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
+        // 立体长方体参数：前方面宽高 = 2:3；厚度与宽的比例 = 0.25（对应 2:3:0.5）
+        const padding = Math.max(2, Math.floor(Math.min(r.w, r.h) * 0.04));
+        // 先占位厚度，保证整体（前方面+厚度）不超出 r
+        const roughDepth = Math.max(4, Math.floor(Math.min(r.w, r.h) * 0.12));
+        // 计算可用空间（需为整体边界预留 depth）
+        let usableW = Math.max(8, r.w - roughDepth - padding*2);
+        let usableH = Math.max(8, r.h - roughDepth - padding*2);
+        // 在可用空间内放置 2:3 的前方面
+        const targetRatio = 2/3;
+        let frontW = usableW;
+        let frontH = Math.floor(frontW / targetRatio);
+        if (frontH > usableH){
+          frontH = usableH;
+          frontW = Math.floor(frontH * targetRatio);
+        }
+        // 根据 2:3:0.5 换算出 depth：depth = frontW * (0.5/2) = 0.25 * frontW
+        let depth = Math.max(4, Math.floor(frontW * 0.25));
+        // 如果 depth 太大导致越界，则收缩一次
+        if (frontW + depth + padding*2 > r.w || frontH + depth + padding*2 > r.h){
+          const scaleW = (r.w - padding*2) / (frontW + depth);
+          const scaleH = (r.h - padding*2) / (frontH + depth);
+          const scale = Math.max(0.5, Math.min(scaleW, scaleH));
+          frontW = Math.floor(frontW * scale);
+          frontH = Math.floor(frontH * scale);
+          depth = Math.max(3, Math.floor(frontW * 0.25));
+        }
+        // 使整个长方体（包含顶面与右面）在 r 内居中
+        const totalW = frontW + depth;
+        const totalH = frontH + depth;
+        const frontX = Math.floor(r.x + (r.w - totalW)/2);
+        const frontY = Math.floor(r.y + (r.h - totalH)/2 + depth);
 
-        // 简洁的面板与描边（方形卡片小圆角）
-        const rectRadius = Math.max(4, Math.floor(Math.min(r.w, r.h) * 0.12));
-        this.createRoundedRectPath(ctx, r.x, r.y, r.w, r.h, rectRadius);
-        ctx.fillStyle = faceColor;
-        ctx.fill();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = accentColor;
-        ctx.stroke();
+        // 轻微阴影，增强立体感
+        ctx.shadowColor = isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.18)';
+        ctx.shadowBlur = Math.max(2, Math.floor(depth * 0.4));
+        ctx.shadowOffsetX = Math.floor(depth * 0.25);
+        ctx.shadowOffsetY = Math.floor(depth * 0.35);
 
-        // 符号立体感（仅对 emoji 增加轻微阴影与细描边，不改变卡片平面风格）
+        // 绘制 3D 长方体
+        this.drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, {
+          faceColor,
+          accentColor
+        });
+
+        // 符号（绘制在前方面中央）
         const symbol = getSymbolForType(tile.type);
-        // 图标尽量充满图片框（占高约 82%）
-        const fontSize = Math.floor(Math.min(r.w, r.h) * 0.82);
-        const sx = r.x + r.w/2;
-        const sy = r.y + r.h/2; // 居中
+        // 占前方面高度的 78%
+        const fontSize = Math.floor(frontH * 0.78);
+        const sx = frontX + frontW/2;
+        const sy = frontY + frontH/2; // 前方面中心
         ctx.font = `${fontSize}px system-ui`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        // 阴影（底层轻微偏移）
-        ctx.fillStyle = 'rgba(0,0,0,0.22)';
-        ctx.fillText(symbol, sx, sy + 1.5);
+        // 轻微立体阴影
+        ctx.fillStyle = isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.22)';
+        ctx.fillText(symbol, sx + Math.max(1, Math.floor(depth*0.08)), sy + Math.max(1, Math.floor(depth*0.12)));
         // 主体
         ctx.fillStyle = accentColor;
         ctx.fillText(symbol, sx, sy);
-        // 细描边（增强边缘清晰度）
+        // 细描边
         ctx.lineWidth = 0.8;
-        ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+        ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.18)';
         if (ctx.strokeText) ctx.strokeText(symbol, sx, sy);
 
         const covered = (tile.status==='board' && this.isCovered(tile, rects));
         // overlay for non-selectable
         if (covered){
           // 暗色下使用浅色半透明覆盖，亮色下使用深色半透明覆盖
-          const isDark = (function(){
-            try{
-              const t = (localStorage.getItem('mlg_theme')||'light');
-              if (t === 'dark') return true;
-              if (t === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
-            }catch{}
-            return false;
-          })();
           ctx.fillStyle = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.12)';
-          this.createRoundedRectPath(ctx, r.x, r.y, r.w, r.h, cornerRadius);
+          // 仅覆盖前方面区域
+          const cornerRadius = Math.max(6, Math.floor(Math.min(frontW, frontH) * 0.12));
+          this.createRoundedRectPath(ctx, frontX, frontY, frontW, frontH, cornerRadius);
           ctx.fill();
         }
         // near-triple guidance highlight (only for selectable tiles)
@@ -743,7 +846,7 @@
           ctx.strokeStyle = 'rgba(14,165,233,0.8)'; // cyan-500-ish
           ctx.lineWidth = 3;
           if (ctx.setLineDash) ctx.setLineDash([6,4]);
-          this.createRoundedRectPath(ctx, r.x+2, r.y+2, r.w-4, r.h-4, Math.max(4, cornerRadius-2));
+          this.createRoundedRectPath(ctx, frontX+2, frontY+2, frontW-4, frontH-4, Math.max(4, Math.floor(Math.min(frontW, frontH) * 0.12)-2));
           ctx.stroke();
           if (ctx.setLineDash) ctx.setLineDash([]);
           ctx.restore();
@@ -752,7 +855,7 @@
         if (this.highlightTileId === tile.id){
           ctx.strokeStyle = '#0ea5e9';
           ctx.lineWidth = 5;
-          this.createRoundedRectPath(ctx, r.x-2, r.y-2, r.w+4, r.h+4, Math.max(6, cornerRadius));
+          this.createRoundedRectPath(ctx, frontX-2, frontY-2, frontW+4, frontH+4, Math.max(6, Math.floor(Math.min(frontW, frontH) * 0.12)));
           ctx.stroke();
         }
         ctx.restore();
