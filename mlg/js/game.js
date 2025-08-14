@@ -434,10 +434,24 @@
           12 /* 容器内边距上 */ +
           12; /* 容器内边距下 */
         const available = Math.max(
-          180,
+          200, // 提高最小高度从180到200
           viewportH - headerH - topBarH - slotReserve - extraGaps
         );
-        this.canvas.style.height = `${Math.floor(available)}px`;
+        const finalHeight = Math.floor(available);
+        this.canvas.style.height = `${finalHeight}px`;
+
+        // 手机端调试信息
+        if (window.innerWidth <= 768) {
+          console.log('画布高度计算:', {
+            视口高度: viewportH,
+            头部高度: headerH,
+            顶栏高度: topBarH,
+            槽位预留: slotReserve,
+            额外间距: extraGaps,
+            可用高度: available,
+            最终高度: finalHeight
+          });
+        }
       } catch (e) {
         /* no-op */
       }
@@ -790,9 +804,9 @@
       const isMobile = screenWidth <= 768;
       const margin = isMobile ? 4 : 16; // 手机端减少边距，给立方体更多空间
 
-      // 计算画布可用空间
-      const availableWidth = this.cssWidth - margin * 2;
-      const availableHeight = this.cssHeight - margin * 2;
+      // 计算画布可用空间，确保不为负数
+      const availableWidth = Math.max(100, this.cssWidth - margin * 2); // 最小100px
+      const availableHeight = Math.max(100, this.cssHeight - margin * 2); // 最小100px
 
       // 计算层级偏移（使用基础立方体大小）
       const baseLayerOffset = (maxLayers - 1) * baseCubeWidth * 0.5 * Math.cos(Math.PI / 4);
@@ -805,20 +819,23 @@
       const requiredTotalHeight = requiredBaseHeight + baseLayerOffset;
 
       // 动态计算缩放比例，确保内容能完全放下
-      const widthScale = availableWidth / requiredTotalWidth;
-      const heightScale = availableHeight / requiredTotalHeight;
+      const widthScale = Math.max(0.1, availableWidth / requiredTotalWidth); // 最小0.1
+      const heightScale = Math.max(0.1, availableHeight / requiredTotalHeight); // 最小0.1
       const dynamicScale = Math.min(widthScale, heightScale, 1); // 不超过原始大小
 
       // 应用优化系数，让立方体稍微大一些（留5%安全边距）
-      const optimizedScale = dynamicScale * 0.95;
+      const optimizedScale = Math.max(0.1, dynamicScale * 0.95); // 确保不为负数
 
       // 应用最小缩放限制，确保立方体不会太小
       const minScale = isMobile ? 0.5 : 0.6; // 提高手机端最小缩放从0.4到0.5
       const finalScale = Math.max(optimizedScale, minScale);
 
-      // 计算最终的立方体尺寸
-      const cubeWidth = Math.floor(baseCubeWidth * finalScale);
-      const cubeHeight = Math.floor(cubeWidth * 1.1); // 保持1.1的高宽比
+      // 最终安全检查，确保缩放值合理
+      const safeScale = Math.max(0.3, Math.min(finalScale, 2.0)); // 限制在0.3-2.0之间
+
+      // 计算最终的立方体尺寸，使用安全缩放值
+      const cubeWidth = Math.max(20, Math.floor(baseCubeWidth * safeScale)); // 最小20px
+      const cubeHeight = Math.max(22, Math.floor(cubeWidth * 1.1)); // 保持1.1的高宽比，最小22px
       const rects = new Map();
       
       // 根据立方体大小和层级偏移计算总布局空间
@@ -908,8 +925,8 @@
         // 高度未超出，使用理想位置但确保不超出边界
         startY = Math.max(minY, Math.min(maxY, idealStartY));
       }
-      // 调试信息：在开发模式下显示居中计算详情
-      if (window.location.search.includes('debug=center') || window.location.search.includes('debug=scale')) {
+      // 手机端强制调试信息，帮助诊断问题
+      if (isMobile || window.location.search.includes('debug=center') || window.location.search.includes('debug=scale')) {
         console.log('动态缩放详情:', {
           设备类型: isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop',
           屏幕宽度: screenWidth,
@@ -917,7 +934,7 @@
           可用空间: `${availableWidth}×${availableHeight}`,
           网格参数: `${params.cols}列×${params.rows}行×${maxLayers}层`,
           所需空间: `${Math.round(requiredTotalWidth)}×${Math.round(requiredTotalHeight)}`,
-          缩放计算: `宽度${widthScale.toFixed(3)} 高度${heightScale.toFixed(3)} 动态${dynamicScale.toFixed(3)} 最终${finalScale.toFixed(3)}`,
+          缩放计算: `宽度${widthScale.toFixed(3)} 高度${heightScale.toFixed(3)} 动态${dynamicScale.toFixed(3)} 优化${optimizedScale.toFixed(3)} 最终${finalScale.toFixed(3)} 安全${safeScale.toFixed(3)}`,
           立方体尺寸: `${cubeWidth}×${cubeHeight}`,
           实际尺寸: `${baseGridWidth}×${baseGridHeight}`,
           总尺寸: `${Math.round(totalWidth)}×${Math.round(totalHeight)}`,
@@ -925,7 +942,8 @@
           内容视觉中心: `(${Math.round(contentVisualCenterX)}, ${Math.round(contentVisualCenterY)})`,
           理想起点: `(${Math.round(idealStartX)}, ${Math.round(idealStartY)})`,
           设备调整: `(${Math.round(adjustmentX)}, ${Math.round(adjustmentY)})`,
-          最终起点: `(${startX}, ${startY})`
+          最终起点: `(${startX}, ${startY})`,
+          立方体数量: this.tiles.filter(t => t.status === 'board').length
         });
       }
 
@@ -1207,6 +1225,13 @@
       const ctx = this.ctx;
       const w = this.cssWidth;
       const h = this.cssHeight;
+
+      // 基本安全检查
+      if (!ctx || w <= 0 || h <= 0) {
+        console.error('渲染失败 - 画布状态异常:', {ctx: !!ctx, width: w, height: h});
+        return;
+      }
+
       ctx.clearRect(0, 0, w, h);
       // 使用画布自身的 CSS 背景色，保持与样式一致（亮色暖色、暗色深色）
       let canvasBg = "";
@@ -1263,9 +1288,28 @@
 
       // draw tiles from bottom to top (lower layer first)
       const sorted = [...this.tiles].sort((a, b) => a.layer - b.layer);
+      const boardTiles = sorted.filter(t => t.status === "board");
+
+      // 手机端调试信息
+      if (window.innerWidth <= 768) {
+        console.log('渲染立方体:', {
+          总立方体数: this.tiles.length,
+          棋盘立方体数: boardTiles.length,
+          矩形数量: rects.size,
+          画布尺寸: `${w}×${h}`
+        });
+      }
+
       for (const tile of sorted) {
         if (tile.status !== "board") continue; // 只渲染棋盘上的牌
         const r = rects.get(tile.id);
+
+        // 安全检查：确保矩形信息存在且有效
+        if (!r || r.w <= 0 || r.h <= 0) {
+          console.warn('立方体矩形信息无效:', tile.id, r);
+          continue;
+        }
+
         ctx.save();
         ctx.translate(0, 0);
         // 主题感知的基色
