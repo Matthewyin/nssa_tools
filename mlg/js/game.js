@@ -174,12 +174,12 @@
       const relativeDepth = o.relativeDepth || 0; // 相对深度（0=顶层，1=下一层，等等）
       let frontColor, borderColor;
 
-      // 新的颜色方案：基于相对深度而非绝对层级
+      // 高对比度颜色方案：增强相邻层级的视觉区分度
       const depthColors = [
-        { front: '#FFFFFF', border: '#CCCCCC' }, // 顶层：纯白色
-        { front: '#B0BEC5', border: '#37474F' }, // 下一层：蓝灰色
-        { front: '#90A4AE', border: '#263238' }, // 更下层：深蓝灰色
-        { front: '#546E7A', border: '#102027' }  // 最下层：最深蓝灰色
+        { front: '#FFFFFF', border: '#999999' }, // 顶层：纯白色+深灰边框
+        { front: '#E8F4FD', border: '#2196F3' }, // 第二层：浅蓝+蓝边框
+        { front: '#BBDEFB', border: '#1976D2' }, // 第三层：中蓝+深蓝边框
+        { front: '#90CAF9', border: '#0D47A1' }  // 底层：深蓝+最深蓝边框
       ];
 
       // 如果是当前位置的顶层，使用顶层颜色；否则根据相对深度选择颜色
@@ -430,7 +430,7 @@
         const extraGaps =
           24 /* main py-6 top */ +
           24 /* main py-6 bottom */ +
-          24 /* 控件与画布间距余量 */ +
+          16 /* 控件与画布间距余量，从24减少到16 */ +
           12 /* 容器内边距上 */ +
           12; /* 容器内边距下 */
         const available = Math.max(
@@ -802,7 +802,7 @@
 
       // 设备检测
       const isMobile = screenWidth <= 768;
-      const margin = isMobile ? 4 : 16; // 手机端减少边距，给立方体更多空间
+      const margin = isMobile ? 8 : 16; // 手机端适度增加边距到8px，平衡空间利用和视觉效果
 
       // 计算画布可用空间，确保不为负数
       const availableWidth = Math.max(100, this.cssWidth - margin * 2); // 最小100px
@@ -827,15 +827,15 @@
       const optimizedScale = Math.max(0.1, dynamicScale * 0.95); // 确保不为负数
 
       // 应用最小缩放限制，确保立方体不会太小
-      const minScale = isMobile ? 0.5 : 0.6; // 提高手机端最小缩放从0.4到0.5
+      const minScale = isMobile ? 0.75 : 0.6; // 手机端从0.5提升到0.75，改善操作体验
       const finalScale = Math.max(optimizedScale, minScale);
 
       // 最终安全检查，确保缩放值合理
       const safeScale = Math.max(0.3, Math.min(finalScale, 2.0)); // 限制在0.3-2.0之间
 
       // 计算最终的立方体尺寸，使用安全缩放值
-      const cubeWidth = Math.max(20, Math.floor(baseCubeWidth * safeScale)); // 最小20px
-      const cubeHeight = Math.max(22, Math.floor(cubeWidth * 1.1)); // 保持1.1的高宽比，最小22px
+      const cubeWidth = Math.max(35, Math.floor(baseCubeWidth * safeScale)); // 手机端最小从20px提升到35px
+      const cubeHeight = Math.max(38, Math.floor(cubeWidth * 1.1)); // 保持1.1的高宽比，最小从22px提升到38px
       const rects = new Map();
       
       // 根据立方体大小和层级偏移计算总布局空间
