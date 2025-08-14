@@ -774,33 +774,76 @@
       const totalWidth = baseGridWidth + maxLayerOffset;
       const totalHeight = baseGridHeight + maxLayerOffset;
 
-      // 智能居中计算 - 考虑层级偏移对视觉中心的影响
+      // 智能居中计算 - 针对手机端和PC端分别优化
       let startX, startY;
 
-      // 计算视觉中心偏移：层级偏移会让视觉重心向右下移动
-      // 我们需要向左上补偿这个偏移，让整体看起来居中
-      const visualCenterOffsetX = maxLayerOffset * 0.5; // 补偿一半的层级偏移
-      const visualCenterOffsetY = maxLayerOffset * 0.5;
+      // 设备检测
+      const isMobile = screenWidth <= 768;
+      const isTablet = screenWidth > 768 && screenWidth <= 1024;
+      const isDesktop = screenWidth > 1024;
 
+      // 根据设备类型调整视觉中心偏移策略
+      let visualCenterOffsetX, visualCenterOffsetY;
+
+      if (isMobile) {
+        // 手机端：更激进的居中补偿，考虑触摸操作的视觉习惯
+        visualCenterOffsetX = maxLayerOffset * 0.6; // 手机端补偿更多
+        visualCenterOffsetY = maxLayerOffset * 0.4; // 垂直方向稍微保守
+      } else if (isTablet) {
+        // 平板端：中等程度的补偿
+        visualCenterOffsetX = maxLayerOffset * 0.55;
+        visualCenterOffsetY = maxLayerOffset * 0.45;
+      } else {
+        // PC端：保守的补偿，保持原有的视觉平衡
+        visualCenterOffsetX = maxLayerOffset * 0.5;
+        visualCenterOffsetY = maxLayerOffset * 0.5;
+      }
+
+      // 水平居中计算
       if (totalWidth <= this.cssWidth) {
         // 内容能完全显示，居中并补偿视觉偏移
-        startX = Math.floor((this.cssWidth - totalWidth) / 2) - visualCenterOffsetX;
+        const basicCenterX = Math.floor((this.cssWidth - totalWidth) / 2);
+        startX = basicCenterX - visualCenterOffsetX;
+
+        // 确保不会超出左边界
+        startX = Math.max(5, startX);
       } else {
         // 内容超出画布，优先显示基础网格的中心
-        const availableWidth = this.cssWidth - 20; // 留20px边距
+        const margin = isMobile ? 10 : 20; // 手机端边距更小
+        const availableWidth = this.cssWidth - margin * 2;
         const gridCenterOffset = Math.floor((availableWidth - baseGridWidth) / 2);
-        startX = Math.max(10, gridCenterOffset - visualCenterOffsetX);
+        startX = Math.max(margin, gridCenterOffset - visualCenterOffsetX);
       }
 
+      // 垂直居中计算
       if (totalHeight <= this.cssHeight) {
         // 内容能完全显示，居中并补偿视觉偏移
-        startY = Math.floor((this.cssHeight - totalHeight) / 2) - visualCenterOffsetY;
+        const basicCenterY = Math.floor((this.cssHeight - totalHeight) / 2);
+        startY = basicCenterY - visualCenterOffsetY;
+
+        // 确保不会超出上边界
+        startY = Math.max(5, startY);
       } else {
         // 内容超出画布，优先显示基础网格的中心
-        const availableHeight = this.cssHeight - 20; // 留20px边距
+        const margin = isMobile ? 10 : 20; // 手机端边距更小
+        const availableHeight = this.cssHeight - margin * 2;
         const gridCenterOffset = Math.floor((availableHeight - baseGridHeight) / 2);
-        startY = Math.max(10, gridCenterOffset - visualCenterOffsetY);
+        startY = Math.max(margin, gridCenterOffset - visualCenterOffsetY);
       }
+      // 调试信息：在开发模式下显示居中计算详情
+      if (window.location.search.includes('debug=center')) {
+        console.log('居中计算详情:', {
+          设备类型: isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop',
+          屏幕宽度: screenWidth,
+          画布尺寸: `${this.cssWidth}×${this.cssHeight}`,
+          网格尺寸: `${baseGridWidth}×${baseGridHeight}`,
+          总尺寸: `${Math.round(totalWidth)}×${Math.round(totalHeight)}`,
+          层级偏移: Math.round(maxLayerOffset),
+          视觉偏移: `(${Math.round(visualCenterOffsetX)}, ${Math.round(visualCenterOffsetY)})`,
+          起点位置: `(${startX}, ${startY})`
+        });
+      }
+
       // 为每个tile计算位置
       for (const tile of this.tiles) {
         if (tile.status !== "board") continue;
