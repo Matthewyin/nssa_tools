@@ -802,7 +802,7 @@
 
       // 设备检测
       const isMobile = screenWidth <= 768;
-      const margin = isMobile ? 8 : 16; // 手机端适度增加边距到8px，平衡空间利用和视觉效果
+      const margin = isMobile ? 4 : 16; // 手机端减少边距到4px，确保立方体有足够显示空间
 
       // 计算画布可用空间，确保不为负数
       const availableWidth = Math.max(100, this.cssWidth - margin * 2); // 最小100px
@@ -826,16 +826,16 @@
       // 应用优化系数，让立方体稍微大一些（留5%安全边距）
       const optimizedScale = Math.max(0.1, dynamicScale * 0.95); // 确保不为负数
 
-      // 应用最小缩放限制，确保立方体不会太小
-      const minScale = isMobile ? 0.75 : 0.6; // 手机端从0.5提升到0.75，改善操作体验
+      // 应用最小缩放限制，但优先保证内容不超出边界
+      const minScale = isMobile ? 0.6 : 0.6; // 降低最小缩放，确保内容能完整显示
       const finalScale = Math.max(optimizedScale, minScale);
 
       // 最终安全检查，确保缩放值合理
       const safeScale = Math.max(0.3, Math.min(finalScale, 2.0)); // 限制在0.3-2.0之间
 
-      // 计算最终的立方体尺寸，使用安全缩放值
-      const cubeWidth = Math.max(35, Math.floor(baseCubeWidth * safeScale)); // 手机端最小从20px提升到35px
-      const cubeHeight = Math.max(38, Math.floor(cubeWidth * 1.1)); // 保持1.1的高宽比，最小从22px提升到38px
+      // 计算最终的立方体尺寸，平衡大小和完整显示
+      const cubeWidth = Math.max(30, Math.floor(baseCubeWidth * safeScale)); // 最小30px，平衡操作性和显示完整性
+      const cubeHeight = Math.max(33, Math.floor(cubeWidth * 1.1)); // 保持1.1的高宽比，最小33px
       const rects = new Map();
       
       // 根据立方体大小和层级偏移计算总布局空间
