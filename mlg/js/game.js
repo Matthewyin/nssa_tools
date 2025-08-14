@@ -263,6 +263,10 @@
             ? this.state.slotCapacity
             : 8;
         this.highlightTileId = null;
+
+        // 检查并修复可能存在的槽位消除问题
+        this.checkSlotElimination();
+
         this.updateHud();
         this.render();
       } else {
@@ -948,27 +952,21 @@
       // move to slot
       tile.status = "slot";
       this.slot.push(tileId);
-      // check triple
-      const type = tile.type;
-      const sameTypeInSlot = this.slot.filter(
-        (id) => this.tiles.find((t) => t.id === id).type === type
-      );
-      if (sameTypeInSlot.length >= 3) {
-        // remove three of that type (the earliest three)
-        const toRemove = [];
-        for (const id of this.slot) {
-          if (this.tiles.find((t) => t.id === id).type === type) {
-            toRemove.push(id);
-            if (toRemove.length === 3) break;
-          }
+
+      // 记录消除前的槽位状态，用于撤销
+      const slotBefore = [...this.slot];
+
+      // 检查并执行消除
+      this.checkSlotElimination();
+
+      // 计算被消除的tiles（用于撤销功能）
+      const removed = [];
+      for (const id of slotBefore) {
+        if (!this.slot.includes(id)) {
+          removed.push(id);
         }
-        this.slot = this.slot.filter((id) => !toRemove.includes(id));
-        for (const id of toRemove) {
-          const t = this.tiles.find((tt) => tt.id === id);
-          if (t) t.status = "gone";
-        }
-        action.removed = toRemove;
       }
+      action.removed = removed;
       // fail check
       if (this.slot.length > SLOT_CAPACITY) {
         // revert last move and show fail
@@ -996,7 +994,58 @@
       if (idx >= 0) this.slot.splice(idx, 1);
       const tile = this.tiles.find((t) => t.id === action.tileId);
       if (tile) tile.status = "board";
+
+      // 撤销后重新检查槽位中的消除逻辑
+      this.checkSlotElimination();
       this.render();
+    },
+
+    // 检查槽位中的消除逻辑（独立函数，可在撤销等操作后调用）
+    checkSlotElimination() {
+      let hasElimination = true;
+
+      // 持续检查直到没有可消除的组合
+      while (hasElimination) {
+        hasElimination = false;
+
+        // 统计每种类型的数量
+        const typeCount = {};
+        this.slot.forEach(id => {
+          const tile = this.tiles.find(t => t.id === id);
+          if (tile) {
+            typeCount[tile.type] = (typeCount[tile.type] || 0) + 1;
+          }
+        });
+
+        // 检查是否有类型数量 >= 3
+        for (const [type, count] of Object.entries(typeCount)) {
+          if (count >= 3) {
+            hasElimination = true;
+
+            // 找到该类型的前3个tile并移除
+            const toRemove = [];
+            for (const id of this.slot) {
+              const tile = this.tiles.find(t => t.id === id);
+              if (tile && tile.type === parseInt(type)) {
+                toRemove.push(id);
+                if (toRemove.length === 3) break;
+              }
+            }
+
+            // 从槽位中移除
+            this.slot = this.slot.filter(id => !toRemove.includes(id));
+
+            // 将tile状态设为gone
+            for (const id of toRemove) {
+              const tile = this.tiles.find(t => t.id === id);
+              if (tile) tile.status = "gone";
+            }
+
+            // 只处理一种类型，然后重新开始循环
+            break;
+          }
+        }
+      }
     },
 
     useUndo() {
