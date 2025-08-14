@@ -780,55 +780,75 @@
       // 设备检测
       const isMobile = screenWidth <= 768;
       const isTablet = screenWidth > 768 && screenWidth <= 1024;
-      const isDesktop = screenWidth > 1024;
 
-      // 根据设备类型调整视觉中心偏移策略
-      let visualCenterOffsetX, visualCenterOffsetY;
+      // 计算实际内容的边界（考虑层级偏移后的真实占用空间）
+      // 层级偏移会让内容向右下扩展，所以实际的视觉中心会偏移
+      const layerOffsetX = maxLayerOffset;
+      const layerOffsetY = maxLayerOffset;
+
+      // 实际内容的视觉中心位置（相对于基础网格左上角）
+      const contentVisualCenterX = (baseGridWidth + layerOffsetX) / 2;
+      const contentVisualCenterY = (baseGridHeight + layerOffsetY) / 2;
+
+      // 画布中心
+      const canvasCenterX = this.cssWidth / 2;
+      const canvasCenterY = this.cssHeight / 2;
+
+      // 计算基础网格左上角应该放置的位置，使内容视觉中心对齐画布中心
+      let idealStartX = canvasCenterX - contentVisualCenterX;
+      let idealStartY = canvasCenterY - contentVisualCenterY;
+
+      // 根据设备类型进行微调
+      let adjustmentX = 0, adjustmentY = 0;
 
       if (isMobile) {
-        // 手机端：更激进的居中补偿，考虑触摸操作的视觉习惯
-        visualCenterOffsetX = maxLayerOffset * 0.6; // 手机端补偿更多
-        visualCenterOffsetY = maxLayerOffset * 0.4; // 垂直方向稍微保守
+        // 手机端：稍微向左上调整，因为触摸操作习惯
+        adjustmentX = -layerOffsetX * 0.1;
+        adjustmentY = -layerOffsetY * 0.05;
       } else if (isTablet) {
-        // 平板端：中等程度的补偿
-        visualCenterOffsetX = maxLayerOffset * 0.55;
-        visualCenterOffsetY = maxLayerOffset * 0.45;
-      } else {
-        // PC端：保守的补偿，保持原有的视觉平衡
-        visualCenterOffsetX = maxLayerOffset * 0.5;
-        visualCenterOffsetY = maxLayerOffset * 0.5;
+        // 平板端：轻微调整
+        adjustmentX = -layerOffsetX * 0.05;
+        adjustmentY = -layerOffsetY * 0.03;
       }
+      // PC端不需要额外调整
 
-      // 水平居中计算
-      if (totalWidth <= this.cssWidth) {
-        // 内容能完全显示，居中并补偿视觉偏移
-        const basicCenterX = Math.floor((this.cssWidth - totalWidth) / 2);
-        startX = basicCenterX - visualCenterOffsetX;
+      idealStartX += adjustmentX;
+      idealStartY += adjustmentY;
 
-        // 确保不会超出左边界
-        startX = Math.max(5, startX);
+      // 边界检查和约束
+      const margin = isMobile ? 8 : 16;
+
+      // 检查内容是否超出画布
+      if (totalWidth > this.cssWidth || totalHeight > this.cssHeight) {
+        // 超出时，优先显示基础网格的中心部分
+        if (totalWidth > this.cssWidth) {
+          const availableWidth = this.cssWidth - margin * 2;
+          startX = margin + Math.max(0, (availableWidth - baseGridWidth) / 2);
+        } else {
+          // 内容未超出，使用理想位置但确保不超出边界
+          const minX = margin;
+          const maxX = this.cssWidth - totalWidth - margin;
+          startX = Math.max(minX, Math.min(maxX, idealStartX));
+        }
+
+        if (totalHeight > this.cssHeight) {
+          const availableHeight = this.cssHeight - margin * 2;
+          startY = margin + Math.max(0, (availableHeight - baseGridHeight) / 2);
+        } else {
+          // 内容未超出，使用理想位置但确保不超出边界
+          const minY = margin;
+          const maxY = this.cssHeight - totalHeight - margin;
+          startY = Math.max(minY, Math.min(maxY, idealStartY));
+        }
       } else {
-        // 内容超出画布，优先显示基础网格的中心
-        const margin = isMobile ? 10 : 20; // 手机端边距更小
-        const availableWidth = this.cssWidth - margin * 2;
-        const gridCenterOffset = Math.floor((availableWidth - baseGridWidth) / 2);
-        startX = Math.max(margin, gridCenterOffset - visualCenterOffsetX);
-      }
+        // 内容完全适合画布，使用理想位置但确保不超出边界
+        const minX = margin;
+        const minY = margin;
+        const maxX = this.cssWidth - totalWidth - margin;
+        const maxY = this.cssHeight - totalHeight - margin;
 
-      // 垂直居中计算
-      if (totalHeight <= this.cssHeight) {
-        // 内容能完全显示，居中并补偿视觉偏移
-        const basicCenterY = Math.floor((this.cssHeight - totalHeight) / 2);
-        startY = basicCenterY - visualCenterOffsetY;
-
-        // 确保不会超出上边界
-        startY = Math.max(5, startY);
-      } else {
-        // 内容超出画布，优先显示基础网格的中心
-        const margin = isMobile ? 10 : 20; // 手机端边距更小
-        const availableHeight = this.cssHeight - margin * 2;
-        const gridCenterOffset = Math.floor((availableHeight - baseGridHeight) / 2);
-        startY = Math.max(margin, gridCenterOffset - visualCenterOffsetY);
+        startX = Math.max(minX, Math.min(maxX, idealStartX));
+        startY = Math.max(minY, Math.min(maxY, idealStartY));
       }
       // 调试信息：在开发模式下显示居中计算详情
       if (window.location.search.includes('debug=center')) {
@@ -836,11 +856,14 @@
           设备类型: isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop',
           屏幕宽度: screenWidth,
           画布尺寸: `${this.cssWidth}×${this.cssHeight}`,
+          画布中心: `(${canvasCenterX}, ${canvasCenterY})`,
           网格尺寸: `${baseGridWidth}×${baseGridHeight}`,
           总尺寸: `${Math.round(totalWidth)}×${Math.round(totalHeight)}`,
-          层级偏移: Math.round(maxLayerOffset),
-          视觉偏移: `(${Math.round(visualCenterOffsetX)}, ${Math.round(visualCenterOffsetY)})`,
-          起点位置: `(${startX}, ${startY})`
+          层级偏移: `(${Math.round(layerOffsetX)}, ${Math.round(layerOffsetY)})`,
+          内容视觉中心: `(${Math.round(contentVisualCenterX)}, ${Math.round(contentVisualCenterY)})`,
+          理想起点: `(${Math.round(idealStartX)}, ${Math.round(idealStartY)})`,
+          设备调整: `(${Math.round(adjustmentX)}, ${Math.round(adjustmentY)})`,
+          最终起点: `(${startX}, ${startY})`
         });
       }
 

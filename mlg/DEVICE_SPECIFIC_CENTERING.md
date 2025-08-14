@@ -23,25 +23,35 @@ const isDesktop = screenWidth > 1024;     // PC端
 
 ## 🧮 居中算法
 
-### 视觉中心偏移策略
+### 新的居中策略
 
-由于45度角的层级偏移会让立方体群组的视觉重心向右下方移动，需要通过向左上补偿来实现真正的视觉居中。
+我们采用了一种更精确的居中方法，基于内容的实际视觉中心来计算位置，而不是简单的偏移补偿。
 
-#### 补偿系数
+#### 核心思路
+1. **计算内容视觉中心**: 考虑层级偏移后的真实视觉重心
+2. **对齐画布中心**: 让内容视觉中心与画布中心对齐
+3. **设备特定微调**: 根据设备类型进行细微调整
+4. **边界约束**: 确保内容不会超出画布边界
+
+#### 计算步骤
 ```javascript
+// 1. 计算内容视觉中心（相对于基础网格左上角）
+const contentVisualCenterX = (baseGridWidth + layerOffsetX) / 2;
+const contentVisualCenterY = (baseGridHeight + layerOffsetY) / 2;
+
+// 2. 计算理想起点位置
+let idealStartX = canvasCenterX - contentVisualCenterX;
+let idealStartY = canvasCenterY - contentVisualCenterY;
+
+// 3. 设备特定微调
 if (isMobile) {
-  // 手机端：更激进的居中补偿
-  visualCenterOffsetX = maxLayerOffset * 0.6;  // 60%
-  visualCenterOffsetY = maxLayerOffset * 0.4;  // 40%
+  adjustmentX = -layerOffsetX * 0.1;  // 轻微左移
+  adjustmentY = -layerOffsetY * 0.05; // 轻微上移
 } else if (isTablet) {
-  // 平板端：中等程度的补偿
-  visualCenterOffsetX = maxLayerOffset * 0.55; // 55%
-  visualCenterOffsetY = maxLayerOffset * 0.45; // 45%
-} else {
-  // PC端：保守的补偿
-  visualCenterOffsetX = maxLayerOffset * 0.5;  // 50%
-  visualCenterOffsetY = maxLayerOffset * 0.5;  // 50%
+  adjustmentX = -layerOffsetX * 0.05; // 更轻微调整
+  adjustmentY = -layerOffsetY * 0.03;
 }
+// PC端无额外调整
 ```
 
 ### 边距策略
