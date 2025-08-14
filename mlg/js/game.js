@@ -854,36 +854,40 @@
       // 边界检查和约束
       const margin = isMobile ? 8 : 16;
 
-      // 检查内容是否超出画布
-      if (totalWidth > this.cssWidth || totalHeight > this.cssHeight) {
-        // 超出时，优先显示基础网格的中心部分
-        if (totalWidth > this.cssWidth) {
-          const availableWidth = this.cssWidth - margin * 2;
-          startX = margin + Math.max(0, (availableWidth - baseGridWidth) / 2);
-        } else {
-          // 内容未超出，使用理想位置但确保不超出边界
-          const minX = margin;
-          const maxX = this.cssWidth - totalWidth - margin;
-          startX = Math.max(minX, Math.min(maxX, idealStartX));
-        }
+      // 边界约束：确保所有内容都在画布内可见
+      const minX = margin;
+      const minY = margin;
+      const maxX = this.cssWidth - totalWidth - margin;
+      const maxY = this.cssHeight - totalHeight - margin;
 
-        if (totalHeight > this.cssHeight) {
-          const availableHeight = this.cssHeight - margin * 2;
-          startY = margin + Math.max(0, (availableHeight - baseGridHeight) / 2);
+      // 如果内容超出画布，需要特殊处理
+      if (totalWidth > this.cssWidth) {
+        // 宽度超出：确保至少显示基础网格的主要部分
+        const availableWidth = this.cssWidth - margin * 2;
+        if (baseGridWidth <= availableWidth) {
+          // 基础网格能完全显示，居中显示基础网格
+          startX = margin + (availableWidth - baseGridWidth) / 2;
         } else {
-          // 内容未超出，使用理想位置但确保不超出边界
-          const minY = margin;
-          const maxY = this.cssHeight - totalHeight - margin;
-          startY = Math.max(minY, Math.min(maxY, idealStartY));
+          // 连基础网格都显示不下，显示左侧部分
+          startX = margin;
         }
       } else {
-        // 内容完全适合画布，使用理想位置但确保不超出边界
-        const minX = margin;
-        const minY = margin;
-        const maxX = this.cssWidth - totalWidth - margin;
-        const maxY = this.cssHeight - totalHeight - margin;
-
+        // 宽度未超出，使用理想位置但确保不超出边界
         startX = Math.max(minX, Math.min(maxX, idealStartX));
+      }
+
+      if (totalHeight > this.cssHeight) {
+        // 高度超出：确保至少显示基础网格的主要部分
+        const availableHeight = this.cssHeight - margin * 2;
+        if (baseGridHeight <= availableHeight) {
+          // 基础网格能完全显示，居中显示基础网格
+          startY = margin + (availableHeight - baseGridHeight) / 2;
+        } else {
+          // 连基础网格都显示不下，显示上部分
+          startY = margin;
+        }
+      } else {
+        // 高度未超出，使用理想位置但确保不超出边界
         startY = Math.max(minY, Math.min(maxY, idealStartY));
       }
       // 调试信息：在开发模式下显示居中计算详情
@@ -1207,24 +1211,33 @@
 
       const rects = this.computeTileRects();
 
-      // 计算每个位置的顶层信息
-      const positionTopLayers = new Map(); // 存储每个位置(col,row)的最高层级
-      const positionTiles = new Map(); // 存储每个位置的所有立方体
+      // 计算每个立方体的实际覆盖情况（基于像素重叠而非网格位置）
+      const getOverlappingTiles = (targetTile) => {
+        const targetRect = rects.get(targetTile.id);
+        const overlapping = [];
 
-      for (const tile of this.tiles) {
-        if (tile.status !== "board") continue;
-        const posKey = `${tile.col},${tile.row}`;
+        for (const other of this.tiles) {
+          if (other === targetTile) continue;
+          if (other.status !== "board") continue;
 
-        if (!positionTiles.has(posKey)) {
-          positionTiles.set(posKey, []);
+          const otherRect = rects.get(other.id);
+          const overlapW = Math.min(targetRect.x + targetRect.w, otherRect.x + otherRect.w) - Math.max(targetRect.x, otherRect.x);
+          const overlapH = Math.min(targetRect.y + targetRect.h, otherRect.y + otherRect.h) - Math.max(targetRect.y, otherRect.y);
+
+          if (overlapW > 0 && overlapH > 0) {
+            overlapping.push(other);
+          }
         }
-        positionTiles.get(posKey).push(tile);
 
-        const currentMax = positionTopLayers.get(posKey) || -1;
-        if (tile.layer > currentMax) {
-          positionTopLayers.set(posKey, tile.layer);
-        }
-      }
+        return overlapping;
+      };
+
+      // 计算每个立方体是否为其重叠区域的顶层
+      const isTopInOverlapArea = (tile) => {
+        const overlapping = getOverlappingTiles(tile);
+        // 检查是否有更高层级的立方体与当前立方体重叠
+        return !overlapping.some(other => other.layer > tile.layer);
+      };
 
       // draw tiles from bottom to top (lower layer first)
       const sorted = [...this.tiles].sort((a, b) => a.layer - b.layer);
@@ -1260,11 +1273,13 @@
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
 
-        // 计算当前立方体在其位置的相对深度
-        const posKey = `${tile.col},${tile.row}`;
-        const topLayerAtPos = positionTopLayers.get(posKey);
-        const isTopAtPosition = tile.layer === topLayerAtPos;
-        const relativeDepth = topLayerAtPos - tile.layer; // 0=顶层，1=下一层，等等
+        // 计算当前立方体是否为其重叠区域的顶层
+        const isTopAtPosition = isTopInOverlapArea(tile);
+
+        // 计算相对深度：统计有多少更高层级的立方体与当前立方体重叠
+        const overlapping = getOverlappingTiles(tile);
+        const higherLayerCount = overlapping.filter(other => other.layer > tile.layer).length;
+        const relativeDepth = higherLayerCount; // 0=顶层，1=被1个覆盖，等等
 
         // 绘制 3D 长方体（方向：向右上）
         this.drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, {
