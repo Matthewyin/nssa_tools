@@ -437,7 +437,7 @@
           200, // 提高最小高度从180到200
           viewportH - headerH - topBarH - slotReserve - extraGaps
         );
-        const finalHeight = Math.floor(available);
+        const finalHeight = Math.floor(available) + 5; // 向下扩展5px，给立方体更多显示空间
         this.canvas.style.height = `${finalHeight}px`;
 
         // 手机端调试信息
