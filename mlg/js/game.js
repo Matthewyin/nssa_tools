@@ -788,7 +788,7 @@
 
       // 设备检测
       const isMobile = screenWidth <= 768;
-      const margin = isMobile ? 6 : 16; // 与边界约束保持一致
+      const margin = isMobile ? 4 : 16; // 手机端减少边距，给立方体更多空间
 
       // 计算画布可用空间
       const availableWidth = this.cssWidth - margin * 2;
@@ -809,9 +809,12 @@
       const heightScale = availableHeight / requiredTotalHeight;
       const dynamicScale = Math.min(widthScale, heightScale, 1); // 不超过原始大小
 
+      // 应用优化系数，让立方体稍微大一些（留5%安全边距）
+      const optimizedScale = dynamicScale * 0.95;
+
       // 应用最小缩放限制，确保立方体不会太小
-      const minScale = isMobile ? 0.4 : 0.6;
-      const finalScale = Math.max(dynamicScale, minScale);
+      const minScale = isMobile ? 0.5 : 0.6; // 提高手机端最小缩放从0.4到0.5
+      const finalScale = Math.max(optimizedScale, minScale);
 
       // 计算最终的立方体尺寸
       const cubeWidth = Math.floor(baseCubeWidth * finalScale);
