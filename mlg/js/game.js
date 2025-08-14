@@ -1024,7 +1024,9 @@
 
       // 居中计算
       const startX = Math.max(margin, (this.cssWidth - totalWidth) / 2);
-      const startY = Math.max(margin, (this.cssHeight - totalHeight) / 2);
+      // 固定垂直位置：使用原始画布高度减去5px来计算，保持棋盘位置不变
+      const originalCanvasHeight = this.cssHeight - 5; // 减去我们增加的5px
+      const startY = Math.max(margin, (originalCanvasHeight - totalHeight) / 2);
 
       // 调试信息
       if (isMobile || window.location.search.includes('debug')) {
