@@ -781,24 +781,41 @@
       // - 同层级紧凑：同一层内的同一行按出现顺序紧密排列
       // - 纵向仍保留层级向上偏移
       const params = this.getLevelParams(this.state.level);
-      // 响应式立方体大小 - 根据屏幕宽度和网格大小自动缩放
+      // 动态适应缩放 - 根据画布实际可用空间和内容需求自动缩放
       const screenWidth = window.innerWidth;
       const baseCubeWidth = 60; // 基础宽度60px
-
-      // 根据屏幕大小的基础缩放
-      let screenScale = 1;
-      if (screenWidth <= 480) {
-        screenScale = 0.6; // 超小屏幕（iPhone SE等）
-      } else if (screenWidth <= 640) {
-        screenScale = 0.7; // 小屏幕手机
-      } else if (screenWidth <= 768) {
-        screenScale = 0.85; // 平板竖屏
-      }
-
-      // 保持固定的立方体大小，只根据屏幕大小缩放
-      const cubeWidth = Math.floor(baseCubeWidth * screenScale);
-      const cubeHeight = Math.floor(cubeWidth * 2.2 / 2); // 2.2:2 比例，高度为宽度的1.1倍
       const maxLayers = params.layers; // 使用动态层级数
+
+      // 设备检测
+      const isMobile = screenWidth <= 768;
+      const margin = isMobile ? 6 : 16; // 与边界约束保持一致
+
+      // 计算画布可用空间
+      const availableWidth = this.cssWidth - margin * 2;
+      const availableHeight = this.cssHeight - margin * 2;
+
+      // 计算层级偏移（使用基础立方体大小）
+      const baseLayerOffset = (maxLayers - 1) * baseCubeWidth * 0.5 * Math.cos(Math.PI / 4);
+
+      // 计算所需的最小空间
+      const requiredBaseWidth = params.cols * baseCubeWidth;
+      const requiredTotalWidth = requiredBaseWidth + baseLayerOffset;
+
+      const requiredBaseHeight = params.rows * baseCubeWidth * 1.1; // 高度比例
+      const requiredTotalHeight = requiredBaseHeight + baseLayerOffset;
+
+      // 动态计算缩放比例，确保内容能完全放下
+      const widthScale = availableWidth / requiredTotalWidth;
+      const heightScale = availableHeight / requiredTotalHeight;
+      const dynamicScale = Math.min(widthScale, heightScale, 1); // 不超过原始大小
+
+      // 应用最小缩放限制，确保立方体不会太小
+      const minScale = isMobile ? 0.4 : 0.6;
+      const finalScale = Math.max(dynamicScale, minScale);
+
+      // 计算最终的立方体尺寸
+      const cubeWidth = Math.floor(baseCubeWidth * finalScale);
+      const cubeHeight = Math.floor(cubeWidth * 1.1); // 保持1.1的高宽比
       const rects = new Map();
       
       // 根据立方体大小和层级偏移计算总布局空间
@@ -813,8 +830,7 @@
       // 智能居中计算 - 针对手机端和PC端分别优化
       let startX, startY;
 
-      // 设备检测
-      const isMobile = screenWidth <= 768;
+      // 设备检测（已在上面定义了isMobile）
       const isTablet = screenWidth > 768 && screenWidth <= 1024;
 
       // 计算实际内容的边界（考虑层级偏移后的真实占用空间）
@@ -851,8 +867,7 @@
       idealStartX += adjustmentX;
       idealStartY += adjustmentY;
 
-      // 边界检查和约束
-      const margin = isMobile ? 8 : 16;
+      // 边界检查和约束（margin已在上面定义）
 
       // 边界约束：确保所有内容都在画布内可见
       const minX = margin;
@@ -891,13 +906,17 @@
         startY = Math.max(minY, Math.min(maxY, idealStartY));
       }
       // 调试信息：在开发模式下显示居中计算详情
-      if (window.location.search.includes('debug=center')) {
-        console.log('居中计算详情:', {
+      if (window.location.search.includes('debug=center') || window.location.search.includes('debug=scale')) {
+        console.log('动态缩放详情:', {
           设备类型: isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop',
           屏幕宽度: screenWidth,
           画布尺寸: `${this.cssWidth}×${this.cssHeight}`,
-          画布中心: `(${canvasCenterX}, ${canvasCenterY})`,
-          网格尺寸: `${baseGridWidth}×${baseGridHeight}`,
+          可用空间: `${availableWidth}×${availableHeight}`,
+          网格参数: `${params.cols}列×${params.rows}行×${maxLayers}层`,
+          所需空间: `${Math.round(requiredTotalWidth)}×${Math.round(requiredTotalHeight)}`,
+          缩放计算: `宽度${widthScale.toFixed(3)} 高度${heightScale.toFixed(3)} 动态${dynamicScale.toFixed(3)} 最终${finalScale.toFixed(3)}`,
+          立方体尺寸: `${cubeWidth}×${cubeHeight}`,
+          实际尺寸: `${baseGridWidth}×${baseGridHeight}`,
           总尺寸: `${Math.round(totalWidth)}×${Math.round(totalHeight)}`,
           层级偏移: `(${Math.round(layerOffsetX)}, ${Math.round(layerOffsetY)})`,
           内容视觉中心: `(${Math.round(contentVisualCenterX)}, ${Math.round(contentVisualCenterY)})`,

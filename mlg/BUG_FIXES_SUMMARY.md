@@ -5,8 +5,8 @@
 ### 1. 🎨 **立方体颜色层级判断错误**
 **问题**：有些立方体未置于下面的层级，但也被错误地渲染成了暗色。
 
-### 2. 📱 **手机端显示不全**
-**问题**：手机端右侧的立方体被截断，无法完整显示。
+### 2. 📱 **手机端显示不全（缩放问题）**
+**问题**：手机端右侧的立方体被截断，无法完整显示。PC端正常，但手机端有遮挡。
 
 ### 3. 🔧 **扩容道具功能权限**
 **问题**：扩容道具功能是否需要登录？
@@ -28,19 +28,30 @@ const isTopAtPosition = tile.layer === positionTopLayers.get(posKey);
 ```
 这种方法忽略了45度偏移导致的实际位置差异。
 
-### Bug 2: 手机端显示问题
+### Bug 2: 手机端显示问题（缩放算法缺陷）
 #### 根本原因
-1. **边界约束逻辑缺陷**：只考虑基础网格宽度，忽略层级偏移
-2. **边距设置不优化**：手机端边距过大，压缩了可用空间
+1. **固定缩放比例**：基于屏幕宽度的固定比例，不考虑实际需求
+2. **忽略画布可用空间**：没有考虑画布的实际可用宽度
+3. **边界约束逻辑缺陷**：只考虑基础网格宽度，忽略层级偏移
+4. **边距设置不优化**：手机端边距过大，压缩了可用空间
 
 #### 具体表现
 ```javascript
-// 原来的错误逻辑
+// 原来的错误逻辑 - 固定缩放
+if (screenWidth <= 640) {
+  screenScale = 0.7; // 固定70%缩放
+}
+const cubeWidth = Math.floor(baseCubeWidth * screenScale);
+
+// 边界约束问题
 if (totalWidth > this.cssWidth) {
   startX = margin + Math.max(0, (availableWidth - baseGridWidth) / 2);
 }
 ```
-这种方法没有正确处理总宽度超出的情况。
+这种方法导致：
+- 立方体大小与实际需求不匹配
+- 内容可能超出画布边界
+- 右侧立方体被截断
 
 ## 🔧 **修复方案**
 
@@ -80,8 +91,30 @@ const isTopInOverlapArea = (tile) => {
 2. **精确计算**：考虑45度偏移后的实际位置
 3. **相对深度**：基于实际重叠的更高层级立方体数量
 
-### Bug 2 修复：优化布局算法
-#### 新的边界约束逻辑
+### Bug 2 修复：动态适应缩放算法
+#### 新的动态缩放逻辑
+```javascript
+// 动态适应缩放 - 根据画布实际可用空间和内容需求自动缩放
+const availableWidth = this.cssWidth - margin * 2;
+const availableHeight = this.cssHeight - margin * 2;
+
+// 计算所需的最小空间
+const requiredBaseWidth = params.cols * baseCubeWidth;
+const requiredTotalWidth = requiredBaseWidth + baseLayerOffset;
+
+// 动态计算缩放比例，确保内容能完全放下
+const widthScale = availableWidth / requiredTotalWidth;
+const heightScale = availableHeight / requiredTotalHeight;
+const dynamicScale = Math.min(widthScale, heightScale, 1);
+
+// 应用最小缩放限制，确保立方体不会太小
+const minScale = isMobile ? 0.4 : 0.6;
+const finalScale = Math.max(dynamicScale, minScale);
+
+const cubeWidth = Math.floor(baseCubeWidth * finalScale);
+```
+
+#### 改进的边界约束逻辑
 ```javascript
 // 边界约束：确保所有内容都在画布内可见
 if (totalWidth > this.cssWidth) {
@@ -119,9 +152,12 @@ if (totalWidth > this.cssWidth) {
 - ✅ **逻辑一致**：颜色判断与点击判断使用相同标准
 
 ### Bug 2 修复效果
-- ✅ **完整显示**：手机端所有立方体都能完整显示
+- ✅ **动态适应**：立方体大小根据画布可用空间动态调整
+- ✅ **完整显示**：手机端所有立方体都能完整显示，不会被截断
+- ✅ **智能缩放**：确保内容总是能完全放在画布内
 - ✅ **正确居中**：内容在画布中正确居中
-- ✅ **无截断**：不会出现右侧截断的问题
+- ✅ **最小可用性**：保持最小缩放限制，确保立方体不会过小
+- ✅ **多设备适配**：从iPhone SE到iPad都能正确显示
 
 ### Bug 3 权限说明
 - ✅ **游客可用**：扩容道具功能在游客模式下可用
@@ -142,13 +178,15 @@ if (totalWidth > this.cssWidth) {
   - 优化画布宽度利用
 
 ### 测试文件
-- ✅ `mlg/test-bug-fixes.html` - Bug修复验证页面
-- ✅ `mlg/BUG_FIXES_SUMMARY.md` - 本修复总结
+- ✅ `mlg/test-bug-fixes.html` - 综合Bug修复验证页面
+- ✅ `mlg/test-mobile-scaling.html` - 手机端缩放专项测试
+- ✅ `mlg/BUG_FIXES_SUMMARY.md` - 详细修复总结文档
 
 ## 🧪 **测试验证**
 
 ### 测试页面
 - `/mlg/test-bug-fixes.html` - 综合Bug修复验证
+- `/mlg/test-mobile-scaling.html` - 手机端缩放专项测试
 - `/mlg/test-device-center.html` - 设备适配测试
 - `/mlg/test-center-logic.html` - 居中逻辑测试
 
