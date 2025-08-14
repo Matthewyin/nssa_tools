@@ -610,15 +610,10 @@
       const cubeGrowthRate = 1.1; // 每关增长10%
       const targetCubeCount = Math.floor(baseCubeCount * Math.pow(cubeGrowthRate, level - 1));
 
-      // 网格尺寸：根据立方体数量和层级动态调整
-      const baseGridSize = 7 * 9; // 基础63格
-      const gridGrowthFactor = Math.sqrt(targetCubeCount / baseCubeCount);
-      const newGridSize = Math.ceil(baseGridSize * gridGrowthFactor);
-
-      // 计算最优的行列比例（接近4:3或16:9）
-      const aspectRatio = 1.4; // 宽高比
-      const cols = Math.ceil(Math.sqrt(newGridSize * aspectRatio));
-      const rows = Math.ceil(newGridSize / cols);
+      // 固定网格尺寸：使用稳定的8×10网格，确保在所有设备上都能正确显示
+      const cols = 8; // 固定8列
+      const rows = 10; // 固定10行
+      const baseGridSize = cols * rows; // 80个基础位置
 
       // 密度调整：确保生成目标数量的立方体
       const maxPossibleCubes = cols * rows * layers * 0.6; // 假设最大60%填充率
@@ -789,7 +784,8 @@
     },
 
     // --- Geometry & Rules ---
-    computeTileRects() {
+    // 旧的computeTileRects方法已被替换为固定网格系统
+    computeTileRectsOld() {
       // 基于行列与层级计算“前方面”矩形；
       // - 左侧对齐：每行从左开始布置
       // - 同层级紧凑：同一层内的同一行按出现顺序紧密排列
@@ -973,6 +969,101 @@
           h: cubeHeight 
         });
       }
+      return rects;
+    },
+
+    // 固定网格系统方法
+    computeTileRects() {
+      // 固定网格系统：使用简化的计算逻辑，确保稳定显示
+      const params = this.getLevelParams(this.state.level);
+      const screenWidth = window.innerWidth;
+      const maxLayers = params.layers;
+
+      // 设备检测和边距设置
+      const isMobile = screenWidth <= 768;
+      const isTablet = screenWidth > 768 && screenWidth <= 1024;
+      const margin = isMobile ? 6 : isTablet ? 12 : 16;
+
+      // 计算可用空间
+      const availableWidth = Math.max(200, this.cssWidth - margin * 2);
+      const availableHeight = Math.max(200, this.cssHeight - margin * 2);
+
+      // 固定网格：8列×10行
+      const gridCols = 8;
+      const gridRows = 10;
+
+      // 计算层级偏移空间需求（简化计算）
+      const layerOffsetRatio = (maxLayers - 1) * 0.35; // 简化的偏移比例
+
+      // 基于可用宽度计算格子大小，考虑层级偏移
+      const effectiveWidth = availableWidth / (1 + layerOffsetRatio * 0.1);
+      const effectiveHeight = availableHeight / (1 + layerOffsetRatio * 0.1);
+
+      const maxCellWidth = Math.floor(effectiveWidth / gridCols);
+      const maxCellHeight = Math.floor(effectiveHeight / gridRows);
+
+      // 设备相关的最小格子大小
+      const minCellSize = isMobile ? 28 : isTablet ? 32 : 36;
+
+      // 选择合适的格子大小（保持接近正方形）
+      const cellSize = Math.max(minCellSize, Math.min(maxCellWidth, maxCellHeight));
+
+      // 立方体大小
+      const cubeWidth = cellSize;
+      const cubeHeight = Math.floor(cellSize * 1.1); // 稍微高一点，增强立体感
+      const rects = new Map();
+
+      // 计算网格的总尺寸
+      const baseGridWidth = gridCols * cubeWidth;
+      const baseGridHeight = gridRows * cubeHeight;
+
+      // 计算层级偏移
+      const maxLayerOffset = (maxLayers - 1) * cubeWidth * 0.35; // 简化偏移计算
+      const totalWidth = baseGridWidth + maxLayerOffset;
+      const totalHeight = baseGridHeight + maxLayerOffset;
+
+      // 居中计算
+      const startX = Math.max(margin, (this.cssWidth - totalWidth) / 2);
+      const startY = Math.max(margin, (this.cssHeight - totalHeight) / 2);
+
+      // 调试信息
+      if (isMobile || window.location.search.includes('debug')) {
+        console.log('固定网格系统:', {
+          设备类型: isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop',
+          屏幕宽度: screenWidth,
+          画布尺寸: `${this.cssWidth}×${this.cssHeight}`,
+          可用空间: `${availableWidth}×${availableHeight}`,
+          网格参数: `${gridCols}列×${gridRows}行×${maxLayers}层`,
+          格子大小: cellSize,
+          立方体尺寸: `${cubeWidth}×${cubeHeight}`,
+          网格总尺寸: `${baseGridWidth}×${baseGridHeight}`,
+          起始位置: `${Math.round(startX)},${Math.round(startY)}`
+        });
+      }
+
+      // 为每个tile计算位置
+      for (const tile of this.tiles) {
+        if (tile.status !== "board") continue;
+
+        // 基础位置
+        const baseX = startX + tile.col * cubeWidth;
+        const baseY = startY + tile.row * cubeHeight;
+
+        // 层级偏移：每层向右下偏移
+        const layerOffsetX = tile.layer * cubeWidth * 0.35;
+        const layerOffsetY = tile.layer * cubeWidth * 0.35;
+
+        const x = baseX + layerOffsetX;
+        const y = baseY + layerOffsetY;
+
+        rects.set(tile.id, {
+          x: Math.floor(x),
+          y: Math.floor(y),
+          w: cubeWidth,
+          h: cubeHeight
+        });
+      }
+
       return rects;
     },
 
