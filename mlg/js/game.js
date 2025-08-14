@@ -710,25 +710,43 @@
           }
         }
       }
-      // 按邻近惩罚分配类型：尽量避免与最近两个相同
+      // 改进的类型分配：确保每种类型数量是3的倍数，同时尽量避免相邻重复
       const tiles = [];
+
+      // 验证类型池的完整性
+      console.log(`类型池总数: ${typesPool.length}, 位置总数: ${merged.length}`);
+
       for (let i = 0; i < merged.length; i++) {
-        // 选择一个类型，使其不与最近两个已分配类型相同
         let pickedType = null;
-        for (let attempt = 0; attempt < 3 && typesPool.length; attempt++) {
-          const candidate = typesPool.pop();
-          const prev1 = tiles[i - 1]?.type;
-          const prev2 = tiles[i - 2]?.type;
+        let bestCandidate = null;
+        let fallbackCandidate = null;
+
+        // 获取前面两个位置的类型
+        const prev1 = tiles[i - 1]?.type;
+        const prev2 = tiles[i - 2]?.type;
+
+        // 尝试找到一个不与前面相邻的类型
+        for (let attempt = 0; attempt < typesPool.length && attempt < 10; attempt++) {
+          const candidate = typesPool[attempt];
+
           if (candidate !== prev1 && candidate !== prev2) {
-            pickedType = candidate;
+            bestCandidate = candidate;
             break;
+          } else if (candidate !== prev1) {
+            // 至少不与前一个相同
+            fallbackCandidate = candidate;
           }
-          // 放回候选，放到前面，稍后再试
-          typesPool.unshift(candidate);
         }
-        if (pickedType === null && typesPool.length) {
-          pickedType = typesPool.pop();
+
+        // 选择最佳候选，如果没有就用fallback，再没有就用第一个
+        pickedType = bestCandidate ?? fallbackCandidate ?? typesPool[0];
+
+        // 从类型池中移除选中的类型
+        const index = typesPool.indexOf(pickedType);
+        if (index !== -1) {
+          typesPool.splice(index, 1);
         }
+
         const pos = merged[i];
         tiles.push({
           id: `t${i}`,
@@ -738,6 +756,20 @@
           col: pos.col,
           status: "board",
         });
+      }
+
+      // 验证最终结果：检查每种类型的数量是否为3的倍数
+      const typeCount = {};
+      tiles.forEach(tile => {
+        typeCount[tile.type] = (typeCount[tile.type] || 0) + 1;
+      });
+
+      console.log('关卡生成完成，类型分布:', typeCount);
+
+      // 检查是否所有类型都是3的倍数
+      const invalidTypes = Object.entries(typeCount).filter(([type, count]) => count % 3 !== 0);
+      if (invalidTypes.length > 0) {
+        console.warn('警告：以下类型的数量不是3的倍数:', invalidTypes);
       }
       return tiles;
     },

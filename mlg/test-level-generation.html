@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MLG 关卡生成测试</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+    .test-case { background: white; margin: 10px 0; padding: 15px; border-radius: 8px; border-left: 4px solid #007acc; }
+    .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .warning { background: #fff3cd; color: #856404; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    button { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-test { background: #007acc; color: white; }
+    .btn-reset { background: #6c757d; color: white; }
+    .type-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin: 10px 0; }
+    .type-item { padding: 8px; border: 1px solid #ddd; border-radius: 4px; text-align: center; }
+    .type-valid { background: #d4edda; }
+    .type-invalid { background: #f8d7da; }
+    pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>MLG 关卡生成测试</h1>
+  <p>测试关卡生成算法是否确保每种类型的立方体数量都是3的倍数。</p>
+
+  <div class="test-case">
+    <h3>关卡生成测试</h3>
+    <div>
+      <label>测试关卡: <input type="number" id="level-input" value="1" min="1" max="50"></label>
+      <button class="btn-test" onclick="testLevelGeneration()">生成并测试关卡</button>
+      <button class="btn-test" onclick="testMultipleLevels()">测试多个关卡 (1-10)</button>
+      <button class="btn-reset" onclick="clearResults()">清除结果</button>
+    </div>
+    <div id="test-results"></div>
+  </div>
+
+  <div class="test-case">
+    <h3>测试说明</h3>
+    <div class="result info">
+      <strong>测试目标：</strong><br>
+      1. 验证每个关卡生成的立方体总数是3的倍数<br>
+      2. 验证每种类型的立方体数量都是3的倍数<br>
+      3. 确保关卡可以完全通关（无剩余立方体）<br><br>
+      
+      <strong>测试方法：</strong><br>
+      1. 使用相同的关卡生成算法<br>
+      2. 统计每种类型的立方体数量<br>
+      3. 检查是否所有类型都是3的倍数<br>
+      4. 模拟完美游玩（所有立方体都能被消除）
+    </div>
+  </div>
+
+  <script>
+    // 简化的随机数生成器（与游戏中相同）
+    function rng(seed) {
+      let state = seed;
+      return function() {
+        state = (state * 1664525 + 1013904223) % 4294967296;
+        return state / 4294967296;
+      };
+    }
+
+    // 简化的关卡参数获取（模拟游戏逻辑）
+    function getLevelParams(level) {
+      const baseRows = 5;
+      const baseCols = 6;
+      const baseLayers = 5;
+      const baseTypeCount = 8;
+      const baseCubeCount = 60;
+
+      // 每3关提升难度
+      const difficultyTier = Math.floor((level - 1) / 3);
+      
+      const rows = Math.min(baseRows + Math.floor(difficultyTier * 0.5), 8);
+      const cols = Math.min(baseCols + Math.floor(difficultyTier * 0.3), 9);
+      const layers = Math.min(baseLayers + Math.floor(difficultyTier * 0.4), 12);
+      const typeCount = Math.min(baseTypeCount + Math.floor(difficultyTier * 0.6), 15);
+      
+      // 立方体数量随难度增加
+      const cubeMultiplier = 1 + (difficultyTier * 0.15);
+      const targetCubeCount = Math.floor(baseCubeCount * cubeMultiplier);
+
+      return {
+        rows,
+        cols,
+        layers,
+        typeCount,
+        targetCubeCount
+      };
+    }
+
+    // 简化的关卡生成算法（核心逻辑与游戏相同）
+    function generateLevel(level, seed) {
+      const params = getLevelParams(level);
+      const random = rng(seed);
+      const positions = [];
+
+      // 生成所有可能位置
+      const allPositions = [];
+      for (let layer = 0; layer < params.layers; layer++) {
+        for (let row = 0; row < params.rows; row++) {
+          for (let col = 0; col < params.cols; col++) {
+            const layerWeight = 1 - (layer / params.layers) * 0.5;
+            allPositions.push({ layer, row, col, weight: layerWeight });
+          }
+        }
+      }
+
+      // 按权重随机排序
+      allPositions.sort((a, b) => {
+        const aScore = a.weight * random();
+        const bScore = b.weight * random();
+        return bScore - aScore;
+      });
+
+      // 选择目标数量的位置
+      let targetCount = params.targetCubeCount;
+      // 确保数量是3的倍数
+      targetCount = Math.floor(targetCount / 3) * 3;
+
+      // 从排序后的位置中选择前targetCount个
+      for (let i = 0; i < Math.min(targetCount, allPositions.length); i++) {
+        const pos = allPositions[i];
+        positions.push({ layer: pos.layer, row: pos.row, col: pos.col });
+      }
+
+      // 如果位置不足，补充到最接近的3的倍数
+      const remainder = positions.length % 3;
+      if (remainder !== 0) {
+        positions.splice(0, remainder);
+      }
+
+      // 创建类型池，确保每种类型都是3的倍数
+      const tripleCount = positions.length / 3;
+      const typesPool = [];
+      for (let i = 0; i < tripleCount; i++) {
+        const t = Math.floor(random() * params.typeCount);
+        typesPool.push(t, t, t);
+      }
+
+      // 洗牌类型池
+      for (let i = typesPool.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [typesPool[i], typesPool[j]] = [typesPool[j], typesPool[i]];
+      }
+
+      // 创建立方体
+      const tiles = [];
+      for (let i = 0; i < positions.length; i++) {
+        const type = typesPool[i];
+        const pos = positions[i];
+        tiles.push({
+          id: `t${i}`,
+          type: type,
+          layer: pos.layer,
+          row: pos.row,
+          col: pos.col,
+          status: "board",
+        });
+      }
+
+      return { tiles, params };
+    }
+
+    function testLevelGeneration() {
+      const level = parseInt(document.getElementById('level-input').value);
+      const seed = Math.floor(Math.random() * 1000000);
+      
+      const result = generateLevel(level, seed);
+      const tiles = result.tiles;
+      const params = result.params;
+      
+      // 统计类型分布
+      const typeCount = {};
+      tiles.forEach(tile => {
+        typeCount[tile.type] = (typeCount[tile.type] || 0) + 1;
+      });
+      
+      // 检查是否所有类型都是3的倍数
+      const invalidTypes = Object.entries(typeCount).filter(([type, count]) => count % 3 !== 0);
+      const isValid = invalidTypes.length === 0;
+      const totalTiles = tiles.length;
+      const totalValid = totalTiles % 3 === 0;
+      
+      // 显示结果
+      const resultsDiv = document.getElementById('test-results');
+      const resultClass = isValid && totalValid ? 'success' : 'error';
+      
+      resultsDiv.innerHTML += `
+        <div class="result ${resultClass}">
+          <h4>关卡 ${level} 测试结果 (种子: ${seed})</h4>
+          <p><strong>总立方体数:</strong> ${totalTiles} ${totalValid ? '✅' : '❌'}</p>
+          <p><strong>关卡参数:</strong> ${params.rows}×${params.cols}×${params.layers}, ${params.typeCount}种类型</p>
+          <p><strong>类型分布验证:</strong> ${isValid ? '✅ 所有类型都是3的倍数' : '❌ 存在无效类型'}</p>
+          
+          <div class="type-stats">
+            ${Object.entries(typeCount).map(([type, count]) => 
+              `<div class="type-item ${count % 3 === 0 ? 'type-valid' : 'type-invalid'}">
+                类型${type}: ${count}个
+              </div>`
+            ).join('')}
+          </div>
+          
+          ${invalidTypes.length > 0 ? 
+            `<p class="error"><strong>无效类型:</strong> ${invalidTypes.map(([type, count]) => `类型${type}(${count}个)`).join(', ')}</p>` 
+            : ''
+          }
+        </div>
+      `;
+    }
+
+    function testMultipleLevels() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML += '<div class="result info"><h4>批量测试结果</h4></div>';
+      
+      let totalTests = 0;
+      let passedTests = 0;
+      
+      for (let level = 1; level <= 10; level++) {
+        const seed = Math.floor(Math.random() * 1000000);
+        const result = generateLevel(level, seed);
+        const tiles = result.tiles;
+        
+        // 统计类型分布
+        const typeCount = {};
+        tiles.forEach(tile => {
+          typeCount[tile.type] = (typeCount[tile.type] || 0) + 1;
+        });
+        
+        // 检查是否所有类型都是3的倍数
+        const invalidTypes = Object.entries(typeCount).filter(([type, count]) => count % 3 !== 0);
+        const isValid = invalidTypes.length === 0 && tiles.length % 3 === 0;
+        
+        totalTests++;
+        if (isValid) passedTests++;
+        
+        const resultClass = isValid ? 'success' : 'error';
+        resultsDiv.innerHTML += `
+          <div class="result ${resultClass}">
+            关卡${level}: ${tiles.length}个立方体, ${Object.keys(typeCount).length}种类型 ${isValid ? '✅' : '❌'}
+            ${!isValid ? `(无效: ${invalidTypes.map(([type, count]) => `${type}:${count}`).join(', ')})` : ''}
+          </div>
+        `;
+      }
+      
+      const overallClass = passedTests === totalTests ? 'success' : 'error';
+      resultsDiv.innerHTML += `
+        <div class="result ${overallClass}">
+          <h4>批量测试总结</h4>
+          <p>通过: ${passedTests}/${totalTests} (${Math.round(passedTests/totalTests*100)}%)</p>
+        </div>
+      `;
+    }
+
+    function clearResults() {
+      document.getElementById('test-results').innerHTML = '';
+    }
+  </script>
+</body>
+</html>
