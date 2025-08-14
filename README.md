@@ -1,9 +1,15 @@
 # NSSA Tools（多工具台）
 
-这是一个基于 Cloudflare Workers 的多工具站，统一使用 Firebase Authentication 登录访问。目前包含：
+这是一个基于 Cloudflare Workers 的多工具站，支持灵活的权限控制。目前包含：
 
-- Webhook 定时任务（路径：`/cron`）
-- 五子棋游戏（路径：`/Gomoku`）
+- Webhook 定时任务（路径：`/cron`）- **需要登录**
+- 五子棋游戏（路径：`/Gomoku`）- **支持游客模式**
+- 哈吉喵游戏（路径：`/mlg`）- **支持游客模式**
+
+## 权限控制策略
+
+- **游戏功能**：五子棋和哈吉喵游戏支持游客模式，无需登录即可游玩，登录后可保存个人数据
+- **管理功能**：Webhook定时任务需要登录才能使用，确保数据安全
 
 根 Worker 负责：
 - 统一注入浏览器端 Firebase 配置（`/firebase-config.js`）

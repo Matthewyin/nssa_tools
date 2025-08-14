@@ -33,8 +33,9 @@
             <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2h-3l2 3H6l2-3H5a2 2 0 01-2-2V5z"></path></svg>
           </button>
         </div>
-        <span id="user-email" class="text-slate-500"></span>
-        <a id="logout-link" href="/auth/logout" class="text-blue-600 hover:text-blue-700">退出</a>
+        <span id="user-email" class="text-slate-500">加载中...</span>
+        <a href="#" id="login-open" class="text-blue-600 hover:underline" style="display: none;">登录</a>
+        <a id="logout-link" href="/auth/logout" class="text-red-600 hover:text-red-700" style="display: none;">退出</a>
       </div>
     </div>
   </header>
@@ -95,21 +96,30 @@
       setFavicon();
     })();
 
-    // 登录保护：未登录返回首页，由首页负责统一登录
+    // 可选登录：支持游客模式
     if (window.__FIREBASE_CONFIG__) {
       if (!firebase.apps || firebase.apps.length === 0) {
         firebase.initializeApp(window.__FIREBASE_CONFIG__);
       }
       firebase.auth().onAuthStateChanged(function(user){
-        if (!user) {
-          var url = new URL('/', window.location.origin);
-          url.searchParams.set('redirect', window.location.pathname + window.location.search);
-          window.location.replace(url.toString());
-        } else {
-          var emailEl = document.getElementById('user-email');
+        var emailEl = document.getElementById('user-email');
+        var loginLink = document.getElementById('login-open');
+        var logoutLink = document.getElementById('logout-link');
+
+        if (user) {
+          // 已登录状态
           if (emailEl) emailEl.textContent = user.email || '';
-          // 初始化游戏
+          if (loginLink) loginLink.style.display = 'none';
+          if (logoutLink) logoutLink.style.display = 'inline';
+          // 初始化游戏（登录用户）
           window.MLG && window.MLG.bootstrap(user);
+        } else {
+          // 游客模式
+          if (emailEl) emailEl.textContent = '游客模式';
+          if (loginLink) loginLink.style.display = 'inline';
+          if (logoutLink) logoutLink.style.display = 'none';
+          // 初始化游戏（游客模式）
+          window.MLG && window.MLG.bootstrap(null);
         }
       });
     }
@@ -124,6 +134,92 @@
         window.location.href = '/auth/logout';
       });
     })();
+
+    // 登录模态框逻辑
+    (function(){
+      const loginModal = document.getElementById('login-modal');
+      const loginForm = document.getElementById('login-form');
+      const loginOpen = document.getElementById('login-open');
+      const loginCancel = document.getElementById('login-cancel');
+      const loginError = document.getElementById('login-error');
+
+      if (!loginOpen || !loginModal) return;
+
+      // 打开登录模态框
+      loginOpen.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginModal.classList.remove('hidden');
+      });
+
+      // 关闭登录模态框
+      if (loginCancel) {
+        loginCancel.addEventListener('click', () => {
+          loginModal.classList.add('hidden');
+          if (loginError) loginError.classList.add('hidden');
+        });
+      }
+
+      // 点击模态框外部关闭
+      loginModal.addEventListener('click', (e) => {
+        if (e.target === loginModal) {
+          loginModal.classList.add('hidden');
+          if (loginError) loginError.classList.add('hidden');
+        }
+      });
+
+      // 登录表单提交
+      if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('login-email').value;
+          const password = document.getElementById('login-password').value;
+
+          try {
+            if (loginError) loginError.classList.add('hidden');
+            const auth = firebase.auth();
+            await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+
+            // 持久化会话到Worker
+            const idToken = await userCredential.user.getIdToken(true);
+            await fetch('/auth/session', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ idToken })
+            });
+
+            loginModal.classList.add('hidden');
+          } catch (error) {
+            if (loginError) {
+              loginError.textContent = error.message || '登录失败，请重试';
+              loginError.classList.remove('hidden');
+            }
+          }
+        });
+      }
+    })();
   </script>
+
+  <!-- 登录模态框 -->
+  <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg p-6 w-full max-w-sm mx-4">
+      <h2 class="text-xl font-semibold mb-4">登录 NSSA Tools</h2>
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label for="login-email" class="block text-sm font-medium text-gray-700">邮箱</label>
+          <input type="email" id="login-email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label for="login-password" class="block text-sm font-medium text-gray-700">密码</label>
+          <input type="password" id="login-password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div id="login-error" class="text-red-600 text-sm hidden"></div>
+        <div class="flex gap-2">
+          <button type="button" id="login-cancel" class="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">取消</button>
+          <button type="submit" id="login-submit" class="flex-1 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700">登录</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </body>
 </html>

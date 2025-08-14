@@ -19,9 +19,9 @@ FIREBASE_APP_ID = "1:18068529376:web:d1fe5d7e4e53c2817a3085"
 SESSION_COOKIE_NAME = "nssatools_session"
 SESSION_MAX_AGE = "604800" # 7 days in seconds
 
-# Paths that can bypass auth (login assets, config script)
-# 允许首页免登录访问，其余路径仍需登录
-AUTH_BYPASS = "/,/index.html,/auth,/firebase-config.js,/auth/login,/auth/logout"
+# Paths that can bypass auth (login assets, config script, games)
+# 允许首页、五子棋、MLG游戏免登录访问，cron仍需登录
+AUTH_BYPASS = "/,/index.html,/auth,/firebase-config.js,/auth/login,/auth/logout,/Gomoku,/mlg"
 
 # Route binding to custom domain
 workers_dev = false
