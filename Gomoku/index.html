@@ -10,6 +10,7 @@
     <script src="/firebase-config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="/js/user-storage.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -200,17 +201,30 @@
         let isAIThinking = false;
 
         // --- Persistence for wins ---
-        const GOMOKU_STORAGE_KEY = 'gomoku_wins_v1';
         function saveWinsToStorage() {
             try {
-                localStorage.setItem(GOMOKU_STORAGE_KEY, JSON.stringify({ blackWins, whiteWins }));
+                const data = { blackWins, whiteWins };
+                // 使用统一的用户数据管理工具
+                if (window.UserStorage) {
+                    window.UserStorage.setUserData('GOMOKU', data);
+                } else {
+                    // 降级方案：使用原有逻辑
+                    localStorage.setItem('gomoku_wins_v1', JSON.stringify(data));
+                }
             } catch (e) {}
         }
         function loadWinsFromStorage() {
             try {
-                const raw = localStorage.getItem(GOMOKU_STORAGE_KEY);
-                if (!raw) return;
-                const data = JSON.parse(raw);
+                let data;
+                // 使用统一的用户数据管理工具
+                if (window.UserStorage) {
+                    data = window.UserStorage.getUserData('GOMOKU', { blackWins: 0, whiteWins: 0 });
+                } else {
+                    // 降级方案：使用原有逻辑
+                    const raw = localStorage.getItem('gomoku_wins_v1');
+                    data = raw ? JSON.parse(raw) : { blackWins: 0, whiteWins: 0 };
+                }
+
                 if (typeof data.blackWins === 'number') blackWins = data.blackWins;
                 if (typeof data.whiteWins === 'number') whiteWins = data.whiteWins;
             } catch (e) {}

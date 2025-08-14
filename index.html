@@ -10,6 +10,7 @@
   <script src="/firebase-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="/js/user-storage.js"></script>
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800">
   <header class="border-b bg-white">
@@ -49,6 +50,14 @@
           <span class="text-blue-600 group-hover:translate-x-0.5 transition">→</span>
         </div>
         <p class="mt-2 text-sm text-slate-500">人机/双人对战，登录后访问。</p>
+      </a>
+
+      <a href="/user-data-manager.html" data-target="/user-data-manager.html" data-require-auth="true" class="tool-card block group rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">用户数据管理</h2>
+          <span class="text-blue-600 group-hover:translate-x-0.5 transition">→</span>
+        </div>
+        <p class="mt-2 text-sm text-slate-500">检查和修复用户数据一致性，迁移旧版本数据。</p>
       </a>
 
       <a href="https://topfac.nssa.io" target="_blank" rel="noreferrer noopener" class="block group rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition">

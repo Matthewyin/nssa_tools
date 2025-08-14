@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>用户数据管理 - NSSA Tools</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=design_services" />
+  <script src="/firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="/js/user-storage.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800">
+  <header class="border-b bg-white">
+    <div class="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-sm text-slate-600 hover:underline">← 返回首页</a>
+        <h1 class="text-xl font-semibold">用户数据管理</h1>
+      </div>
+      <div class="text-sm flex items-center gap-3">
+        <span id="user-email" class="text-slate-500"></span>
+        <a id="logout-link" href="#" class="text-red-600 hover:text-red-700 hidden">登出</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-4 py-6 space-y-6">
+    <!-- 用户信息 -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-semibold mb-4">当前用户信息</h2>
+      <div id="user-info" class="space-y-2 text-sm">
+        <div>正在加载...</div>
+      </div>
+    </div>
+
+    <!-- 存储使用情况 -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-semibold mb-4">存储使用情况</h2>
+      <div id="storage-usage" class="space-y-4">
+        <div>正在分析...</div>
+      </div>
+    </div>
+
+    <!-- 数据迁移 -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-semibold mb-4">数据迁移</h2>
+      <p class="text-sm text-slate-600 mb-4">
+        检查并迁移旧版本的用户数据到新的统一存储格式。这将确保所有模块（MLG、五子棋、Cron）使用一致的用户数据隔离机制。
+      </p>
+      <div class="space-y-4">
+        <button id="migrate-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+          开始数据迁移
+        </button>
+        <div id="migration-log" class="bg-slate-100 p-4 rounded-lg text-sm font-mono hidden">
+          <div class="font-semibold mb-2">迁移日志：</div>
+          <div id="migration-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据清理 -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-semibold mb-4">数据清理</h2>
+      <p class="text-sm text-slate-600 mb-4">
+        清理旧版本的数据键值，释放存储空间。<strong>注意：此操作不可逆，请确保已完成数据迁移。</strong>
+      </p>
+      <div class="space-y-4">
+        <button id="cleanup-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+          清理旧数据
+        </button>
+        <div id="cleanup-log" class="bg-slate-100 p-4 rounded-lg text-sm font-mono hidden">
+          <div class="font-semibold mb-2">清理日志：</div>
+          <div id="cleanup-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 原始数据查看 -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-semibold mb-4">原始数据查看</h2>
+      <p class="text-sm text-slate-600 mb-4">
+        查看localStorage中的所有相关数据键值，用于调试和问题排查。
+      </p>
+      <div class="space-y-4">
+        <button id="inspect-btn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+          检查原始数据
+        </button>
+        <div id="inspect-log" class="bg-slate-100 p-4 rounded-lg text-sm font-mono hidden max-h-96 overflow-y-auto">
+          <div class="font-semibold mb-2">原始数据：</div>
+          <div id="inspect-content"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentUser = null;
+
+    // 初始化Firebase
+    if (window.__FIREBASE_CONFIG__) {
+      if (!firebase.apps || firebase.apps.length === 0) {
+        firebase.initializeApp(window.__FIREBASE_CONFIG__);
+      }
+      
+      firebase.auth().onAuthStateChanged(function(user) {
+        currentUser = user;
+        if (!user) {
+          // 未登录，跳转到首页
+          const url = new URL('/', window.location.origin);
+          url.searchParams.set('redirect', window.location.pathname);
+          window.location.replace(url.toString());
+        } else {
+          // 已登录，更新UI
+          updateUserInfo();
+          updateStorageUsage();
+          
+          const emailEl = document.getElementById('user-email');
+          const logoutEl = document.getElementById('logout-link');
+          if (emailEl) emailEl.textContent = user.email || '';
+          if (logoutEl) logoutEl.classList.remove('hidden');
+        }
+      });
+    }
+
+    // 更新用户信息
+    function updateUserInfo() {
+      const userInfoEl = document.getElementById('user-info');
+      if (!currentUser) {
+        userInfoEl.innerHTML = '<div class="text-red-600">未登录</div>';
+        return;
+      }
+
+      const user = window.UserStorage.getCurrentUser();
+      userInfoEl.innerHTML = `
+        <div><strong>邮箱:</strong> ${user.email}</div>
+        <div><strong>UID:</strong> ${user.uid}</div>
+        <div><strong>显示名:</strong> ${user.displayName || '未设置'}</div>
+      `;
+    }
+
+    // 更新存储使用情况
+    function updateStorageUsage() {
+      const usageEl = document.getElementById('storage-usage');
+      if (!currentUser) {
+        usageEl.innerHTML = '<div class="text-red-600">未登录</div>';
+        return;
+      }
+
+      const usage = window.UserStorage.getStorageUsage();
+      let html = `
+        <div class="mb-4">
+          <div class="text-lg font-semibold">总使用量: ${usage.totalKB} KB (${usage.totalMB} MB)</div>
+          <div class="text-sm text-slate-600">用户: ${usage.user}</div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      `;
+
+      Object.entries(usage.modules).forEach(([module, data]) => {
+        const statusColor = data.hasData ? 'text-green-600' : 'text-gray-400';
+        html += `
+          <div class="border rounded-lg p-4">
+            <div class="font-semibold ${statusColor}">${module}</div>
+            <div class="text-sm text-slate-600">${data.sizeKB} KB</div>
+            <div class="text-xs text-slate-500">${data.key}</div>
+            <div class="text-xs ${statusColor}">${data.hasData ? '有数据' : '无数据'}</div>
+          </div>
+        `;
+      });
+
+      html += '</div>';
+      usageEl.innerHTML = html;
+    }
+
+    // 数据迁移
+    document.getElementById('migrate-btn').addEventListener('click', function() {
+      const logEl = document.getElementById('migration-log');
+      const contentEl = document.getElementById('migration-content');
+      
+      logEl.classList.remove('hidden');
+      contentEl.innerHTML = '开始数据迁移...<br>';
+
+      const modules = ['MLG', 'GOMOKU', 'CRON', 'THEME'];
+      modules.forEach(module => {
+        const migrated = window.UserStorage.migrateData(module);
+        const status = migrated ? '✅ 已迁移' : '⏭️ 跳过（已存在或无旧数据）';
+        contentEl.innerHTML += `${module}: ${status}<br>`;
+      });
+
+      contentEl.innerHTML += '<br>数据迁移完成！<br>';
+      updateStorageUsage();
+    });
+
+    // 数据清理
+    document.getElementById('cleanup-btn').addEventListener('click', function() {
+      if (!confirm('确定要清理旧数据吗？此操作不可逆！')) return;
+
+      const logEl = document.getElementById('cleanup-log');
+      const contentEl = document.getElementById('cleanup-content');
+      
+      logEl.classList.remove('hidden');
+      contentEl.innerHTML = '开始清理旧数据...<br>';
+
+      const modules = ['MLG', 'GOMOKU', 'CRON', 'THEME'];
+      modules.forEach(module => {
+        window.UserStorage.cleanupLegacyData(module);
+        contentEl.innerHTML += `${module}: ✅ 已清理<br>`;
+      });
+
+      contentEl.innerHTML += '<br>数据清理完成！<br>';
+      updateStorageUsage();
+    });
+
+    // 原始数据检查
+    document.getElementById('inspect-btn').addEventListener('click', function() {
+      const logEl = document.getElementById('inspect-log');
+      const contentEl = document.getElementById('inspect-content');
+      
+      logEl.classList.remove('hidden');
+      contentEl.innerHTML = '';
+
+      const relevantKeys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('cat_') ||
+          key.startsWith('gomoku_') ||
+          key.startsWith('webhook_tasks') ||
+          key.startsWith('mlg_') ||
+          key.startsWith('theme_') ||
+          key.includes('_v2_')
+        )) {
+          relevantKeys.push(key);
+        }
+      }
+
+      if (relevantKeys.length === 0) {
+        contentEl.innerHTML = '未找到相关数据键值。';
+        return;
+      }
+
+      relevantKeys.sort().forEach(key => {
+        const value = localStorage.getItem(key);
+        const size = new Blob([value]).size;
+        contentEl.innerHTML += `
+          <div class="mb-2 p-2 border-l-4 border-blue-500 bg-white">
+            <div class="font-semibold">${key}</div>
+            <div class="text-xs text-slate-500">大小: ${size} bytes</div>
+            <div class="text-xs text-slate-600 mt-1 break-all">${value.substring(0, 200)}${value.length > 200 ? '...' : ''}</div>
+          </div>
+        `;
+      });
+    });
+
+    // 登出处理
+    document.getElementById('logout-link').addEventListener('click', async function(e) {
+      e.preventDefault();
+      try {
+        if (firebase.auth().currentUser) {
+          await firebase.auth().signOut();
+        }
+      } catch (e) {}
+      window.location.href = '/auth/logout';
+    });
+  </script>
+</body>
+</html>

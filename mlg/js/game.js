@@ -25,6 +25,11 @@
   }
 
   function getStorageKey(user) {
+    // 使用统一的用户数据管理工具
+    if (window.UserStorage) {
+      return window.UserStorage.getStorageKey('MLG');
+    }
+    // 降级方案：保持原有逻辑
     return `cat_${(user && user.uid) || "guest"}`;
   }
 
@@ -270,7 +275,6 @@
     // --- Persistence ---
     loadState() {
       try {
-        const raw = localStorage.getItem(getStorageKey(this.user));
         const defaults = {
           level: 1,
           seed: Math.floor(Math.random() * 1e9),
@@ -289,7 +293,16 @@
           history: [],
           slotCapacity: 8,
         };
-        const merged = raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+
+        // 使用统一的用户数据管理工具
+        let merged;
+        if (window.UserStorage) {
+          merged = window.UserStorage.getUserData('MLG', defaults);
+        } else {
+          // 降级方案：使用原有逻辑
+          const raw = localStorage.getItem(getStorageKey(this.user));
+          merged = raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+        }
         // 迁移与矫正：去掉提示道具，确保存在洗牌/撤销条目
         const items =
           merged.inventory && Array.isArray(merged.inventory.items)
@@ -335,10 +348,17 @@
           history: this.history || [],
           slotCapacity: typeof SLOT_CAPACITY === "number" ? SLOT_CAPACITY : 8,
         };
-        localStorage.setItem(
-          getStorageKey(this.user),
-          JSON.stringify(snapshot)
-        );
+
+        // 使用统一的用户数据管理工具
+        if (window.UserStorage) {
+          window.UserStorage.setUserData('MLG', snapshot);
+        } else {
+          // 降级方案：使用原有逻辑
+          localStorage.setItem(
+            getStorageKey(this.user),
+            JSON.stringify(snapshot)
+          );
+        }
       } catch {}
     },
 
