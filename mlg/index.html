@@ -122,6 +122,25 @@
           window.MLG && window.MLG.bootstrap(null);
         }
       });
+    } else {
+      // 没有Firebase配置时，直接以游客模式初始化游戏
+      var emailEl = document.getElementById('user-email');
+      var loginLink = document.getElementById('login-open');
+      var logoutLink = document.getElementById('logout-link');
+
+      if (emailEl) emailEl.textContent = '游客模式';
+      if (loginLink) loginLink.style.display = 'inline';
+      if (logoutLink) logoutLink.style.display = 'none';
+
+      // 确保MLG对象加载完成后再初始化
+      if (window.MLG) {
+        window.MLG.bootstrap(null);
+      } else {
+        // 如果MLG还没加载，等待一下再初始化
+        setTimeout(function() {
+          window.MLG && window.MLG.bootstrap(null);
+        }, 100);
+      }
     }
 
     // 统一登出：先 signOut 再清服务器 Cookie
