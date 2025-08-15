@@ -165,6 +165,31 @@
       }
     },
 
+    // 混合两个颜色（仅支持 #rrggbb），ratio ∈ [0,1]，0=完全使用color1，1=完全使用color2
+    mixColors(color1, color2, ratio) {
+      try {
+        const m1 = /^#?([0-9a-fA-F]{6})$/.exec(String(color1 || ""));
+        const m2 = /^#?([0-9a-fA-F]{6})$/.exec(String(color2 || ""));
+        if (!m1 || !m2) return color1;
+
+        const r1 = parseInt(m1[1].slice(0, 2), 16);
+        const g1 = parseInt(m1[1].slice(2, 4), 16);
+        const b1 = parseInt(m1[1].slice(4, 6), 16);
+
+        const r2 = parseInt(m2[1].slice(0, 2), 16);
+        const g2 = parseInt(m2[1].slice(2, 4), 16);
+        const b2 = parseInt(m2[1].slice(4, 6), 16);
+
+        const clamp255 = (n) => Math.max(0, Math.min(255, Math.round(n)));
+        const mix = (c1, c2) => clamp255(c1 * (1 - ratio) + c2 * ratio);
+        const toHex = (n) => n.toString(16).padStart(2, "0");
+
+        return `#${toHex(mix(r1, r2))}${toHex(mix(g1, g2))}${toHex(mix(b1, b2))}`;
+      } catch {
+        return color1;
+      }
+    },
+
     // 绘制立方体（长方体）: 前面 + 右侧面 + 顶面 - 层级颜色系统
     // frontX, frontY 为前方面的左上角；frontW、frontH 为前方面尺寸；depth 为挤出深度像素
     drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, options) {
@@ -174,12 +199,12 @@
       const relativeDepth = o.relativeDepth || 0; // 相对深度（0=顶层，1=下一层，等等）
       let frontColor, borderColor;
 
-      // 高对比度颜色方案：增强相邻层级的视觉区分度
+      // 高对比度颜色方案：使用#455A64加深下层立方体颜色
       const depthColors = [
         { front: '#FFFFFF', border: '#999999' }, // 顶层：纯白色+深灰边框
-        { front: '#E8F4FD', border: '#2196F3' }, // 第二层：浅蓝+蓝边框
-        { front: '#BBDEFB', border: '#1976D2' }, // 第三层：中蓝+深蓝边框
-        { front: '#90CAF9', border: '#0D47A1' }  // 底层：深蓝+最深蓝边框
+        { front: '#E3F2FD', border: '#455A64' }, // 第二层：浅蓝+深蓝灰边框
+        { front: '#BBDEFB', border: '#37474F' }, // 第三层：中蓝+更深蓝灰边框
+        { front: '#90CAF9', border: '#263238' }  // 底层：深蓝+最深蓝灰边框
       ];
 
       // 如果是当前位置的顶层，使用顶层颜色；否则根据相对深度选择颜色
@@ -199,7 +224,16 @@
       ctx.save();
 
       // 绘制底面阴影（简单的立体效果）
-      const shadowColor = this.adjustHexColor(frontColor, -0.3); // 底面更暗
+      // 对于下层立方体，使用#455A64作为基础色调来加深阴影
+      let shadowColor;
+      if (isTopAtPosition) {
+        shadowColor = this.adjustHexColor(frontColor, -0.3); // 顶层使用原有逻辑
+      } else {
+        // 下层立方体：混合#455A64来加深阴影效果
+        const baseColor = '#455A64';
+        const mixedColor = this.mixColors(frontColor, baseColor, 0.4); // 40%混合#455A64
+        shadowColor = this.adjustHexColor(mixedColor, -0.2);
+      }
       ctx.fillStyle = shadowColor;
       this.createRoundedRectPath(ctx, frontX + shadowOffset, frontY + shadowOffset, frontW, frontH, radius);
       ctx.fill();
@@ -211,7 +245,19 @@
 
       // 绘制主体矩形（正面）
       this.createRoundedRectPath(ctx, frontX, frontY, frontW, frontH, radius);
-      ctx.fillStyle = frontColor;
+
+      // 对于下层立方体，混合#455A64来加深主体颜色
+      let finalFrontColor;
+      if (isTopAtPosition) {
+        finalFrontColor = frontColor; // 顶层使用原色
+      } else {
+        // 下层立方体：根据相对深度混合#455A64
+        const baseColor = '#455A64';
+        const mixRatio = Math.min(0.3 + relativeDepth * 0.1, 0.6); // 30%-60%混合比例
+        finalFrontColor = this.mixColors(frontColor, baseColor, mixRatio);
+      }
+
+      ctx.fillStyle = finalFrontColor;
       ctx.fill();
 
       // 绘制主边框
