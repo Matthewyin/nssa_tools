@@ -849,14 +849,13 @@
       const cubeGrowthRate = 1.06; // 每关增长6%
       const targetCubeCount = Math.floor(baseCubeCount * Math.pow(cubeGrowthRate, level - 1));
 
-      // 精细网格系统：80×100网格，立方体3×3单位，边缘2单位安全区
-      const cols = 80; // 精细网格80列
-      const rows = 100; // 精细网格100行
+      // 优化网格尺寸：使用更紧凑的6×8网格，让立方体更大
+      const cols = 6; // 优化为6列
+      const rows = 8; // 优化为8行
 
-      // 安全区域：上下左右各2单位边距，确保立方体不被遮挡
-      const safeMargin = 2; // 边缘安全距离
-      const availableCols = cols - safeMargin * 2; // 76列可用区域
-      const availableRows = rows - safeMargin * 2; // 96行可用区域
+      // 可用区域：避开边缘后的内部区域
+      const availableCols = cols - 2; // 6列（避开左右边缘）
+      const availableRows = rows - 2; // 8行（避开上下边缘）
       const availableGridSize = availableCols * availableRows; // 48个可用位置
 
       // 密度调整：基于可用区域计算
@@ -893,14 +892,9 @@
       targetCount = Math.floor(targetCount / 3) * 3;
 
       // 可用的网格位置（避开边缘）
-      // 立方体生成区域：在安全区域内，每个立方体占3×3网格单位
       const availableGridPositions = [];
-      const cubeSize = 3; // 立方体占用3×3网格单位
-      const safeMargin = 2; // 边缘安全距离
-
-      // 在安全区域内按3×3网格生成立方体位置
-      for (let row = safeMargin; row < params.rows - safeMargin - cubeSize + 1; row += cubeSize) {
-        for (let col = safeMargin; col < params.cols - safeMargin - cubeSize + 1; col += cubeSize) {
+      for (let row = 1; row < params.rows - 1; row++) {
+        for (let col = 1; col < params.cols - 1; col++) {
           availableGridPositions.push({ row, col });
         }
       }
@@ -1345,36 +1339,34 @@
       const availableWidth = Math.max(200, this.cssWidth - margin * 2);
       const availableHeight = Math.max(200, this.cssHeight - margin * 2);
 
-      // 精细网格：80列×100行，立方体3×3单位，边缘2单位安全区
-      const gridCols = 80;
-      const gridRows = 100;
+      // 固定网格：8列×10行
+      const gridCols = 8;
+      const gridRows = 10;
 
       // 计算层级偏移空间需求（简化计算）
       const layerOffsetRatio = (maxLayers - 1) * 0.35; // 简化的偏移比例
 
-      // 精细网格计算：每个立方体占用3×3网格单位
-      const cubeGridSize = 3; // 立方体占用3×3网格单位
+      // 基于可用宽度计算格子大小，考虑层级偏移
       const effectiveWidth = availableWidth / (1 + layerOffsetRatio * 0.1);
       const effectiveHeight = availableHeight / (1 + layerOffsetRatio * 0.1);
 
-      // 计算网格单元大小（每个网格单元是立方体的1/3）
-      const maxGridUnitWidth = Math.floor(effectiveWidth / gridCols);
-      const maxGridUnitHeight = Math.floor(effectiveHeight / gridRows);
+      const maxCellWidth = Math.floor(effectiveWidth / gridCols);
+      const maxCellHeight = Math.floor(effectiveHeight / gridRows);
 
-      // 设备相关的最小网格单元大小
-      const minGridUnitSize = isMobile ? 16 : isTablet ? 14 : 13; // 网格单元大小
+      // 设备相关的最小格子大小 - 大幅增加手机端大小
+      const minCellSize = isMobile ? 48 : isTablet ? 42 : 40;
 
-      // 选择合适的网格单元大小
-      const gridUnitSize = Math.max(minGridUnitSize, Math.min(maxGridUnitWidth, maxGridUnitHeight));
+      // 选择合适的格子大小（保持接近正方形）
+      const cellSize = Math.max(minCellSize, Math.min(maxCellWidth, maxCellHeight));
 
-      // 立方体大小 = 3×3网格单元
-      const cubeWidth = gridUnitSize * cubeGridSize;
-      const cubeHeight = Math.floor(cubeWidth * 1.1); // 稍微高一点，增强立体感
+      // 立方体大小
+      const cubeWidth = cellSize;
+      const cubeHeight = Math.floor(cellSize * 1.1); // 稍微高一点，增强立体感
       const rects = new Map();
 
-      // 计算网格的总尺寸（基于网格单元）
-      const baseGridWidth = gridCols * gridUnitSize;
-      const baseGridHeight = gridRows * gridUnitSize;
+      // 计算网格的总尺寸
+      const baseGridWidth = gridCols * cubeWidth;
+      const baseGridHeight = gridRows * cubeHeight;
 
       // 计算层级偏移
       const maxLayerOffset = (maxLayers - 1) * cubeWidth * 0.35; // 简化偏移计算
@@ -1402,14 +1394,13 @@
 
       // 调试信息
       if (isMobile || window.location.search.includes('debug')) {
-        console.log('精细网格系统:', {
+        console.log('固定网格系统:', {
           设备类型: isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop',
           屏幕宽度: screenWidth,
           画布尺寸: `${this.cssWidth}×${this.cssHeight}`,
           可用空间: `${availableWidth}×${availableHeight}`,
           网格参数: `${gridCols}列×${gridRows}行×${maxLayers}层`,
-          网格单元大小: gridUnitSize,
-          立方体占用: `${cubeGridSize}×${cubeGridSize}网格单元`,
+          格子大小: cellSize,
           立方体尺寸: `${cubeWidth}×${cubeHeight}`,
           网格总尺寸: `${baseGridWidth}×${baseGridHeight}`,
           起始位置: `${Math.round(startX)},${Math.round(startY)}`
@@ -1420,9 +1411,9 @@
       for (const tile of this.tiles) {
         if (tile.status !== "board") continue;
 
-        // 基础位置：使用网格单元计算
-        const baseX = startX + tile.col * gridUnitSize;
-        const baseY = startY + tile.row * gridUnitSize;
+        // 基础位置
+        const baseX = startX + tile.col * cubeWidth;
+        const baseY = startY + tile.row * cubeHeight;
 
         // 层级偏移：每层向右下偏移
         const layerOffsetX = tile.layer * cubeWidth * 0.35;
