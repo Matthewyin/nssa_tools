@@ -96,51 +96,63 @@
       setFavicon();
     })();
 
-    // 可选登录：支持游客模式
-    if (window.__FIREBASE_CONFIG__) {
-      if (!firebase.apps || firebase.apps.length === 0) {
-        firebase.initializeApp(window.__FIREBASE_CONFIG__);
-      }
-      firebase.auth().onAuthStateChanged(function(user){
-        var emailEl = document.getElementById('user-email');
-        var loginLink = document.getElementById('login-open');
-        var logoutLink = document.getElementById('logout-link');
-
-        if (user) {
-          // 已登录状态
-          if (emailEl) emailEl.textContent = user.email || '';
-          if (loginLink) loginLink.style.display = 'none';
-          if (logoutLink) logoutLink.style.display = 'inline';
-          // 初始化游戏（登录用户）
+    // 初始化游戏的函数
+    function initializeGame(user) {
+      if (window.MLG) {
+        window.MLG.bootstrap(user);
+      } else {
+        // 如果MLG还没加载，等待一下再初始化
+        setTimeout(function() {
           window.MLG && window.MLG.bootstrap(user);
-        } else {
-          // 游客模式
-          if (emailEl) emailEl.textContent = '游客模式';
-          if (loginLink) loginLink.style.display = 'inline';
-          if (logoutLink) logoutLink.style.display = 'none';
-          // 初始化游戏（游客模式）
-          window.MLG && window.MLG.bootstrap(null);
-        }
-      });
-    } else {
-      // 没有Firebase配置时，直接以游客模式初始化游戏
+        }, 100);
+      }
+    }
+
+    // 设置UI状态的函数
+    function setUIState(user) {
       var emailEl = document.getElementById('user-email');
       var loginLink = document.getElementById('login-open');
       var logoutLink = document.getElementById('logout-link');
 
-      if (emailEl) emailEl.textContent = '游客模式';
-      if (loginLink) loginLink.style.display = 'inline';
-      if (logoutLink) logoutLink.style.display = 'none';
-
-      // 确保MLG对象加载完成后再初始化
-      if (window.MLG) {
-        window.MLG.bootstrap(null);
+      if (user) {
+        // 已登录状态
+        if (emailEl) emailEl.textContent = user.email || '';
+        if (loginLink) loginLink.style.display = 'none';
+        if (logoutLink) logoutLink.style.display = 'inline';
       } else {
-        // 如果MLG还没加载，等待一下再初始化
-        setTimeout(function() {
-          window.MLG && window.MLG.bootstrap(null);
-        }, 100);
+        // 游客模式
+        if (emailEl) emailEl.textContent = '游客模式';
+        if (loginLink) loginLink.style.display = 'inline';
+        if (logoutLink) logoutLink.style.display = 'none';
       }
+    }
+
+    // 可选登录：支持游客模式，带错误处理
+    if (window.__FIREBASE_CONFIG__) {
+      try {
+        // 尝试初始化Firebase
+        if (!firebase.apps || firebase.apps.length === 0) {
+          firebase.initializeApp(window.__FIREBASE_CONFIG__);
+        }
+
+        // 设置认证状态监听器
+        firebase.auth().onAuthStateChanged(function(user){
+          setUIState(user);
+          initializeGame(user);
+        });
+
+        console.log('Firebase初始化成功，支持登录功能');
+      } catch (error) {
+        console.warn('Firebase初始化失败，降级到游客模式:', error);
+        // Firebase初始化失败时，降级到游客模式
+        setUIState(null);
+        initializeGame(null);
+      }
+    } else {
+      console.log('未配置Firebase，使用游客模式');
+      // 没有Firebase配置时，直接以游客模式初始化
+      setUIState(null);
+      initializeGame(null);
     }
 
     // 统一登出：先 signOut 再清服务器 Cookie
