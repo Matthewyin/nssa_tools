@@ -166,19 +166,35 @@
       });
     })();
 
-    // 登录模态框逻辑
-    (function(){
+    // 登录模态框逻辑 - 延迟执行确保DOM元素已加载
+    setTimeout(function(){
       const loginModal = document.getElementById('login-modal');
       const loginForm = document.getElementById('login-form');
       const loginOpen = document.getElementById('login-open');
       const loginCancel = document.getElementById('login-cancel');
       const loginError = document.getElementById('login-error');
 
-      if (!loginOpen || !loginModal) return;
+      if (!loginOpen) {
+        console.log('登录链接不存在');
+        return;
+      }
 
       // 打开登录模态框
       loginOpen.addEventListener('click', (e) => {
         e.preventDefault();
+
+        // 检查Firebase是否可用
+        if (!window.__FIREBASE_CONFIG__) {
+          alert('登录功能未配置。\n\n当前为游客模式，您可以正常使用游戏的所有功能。\n\n如需启用登录功能，请联系管理员配置Firebase。');
+          return;
+        }
+
+        // 检查登录模态框是否存在
+        if (!loginModal) {
+          alert('登录界面加载失败，请刷新页面重试。');
+          return;
+        }
+
         loginModal.classList.remove('hidden');
       });
 
@@ -228,7 +244,7 @@
           }
         });
       }
-    })();
+    }, 100); // 延迟100ms确保DOM加载完成
   </script>
 
   <!-- 登录模态框 -->
