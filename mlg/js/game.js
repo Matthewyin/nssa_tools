@@ -777,25 +777,50 @@
     findTianZiGrid(targetTile, upperTiles) {
       const { row, col } = targetTile;
 
-      // 定义田字格的4个位置（2×2网格）
+      // 田字格应该是4个立方体形成2×2网格，完全遮挡目标立方体
+      // 目标立方体在中心，田字格围绕它
       const gridPositions = [
-        { row, col },                    // 左上
-        { row, col: col + 1 },          // 右上
-        { row: row + 1, col },          // 左下
-        { row: row + 1, col: col + 1 }  // 右下
+        { row: row, col: col },          // 与目标同位置（上层）
+        { row: row, col: col + 1 },      // 右侧
+        { row: row + 1, col: col },      // 下方
+        { row: row + 1, col: col + 1 }   // 右下
       ];
 
-      // 查找每个位置是否有上层立方体
+      // 查找每个位置的上层立方体，必须满足严格条件
       const gridTiles = [];
-      gridPositions.forEach(pos => {
-        const tileAtPos = upperTiles.find(t => t.row === pos.row && t.col === pos.col);
-        if (tileAtPos) {
-          gridTiles.push(tileAtPos);
-        }
-      });
+      let validGrid = true;
 
-      // 只有当4个位置都有立方体时才形成田字格
-      return gridTiles.length === 4 ? gridTiles : [];
+      for (const pos of gridPositions) {
+        // 找到该位置的所有上层立方体
+        const tilesAtPos = upperTiles.filter(t =>
+          t.row === pos.row && t.col === pos.col
+        );
+
+        // 每个位置必须恰好有1个上层立方体
+        if (tilesAtPos.length !== 1) {
+          validGrid = false;
+          break;
+        }
+
+        gridTiles.push(tilesAtPos[0]);
+      }
+
+      // 验证田字格的有效性
+      if (!validGrid || gridTiles.length !== 4) {
+        return [];
+      }
+
+      // 验证4个立方体是否在同一层级（可选，增加严格性）
+      const layers = gridTiles.map(t => t.layer);
+      const uniqueLayers = [...new Set(layers)];
+      if (uniqueLayers.length > 2) { // 允许最多2个不同层级
+        return [];
+      }
+
+      console.log(`发现有效田字格遮挡 - 目标:(${row},${col}) 层级:${targetTile.layer}, 田字格立方体:`,
+        gridTiles.map(t => `(${t.row},${t.col})层${t.layer}`));
+
+      return gridTiles;
     },
 
     // --- Level Generation ---
