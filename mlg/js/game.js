@@ -1000,12 +1000,6 @@
         }
 
         const pos = merged[i];
-        const occlusion = this.occlusionMap?.get(i) || {
-          type: 'none',
-          clickable: true,
-          blockingTiles: [],
-          description: '无遮挡'
-        };
 
         tiles.push({
           id: `t${i}`,
@@ -1013,8 +1007,7 @@
           layer: pos.layer,
           row: pos.row,
           col: pos.col,
-          status: "board",
-          occlusion: occlusion // 添加遮挡信息
+          status: "board"
         });
       }
 
@@ -1031,7 +1024,114 @@
       if (invalidTypes.length > 0) {
         console.warn('警告：以下类型的数量不是3的倍数:', invalidTypes);
       }
+
+      // 为立方体计算遮挡关系
+      this.calculateOcclusionForTiles(tiles);
+
       return tiles;
+    },
+
+    // 为立方体对象计算遮挡关系
+    calculateOcclusionForTiles(tiles) {
+      tiles.forEach(tile => {
+        const occlusion = this.analyzeOcclusionForTile(tile, tiles);
+        tile.occlusion = occlusion;
+      });
+
+      console.log('立方体遮挡关系计算完成:', tiles.length, '个立方体');
+    },
+
+    analyzeOcclusionForTile(targetTile, allTiles) {
+      // 找到所有在目标立方体上方的立方体
+      const upperTiles = allTiles.filter(t =>
+        t.layer > targetTile.layer && t.id !== targetTile.id
+      );
+
+      // 检查田字格完全遮挡（4个立方体形成2×2网格）
+      const tianZiGrid = this.findTianZiGridForTile(targetTile, upperTiles);
+      if (tianZiGrid.length === 4) {
+        return {
+          type: 'complete',
+          percentage: 100,
+          clickable: false,
+          blockingTiles: tianZiGrid,
+          description: '被田字格完全遮挡'
+        };
+      }
+
+      // 检查单个立方体部分遮挡
+      const directUpper = upperTiles.filter(t =>
+        t.row === targetTile.row && t.col === targetTile.col
+      );
+      if (directUpper.length > 0) {
+        // 找到最近的上层立方体（层级最小的）
+        const nearestUpper = directUpper.reduce((nearest, current) =>
+          current.layer < nearest.layer ? current : nearest
+        );
+        return {
+          type: 'partial',
+          percentage: 25,
+          clickable: true,
+          blockingTiles: [nearestUpper],
+          description: '被部分遮挡25%'
+        };
+      }
+
+      return {
+        type: 'none',
+        percentage: 0,
+        clickable: true,
+        blockingTiles: [],
+        description: '无遮挡'
+      };
+    },
+
+    findTianZiGridForTile(targetTile, upperTiles) {
+      const { row, col } = targetTile;
+
+      // 田字格应该是4个立方体形成2×2网格，完全遮挡目标立方体
+      const gridPositions = [
+        { row: row, col: col },          // 与目标同位置（上层）
+        { row: row, col: col + 1 },      // 右侧
+        { row: row + 1, col: col },      // 下方
+        { row: row + 1, col: col + 1 }   // 右下
+      ];
+
+      // 查找每个位置的上层立方体，必须满足严格条件
+      const gridTiles = [];
+      let validGrid = true;
+
+      for (const pos of gridPositions) {
+        // 找到该位置的所有上层立方体
+        const tilesAtPos = upperTiles.filter(t =>
+          t.row === pos.row && t.col === pos.col
+        );
+
+        // 每个位置必须恰好有1个上层立方体
+        if (tilesAtPos.length !== 1) {
+          validGrid = false;
+          break;
+        }
+
+        gridTiles.push(tilesAtPos[0]);
+      }
+
+      // 验证田字格的有效性
+      if (!validGrid || gridTiles.length !== 4) {
+        return [];
+      }
+
+      // 验证4个立方体是否在同一层级（可选，增加严格性）
+      const layers = gridTiles.map(t => t.layer);
+      const uniqueLayers = [...new Set(layers)];
+      if (uniqueLayers.length > 2) { // 允许最多2个不同层级
+        return [];
+      }
+
+      console.log(`发现有效田字格遮挡 - 目标:(${row},${col}) 层级:${targetTile.layer}, 田字格立方体:`,
+        gridTiles.map(t => `(${t.row},${t.col})层${t.layer}`));
+
+      return gridTiles;
     },
 
     // --- Geometry & Rules ---
