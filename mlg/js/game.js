@@ -316,6 +316,8 @@
         this.updateHud();
         this.render();
       } else {
+        // 新游戏时也要确保SLOT_CAPACITY正确初始化
+        SLOT_CAPACITY = this.state.slotCapacity || 8;
         this.newGame(/*keepLevel*/ true);
       }
       this.handleResize = this.handleResize.bind(this);
@@ -578,10 +580,12 @@
           addPanel.classList.add("hidden");
           addPanel.setAttribute("aria-hidden", "true");
         });
-        // 点击外部关闭
+        // 点击外部关闭（支持移动端）
         document.addEventListener("click", (e) => {
           if (addPanel.classList.contains("hidden")) return;
+          // 检查是否点击了增加道具按钮或更多菜单中的增加道具选项
           if (e.target === addBtn || addPanel.contains(e.target)) return;
+          if (morePanel && morePanel.contains(e.target)) return;
           addPanel.classList.add("hidden");
           addPanel.setAttribute("aria-hidden", "true");
         });
@@ -607,14 +611,42 @@
           const target = e.target.closest(".menu-item");
           if (!target) return;
           const action = target.getAttribute("data-action");
-          if (action === "add") document.getElementById("btn-add")?.click();
-          if (action === "shuffle")
-            document.getElementById("btn-shuffle")?.click();
-          if (action === "undo") document.getElementById("btn-undo")?.click();
-          if (action === "restart")
-            document.getElementById("btn-restart")?.click();
+
+          // 关闭更多菜单
           morePanel.classList.add("hidden");
           morePanel.setAttribute("aria-hidden", "true");
+
+          // 处理不同的动作
+          if (action === "add") {
+            // 直接显示增加道具面板，而不是点击隐藏的按钮
+            const addPanel = document.getElementById("add-panel");
+            if (addPanel) {
+              addPanel.classList.remove("hidden");
+              addPanel.setAttribute("aria-hidden", "false");
+            }
+          } else if (action === "shuffle") {
+            document.getElementById("btn-shuffle")?.click();
+          } else if (action === "undo") {
+            document.getElementById("btn-undo")?.click();
+          } else if (action === "restart") {
+            document.getElementById("btn-restart")?.click();
+          }
+        });
+
+        // 点击外部关闭更多菜单
+        document.addEventListener("click", (e) => {
+          if (morePanel.classList.contains("hidden")) return;
+          if (e.target === moreBtn || morePanel.contains(e.target)) return;
+          morePanel.classList.add("hidden");
+          morePanel.setAttribute("aria-hidden", "true");
+        });
+
+        // Esc 关闭更多菜单
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            morePanel.classList.add("hidden");
+            morePanel.setAttribute("aria-hidden", "true");
+          }
         });
       }
       document
