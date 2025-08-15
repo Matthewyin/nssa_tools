@@ -1715,6 +1715,7 @@
         this.showMessage("无效选择", "warn");
         return;
       }
+      this.updateHud(); // 更新HUD显示，包括洗牌和撤销的可用次数
       this.saveState();
       this.render();
     },
