@@ -719,10 +719,10 @@
     getLevelParams(level) {
       // 无穷关卡系统：动态计算关卡参数
 
-      // 层级数量：5到16层，随关卡递增
-      const baseLayers = 5; // 从5层开始，确保良好的3D视觉效果
+      // 层级数量：8到16层，随关卡递增，确保更好的层次分布
+      const baseLayers = 8; // 从8层开始，分散立方体密度
       const maxLayers = 16;
-      const layerIncrement = Math.floor((level - 1) / 5); // 每5关增加1层
+      const layerIncrement = Math.floor((level - 1) / 3); // 每3关增加1层，更快增长
       const layers = Math.min(baseLayers + layerIncrement, maxLayers);
 
       // 符号类型数量：初始15个，每关增加2个
@@ -733,12 +733,12 @@
         SYMBOLS.length // 不超过可用符号总数
       );
 
-      // 立方体数量：基于层级数量动态计算，确保充分利用5层布局
+      // 立方体数量：大幅减少总数，确保分散到更多层级
       // 可用区域：6×8=48个位置/层（避开边缘）
       const availablePositionsPerLayer = 48;
-      const minLayersToUse = Math.min(layers, 5); // 至少使用5层
-      const baseCubeCount = minLayersToUse * availablePositionsPerLayer * 0.6; // 60%填充率作为基础
-      const cubeGrowthRate = 1.08; // 每关增长8%，相对温和
+      const targetCubesPerLayer = 12; // 目标每层12个立方体（25%密度）
+      const baseCubeCount = Math.max(layers * targetCubesPerLayer, 60); // 最少60个立方体
+      const cubeGrowthRate = 1.06; // 每关增长6%
       const targetCubeCount = Math.floor(baseCubeCount * Math.pow(cubeGrowthRate, level - 1));
 
       // 固定网格尺寸：使用稳定的8×10网格，确保在所有设备上都能正确显示
