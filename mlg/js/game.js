@@ -741,10 +741,14 @@
       // 固定网格尺寸：使用稳定的8×10网格，确保在所有设备上都能正确显示
       const cols = 8; // 固定8列
       const rows = 10; // 固定10行
-      const baseGridSize = cols * rows; // 80个基础位置
 
-      // 密度调整：确保生成目标数量的立方体
-      const maxPossibleCubes = cols * rows * layers * 0.6; // 假设最大60%填充率
+      // 可用区域：避开边缘后的内部区域
+      const availableCols = cols - 2; // 6列（避开左右边缘）
+      const availableRows = rows - 2; // 8行（避开上下边缘）
+      const availableGridSize = availableCols * availableRows; // 48个可用位置
+
+      // 密度调整：基于可用区域计算
+      const maxPossibleCubes = availableGridSize * layers * 0.6; // 假设最大60%填充率
       const coverDensity = Math.min(0.8, targetCubeCount / maxPossibleCubes);
 
       console.log(`关卡 ${level} 参数:`, {
@@ -772,10 +776,11 @@
       const positions = [];
 
       // 新的生成策略：先生成所有可能位置，然后按目标数量筛选
+      // 避开边缘：立方体不放置在画布四边的格子上
       const allPositions = [];
       for (let layer = 0; layer < params.layers; layer++) {
-        for (let row = 0; row < params.rows; row++) {
-          for (let col = 0; col < params.cols; col++) {
+        for (let row = 1; row < params.rows - 1; row++) { // 避开第一行和最后一行
+          for (let col = 1; col < params.cols - 1; col++) { // 避开第一列和最后一列
             // 计算每个位置的权重（底层权重高，上层权重低）
             const layerWeight = 1 - (layer / params.layers) * 0.5; // 底层权重1.0，顶层权重0.5
             allPositions.push({ layer, row, col, weight: layerWeight });
