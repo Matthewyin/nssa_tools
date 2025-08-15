@@ -849,13 +849,13 @@
       const cubeGrowthRate = 1.06; // 每关增长6%
       const targetCubeCount = Math.floor(baseCubeCount * Math.pow(cubeGrowthRate, level - 1));
 
-      // 固定网格尺寸：使用稳定的8×10网格，确保在所有设备上都能正确显示
-      const cols = 8; // 固定8列
-      const rows = 10; // 固定10行
+      // 优化网格尺寸：使用更紧凑的6×8网格，让立方体更大
+      const cols = 6; // 优化为6列
+      const rows = 8; // 优化为8行
 
-      // 可用区域：避开边缘后的内部区域
-      const availableCols = cols - 2; // 6列（避开左右边缘）
-      const availableRows = rows - 2; // 8行（避开上下边缘）
+      // 可用区域：减少边缘留白，最大化立方体分布区域
+      const availableCols = cols - 1; // 5列（只避开右边缘）
+      const availableRows = rows - 1; // 7行（只避开下边缘）
       const availableGridSize = availableCols * availableRows; // 48个可用位置
 
       // 密度调整：基于可用区域计算
@@ -893,8 +893,8 @@
 
       // 可用的网格位置（避开边缘）
       const availableGridPositions = [];
-      for (let row = 1; row < params.rows - 1; row++) {
-        for (let col = 1; col < params.cols - 1; col++) {
+      for (let row = 0; row < params.rows - 1; row++) {
+        for (let col = 0; col < params.cols - 1; col++) {
           availableGridPositions.push({ row, col });
         }
       }
@@ -1339,9 +1339,9 @@
       const availableWidth = Math.max(200, this.cssWidth - margin * 2);
       const availableHeight = Math.max(200, this.cssHeight - margin * 2);
 
-      // 固定网格：8列×10行
-      const gridCols = 8;
-      const gridRows = 10;
+      // 优化网格：6列×8行，让立方体更大
+      const gridCols = 6;
+      const gridRows = 8;
 
       // 计算层级偏移空间需求（简化计算）
       const layerOffsetRatio = (maxLayers - 1) * 0.35; // 简化的偏移比例
@@ -1353,8 +1353,8 @@
       const maxCellWidth = Math.floor(effectiveWidth / gridCols);
       const maxCellHeight = Math.floor(effectiveHeight / gridRows);
 
-      // 设备相关的最小格子大小
-      const minCellSize = isMobile ? 28 : isTablet ? 32 : 36;
+      // 设备相关的最小格子大小 - 大幅增加手机端大小
+      const minCellSize = isMobile ? 48 : isTablet ? 42 : 40;
 
       // 选择合适的格子大小（保持接近正方形）
       const cellSize = Math.max(minCellSize, Math.min(maxCellWidth, maxCellHeight));
