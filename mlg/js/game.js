@@ -406,10 +406,20 @@
         const header = document.querySelector("header");
         const topBar = document.getElementById("top-bar");
         const slotBar = document.getElementById("slot-bar");
-        const viewportH = Math.max(
-          window.innerHeight || 0,
-          document.documentElement.clientHeight || 0
-        );
+
+        // 使用更精确的视口高度计算，优先使用visualViewport（移动端更准确）
+        let viewportH;
+        if (window.visualViewport && window.visualViewport.height) {
+          // 使用visualViewport获取真实可视区域高度（排除浏览器UI）
+          viewportH = window.visualViewport.height;
+        } else {
+          // 回退到传统方法
+          viewportH = Math.max(
+            window.innerHeight || 0,
+            document.documentElement.clientHeight || 0
+          );
+        }
+
         const headerH = header ? header.offsetHeight : 0;
         const topBarH = topBar ? topBar.offsetHeight : 0;
         // 预留给槽位栏的空间（若未渲染高度，则使用其 min-height 作为保底）
@@ -426,30 +436,70 @@
             72
           );
         }
-        // 其他垂直间距（main 的内边距、容器内边距和安全余量）
-        const extraGaps =
-          24 /* main py-6 top */ +
-          24 /* main py-6 bottom */ +
-          16 /* 控件与画布间距余量，从24减少到16 */ +
-          12 /* 容器内边距上 */ +
-          12; /* 容器内边距下 */
+
+        // 检测移动端并调整间距
+        const isMobile = window.innerWidth <= 768;
+        const isTablet = window.innerWidth > 768 && window.innerWidth <= 1024;
+
+        // 其他垂直间距（根据设备类型调整）
+        let extraGaps;
+        if (isMobile) {
+          // 移动端减少间距，为画布争取更多空间
+          extraGaps =
+            16 /* main py-4 top (减少) */ +
+            16 /* main py-4 bottom (减少) */ +
+            8 /* 控件与画布间距余量 (减少) */ +
+            8 /* 容器内边距上 (减少) */ +
+            8; /* 容器内边距下 (减少) */
+        } else if (isTablet) {
+          // 平板端适中间距
+          extraGaps =
+            20 /* main py-5 top */ +
+            20 /* main py-5 bottom */ +
+            12 /* 控件与画布间距余量 */ +
+            10 /* 容器内边距上 */ +
+            10; /* 容器内边距下 */
+        } else {
+          // PC端保持原有间距
+          extraGaps =
+            24 /* main py-6 top */ +
+            24 /* main py-6 bottom */ +
+            16 /* 控件与画布间距余量 */ +
+            12 /* 容器内边距上 */ +
+            12; /* 容器内边距下 */
+        }
+
         const available = Math.max(
           200, // 提高最小高度从180到200
           viewportH - headerH - topBarH - slotReserve - extraGaps
         );
-        const finalHeight = Math.floor(available) + 15; // 向下扩展15px，给立方体更多显示空间
+
+        // 根据设备类型调整额外高度
+        let extraHeight;
+        if (isMobile) {
+          extraHeight = 30; // 移动端增加更多高度，确保底部立方体可见
+        } else if (isTablet) {
+          extraHeight = 20; // 平板端适中增加
+        } else {
+          extraHeight = 15; // PC端保持原有
+        }
+
+        const finalHeight = Math.floor(available) + extraHeight;
         this.canvas.style.height = `${finalHeight}px`;
 
         // 手机端调试信息
-        if (window.innerWidth <= 768) {
-          console.log('画布高度计算:', {
+        if (isMobile) {
+          console.log('移动端画布高度计算:', {
+            使用visualViewport: !!(window.visualViewport && window.visualViewport.height),
             视口高度: viewportH,
             头部高度: headerH,
             顶栏高度: topBarH,
             槽位预留: slotReserve,
             额外间距: extraGaps,
             可用高度: available,
-            最终高度: finalHeight
+            额外高度: extraHeight,
+            最终高度: finalHeight,
+            屏幕宽度: window.innerWidth
           });
         }
       } catch (e) {
@@ -1024,10 +1074,22 @@
 
       // 居中计算
       const startX = Math.max(margin, (this.cssWidth - totalWidth) / 2);
-      // 固定垂直位置：使用原始画布高度减去15px来计算，保持棋盘位置不变
-      const originalCanvasHeight = this.cssHeight - 15; // 减去我们增加的15px
-      // 让棋盘稍微靠上一些，给底部更多空间
-      const startY = Math.max(margin, (originalCanvasHeight - totalHeight) / 2 - 10);
+
+      // 根据设备类型调整垂直位置
+      let verticalAdjustment;
+      if (isMobile) {
+        // 移动端：棋盘更靠上，给底部更多空间避免被浏览器UI遮挡
+        verticalAdjustment = -20;
+      } else if (isTablet) {
+        // 平板端：适中调整
+        verticalAdjustment = -15;
+      } else {
+        // PC端：轻微调整
+        verticalAdjustment = -10;
+      }
+
+      // 计算垂直起始位置
+      const startY = Math.max(margin, (this.cssHeight - totalHeight) / 2 + verticalAdjustment);
 
       // 调试信息
       if (isMobile || window.location.search.includes('debug')) {
