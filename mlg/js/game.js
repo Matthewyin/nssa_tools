@@ -715,6 +715,89 @@
       this.newGame(/*keepLevel*/ true);
     },
 
+    // --- 3D遮挡关系计算系统 ---
+    calculateOcclusionRelations(positions) {
+      // 为每个立方体计算遮挡关系
+      this.occlusionMap = new Map();
+
+      positions.forEach((pos, index) => {
+        const tile = { id: index, ...pos };
+        const occlusion = this.analyzeOcclusion(tile, positions);
+        this.occlusionMap.set(index, occlusion);
+      });
+
+      console.log('遮挡关系计算完成:', this.occlusionMap.size, '个立方体');
+    },
+
+    analyzeOcclusion(targetTile, allPositions) {
+      // 找到所有在目标立方体上方的立方体
+      const upperTiles = allPositions.filter((pos, index) =>
+        pos.layer > targetTile.layer && index !== targetTile.id
+      );
+
+      // 检查田字格完全遮挡（4个立方体形成2×2网格）
+      const tianZiGrid = this.findTianZiGrid(targetTile, upperTiles);
+      if (tianZiGrid.length === 4) {
+        return {
+          type: 'complete',
+          percentage: 100,
+          clickable: false,
+          blockingTiles: tianZiGrid,
+          description: '被田字格完全遮挡'
+        };
+      }
+
+      // 检查单个立方体部分遮挡
+      const directUpper = upperTiles.filter(pos =>
+        pos.row === targetTile.row && pos.col === targetTile.col
+      );
+      if (directUpper.length > 0) {
+        // 找到最近的上层立方体（层级最小的）
+        const nearestUpper = directUpper.reduce((nearest, current) =>
+          current.layer < nearest.layer ? current : nearest
+        );
+        return {
+          type: 'partial',
+          percentage: 25,
+          clickable: true,
+          blockingTiles: [nearestUpper],
+          description: '被部分遮挡25%'
+        };
+      }
+
+      return {
+        type: 'none',
+        percentage: 0,
+        clickable: true,
+        blockingTiles: [],
+        description: '无遮挡'
+      };
+    },
+
+    findTianZiGrid(targetTile, upperTiles) {
+      const { row, col } = targetTile;
+
+      // 定义田字格的4个位置（2×2网格）
+      const gridPositions = [
+        { row, col },                    // 左上
+        { row, col: col + 1 },          // 右上
+        { row: row + 1, col },          // 左下
+        { row: row + 1, col: col + 1 }  // 右下
+      ];
+
+      // 查找每个位置是否有上层立方体
+      const gridTiles = [];
+      gridPositions.forEach(pos => {
+        const tileAtPos = upperTiles.find(t => t.row === pos.row && t.col === pos.col);
+        if (tileAtPos) {
+          gridTiles.push(tileAtPos);
+        }
+      });
+
+      // 只有当4个位置都有立方体时才形成田字格
+      return gridTiles.length === 4 ? gridTiles : [];
+    },
+
     // --- Level Generation ---
     getLevelParams(level) {
       // 无穷关卡系统：动态计算关卡参数
@@ -736,7 +819,7 @@
       // 立方体数量：大幅减少总数，确保分散到更多层级
       // 可用区域：6×8=48个位置/层（避开边缘）
       const availablePositionsPerLayer = 48;
-      const targetCubesPerLayer = 12; // 目标每层12个立方体（25%密度）
+      const targetCubesPerLayer = 10; // 目标每层10个立方体（约21%密度）
       const baseCubeCount = Math.max(layers * targetCubesPerLayer, 60); // 最少60个立方体
       const cubeGrowthRate = 1.06; // 每关增长6%
       const targetCubeCount = Math.floor(baseCubeCount * Math.pow(cubeGrowthRate, level - 1));
@@ -778,35 +861,31 @@
       const random = rng(seed);
       const positions = [];
 
-      // 新的生成策略：先生成所有可能位置，然后按目标数量筛选
-      // 避开边缘：立方体不放置在画布四边的格子上
-      const allPositions = [];
-      for (let layer = 0; layer < params.layers; layer++) {
-        for (let row = 1; row < params.rows - 1; row++) { // 避开第一行和最后一行
-          for (let col = 1; col < params.cols - 1; col++) { // 避开第一列和最后一列
-            // 计算每个位置的权重（底层权重高，上层权重低）
-            const layerWeight = 1 - (layer / params.layers) * 0.5; // 底层权重1.0，顶层权重0.5
-            allPositions.push({ layer, row, col, weight: layerWeight });
-          }
-        }
-      }
-
-      // 按权重随机排序
-      allPositions.sort((a, b) => {
-        const aScore = a.weight * random();
-        const bScore = b.weight * random();
-        return bScore - aScore;
-      });
-
-      // 选择目标数量的位置
+      // 新的3D叠放生成策略：允许同位置多层，形成立方体塔
       let targetCount = params.targetCubeCount;
       // 确保数量是3的倍数（三消游戏）
       targetCount = Math.floor(targetCount / 3) * 3;
 
-      // 从排序后的位置中选择前targetCount个
-      for (let i = 0; i < Math.min(targetCount, allPositions.length); i++) {
-        const pos = allPositions[i];
-        positions.push({ layer: pos.layer, row: pos.row, col: pos.col });
+      // 可用的网格位置（避开边缘）
+      const availableGridPositions = [];
+      for (let row = 1; row < params.rows - 1; row++) {
+        for (let col = 1; col < params.cols - 1; col++) {
+          availableGridPositions.push({ row, col });
+        }
+      }
+
+      // 随机生成立方体位置，允许同位置多层叠放
+      for (let i = 0; i < targetCount; i++) {
+        // 随机选择网格位置
+        const gridPos = availableGridPositions[Math.floor(random() * availableGridPositions.length)];
+        // 随机选择层级
+        const layer = Math.floor(random() * params.layers);
+
+        positions.push({
+          layer: layer,
+          row: gridPos.row,
+          col: gridPos.col
+        });
       }
 
       console.log(`关卡 ${level} 生成了 ${positions.length} 个立方体 (目标: ${targetCount})`);
@@ -816,6 +895,9 @@
       if (remainder !== 0) {
         positions.splice(0, remainder);
       }
+
+      // 计算立方体的3D叠放和遮挡关系
+      this.calculateOcclusionRelations(positions);
       // 先为每个位置分配一个类型池，避免同层相邻概率过高：
       // - 创建类型数组，复制三次（三消）
       const tripleCount = positions.length / 3;
@@ -893,6 +975,13 @@
         }
 
         const pos = merged[i];
+        const occlusion = this.occlusionMap?.get(i) || {
+          type: 'none',
+          clickable: true,
+          blockingTiles: [],
+          description: '无遮挡'
+        };
+
         tiles.push({
           id: `t${i}`,
           type: pickedType ?? 0,
@@ -900,6 +989,7 @@
           row: pos.row,
           col: pos.col,
           status: "board",
+          occlusion: occlusion // 添加遮挡信息
         });
       }
 
@@ -1260,7 +1350,62 @@
         // 点击空白或不可选区域时不做二次点击要求，直接返回
         return;
       }
+
+      // 检查立方体是否被遮挡而不可点击
+      if (tile.occlusion && !tile.occlusion.clickable) {
+        this.showOcclusionMessage(tile);
+        return;
+      }
+
       this.pickTile(tile.id);
+    },
+
+    showOcclusionMessage(tile) {
+      // 显示遮挡提示消息
+      const message = tile.occlusion.type === 'complete'
+        ? '此立方体被上层田字格完全遮挡，请先消除上层的4个立方体'
+        : '此立方体被遮挡，无法点击';
+
+      // 创建临时提示消息
+      this.showTemporaryMessage(message);
+
+      // 高亮显示遮挡的立方体（如果需要的话）
+      console.log('立方体被遮挡:', tile.occlusion.description);
+    },
+
+    showTemporaryMessage(text) {
+      // 简单的消息显示，可以后续改进为更好的UI
+      const existingMsg = document.getElementById('occlusion-message');
+      if (existingMsg) {
+        existingMsg.remove();
+      }
+
+      const msgDiv = document.createElement('div');
+      msgDiv.id = 'occlusion-message';
+      msgDiv.textContent = text;
+      msgDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        z-index: 1000;
+        font-size: 14px;
+        max-width: 300px;
+        text-align: center;
+      `;
+
+      document.body.appendChild(msgDiv);
+
+      // 2秒后自动消失
+      setTimeout(() => {
+        if (msgDiv.parentNode) {
+          msgDiv.remove();
+        }
+      }, 2000);
     },
 
     pickTile(tileId) {
@@ -1589,12 +1734,31 @@
         const higherLayerCount = overlapping.filter(other => other.layer > tile.layer).length;
         const relativeDepth = higherLayerCount; // 0=顶层，1=被1个覆盖，等等
 
+        // 处理3D遮挡效果
+        let renderOpacity = 1.0;
+        let shouldRenderShadow = false;
+
+        if (tile.occlusion) {
+          if (tile.occlusion.type === 'complete') {
+            // 完全遮挡：渲染为半透明阴影
+            renderOpacity = 0.3;
+            shouldRenderShadow = true;
+          } else if (tile.occlusion.type === 'partial') {
+            // 部分遮挡：透明度75%
+            renderOpacity = 0.75;
+          }
+        }
+
         // 绘制 3D 长方体（方向：向右上）
+        ctx.globalAlpha = renderOpacity;
         this.drawCuboid(ctx, frontX, frontY, frontW, frontH, depth, {
           actualLayer: tile.layer, // 传递层级信息
           isTopAtPosition: isTopAtPosition, // 是否为当前位置的顶层
-          relativeDepth: relativeDepth // 相对深度
+          relativeDepth: relativeDepth, // 相对深度
+          isOccluded: tile.occlusion?.type !== 'none', // 是否被遮挡
+          occlusionType: tile.occlusion?.type || 'none' // 遮挡类型
         });
+        ctx.globalAlpha = 1.0; // 重置透明度
 
         // 符号（绘制在前方面中央）- 与测试文件一致
         const symbol = getSymbolForType(tile.type);
