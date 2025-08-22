@@ -6,6 +6,24 @@ compatibility_date = "2025-08-10"
 directory = "."
 binding = "ASSETS"
 
+# KV bindings for server-side cron tasks
+[[kv_namespaces]]
+binding = "CRON_TASKS_KV"
+id = "YOUR_CRON_TASKS_KV_ID"
+
+[[kv_namespaces]]
+binding = "CRON_LOGS_KV"
+id = "YOUR_CRON_LOGS_KV_ID"
+
+# R2 bucket for long-term log storage (optional)
+[[r2_buckets]]
+binding = "CRON_LOGS_R2"
+bucket_name = "nssa-tools-cron-logs"
+
+# Cron trigger for task execution
+[triggers]
+crons = ["*/5 * * * *"]  # Check every 5 minutes
+
 [vars]
 # Firebase Web config for browser initialization (public)
 FIREBASE_API_KEY = "AIzaSyAQVuM1XSbFw_x3IQ0ZV98XwCWGbgFhIGM"
