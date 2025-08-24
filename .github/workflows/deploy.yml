@@ -40,6 +40,20 @@ jobs:
     - name: Build application
       run: npm run build
 
+    - name: Check Firebase Service Account
+      run: |
+        if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}" ]; then
+          echo "❌ Firebase Service Account not configured"
+          echo "📋 To complete deployment:"
+          echo "1. Go to Firebase Console: https://console.firebase.google.com/project/n8n-project-460516/settings/serviceaccounts/adminsdk"
+          echo "2. Generate new private key and download JSON"
+          echo "3. Add JSON content as GitHub Secret: FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516"
+          echo "4. Re-run this workflow"
+          exit 1
+        else
+          echo "✅ Firebase Service Account configured"
+        fi
+
     - name: Deploy to Firebase App Hosting
       uses: FirebaseExtended/action-hosting-deploy@v0
       with:
