@@ -3,8 +3,6 @@ name: Deploy to Firebase App Hosting
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 env:
   NODE_VERSION: '20'
@@ -12,7 +10,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -24,16 +22,7 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: |
-        # Clean install
-        rm -rf node_modules .nuxt .output package-lock.json
-
-        # Install dependencies with proper optional dependency handling
-        # Suppress deprecation warnings during CI
-        npm install --include=optional --silent
-
-        # Verify rollup installation
-        npm list @rollup/rollup-linux-x64-gnu || npm install @rollup/rollup-linux-x64-gnu --save-optional
+      run: npm ci
 
     - name: Create environment file
       run: |
@@ -48,10 +37,6 @@ jobs:
         echo "FIREBASE_ADMIN_PROJECT_ID=${{ secrets.FIREBASE_ADMIN_PROJECT_ID }}" >> .env
         echo "NODE_ENV=production" >> .env
 
-    - name: Run type check
-      run: npm run typecheck
-      continue-on-error: true
-
     - name: Build application
       run: npm run build
 
@@ -62,5 +47,3 @@ jobs:
         firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}'
         projectId: n8n-project-460516
         channelId: live
-      env:
-        FIREBASE_CLI_EXPERIMENTS: webframeworks

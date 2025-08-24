@@ -260,22 +260,15 @@ import { ref, computed, onMounted } from 'vue'
 import { handleError, showSuccess } from '~/composables/useErrorHandler'
 
 // Props
-interface Props {
-  modelValue?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  modelValue: ''
+const props = defineProps({
+  modelValue: {
+    type: String,
+    default: ''
+  }
 })
 
 // Emits
-interface Emits {
-  'update:modelValue': [value: string]
-  'converted': [result: any]
-  'openConfig': []
-}
-
-const emit = defineEmits<Emits>()
+const emit = defineEmits(['update:modelValue', 'converted', 'openConfig'])
 
 // AI 服务已迁移到 Cloudflare Workers
 

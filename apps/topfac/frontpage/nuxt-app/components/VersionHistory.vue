@@ -308,20 +308,10 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// 版本数据类型定义
-interface Version {
-  id: string
-  version: number
-  status: string
-  created_at: string
-  updated_at: string
-  has_xml: boolean
-}
-
 // 定义 emits
 const emit = defineEmits<{
-  versionSelected: [version: Version]
-  versionSwitched: [version: Version]
+  versionSelected: [version: any]
+  versionSwitched: [version: any]
   newVersionCreated: []
 }>()
 

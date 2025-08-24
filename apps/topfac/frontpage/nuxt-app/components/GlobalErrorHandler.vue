@@ -61,24 +61,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-// 错误类型定义
-interface ErrorInfo {
-  id: string
-  message: string
-  type: string
-  action?: string
-}
-
 // 由于我们现在使用GlobalNotification组件来处理错误显示
 // 这个组件可以简化或者移除
-const errors = ref<ErrorInfo[]>([])
+const errors = ref([])
 const isGlobalLoading = ref(false)
 
 const removeError = (id: string) => {
   // 移除错误的逻辑
 }
 
-const retryOperation = (operation: () => void) => {
+const retryOperation = (operation: any) => {
   // 重试操作的逻辑
 }
 
@@ -111,11 +103,11 @@ const getErrorIcon = (type: string) => {
 /**
  * 处理重试操作
  */
-const handleRetry = (error: ErrorInfo) => {
+const handleRetry = (error: any) => {
   // 这里可以根据错误类型实现具体的重试逻辑
   console.log('重试操作:', error)
   removeError(error.id)
-
+  
   // 可以触发页面刷新或重新加载数据
   if (typeof window !== 'undefined') {
     window.location.reload()

@@ -132,18 +132,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
-// 配置保存事件数据类型
-interface ConfigSavedData {
-  provider: string
-  model: string
-  hasApiKey: boolean
-}
-
 // Emits
-const emit = defineEmits<{
-  close: []
-  configSaved: [data: ConfigSavedData]
-}>()
+const emit = defineEmits(['close', 'configSaved'])
 
 // 响应式数据
 const selectedProvider = ref('gemini')

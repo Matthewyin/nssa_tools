@@ -11,14 +11,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
-    "start": "node .output/server/index.mjs",
-    "deploy:build": "npm run build",
-    "deploy:check": "./scripts/pre-deploy-check.sh",
-    "deploy:prod": "./scripts/deploy.sh",
-    "deploy:dry": "DRY_RUN=true ./scripts/deploy.sh",
-    "deploy": "npm run deploy:check && npm run deploy:prod",
-    "github:setup": "./scripts/setup-github.sh",
-    "github:push": "git add . && git commit -m 'Update' && git push"
+    "start": "node .output/server/index.mjs"
   },
   "dependencies": {
     "@nuxtjs/tailwindcss": "^6.12.1",
@@ -41,11 +34,6 @@
     "node": ">=18.0.0"
   },
   "optionalDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.48.0",
-    "@rollup/rollup-linux-x64-gnu": "^4.48.0"
-  },
-  "overrides": {
-    "glob": "^10.0.0",
-    "inflight": "npm:@isaacs/inflight@^1.0.0"
+    "@rollup/rollup-darwin-arm64": "^4.48.0"
   }
 }

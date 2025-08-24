@@ -141,21 +141,12 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 
-// 步骤数据类型定义
-interface StepData {
-  step_name: string
-  status: 'pending' | 'processing' | 'completed' | 'error'
-  message?: string
-  created_at?: string
-  updated_at?: string
-}
-
 // 定义 props
 interface Props {
   xmlContent?: string
   loading?: boolean
-  parsedData?: Record<string, unknown>
-  processingSteps?: StepData[]  // 从后端获取的真实步骤数据
+  parsedData?: any
+  processingSteps?: any[]  // 从后端获取的真实步骤数据
   versionId?: string       // 版本ID，用于获取步骤状态
 }
 
@@ -164,7 +155,7 @@ const props = defineProps<Props>()
 // 定义 emits
 const emit = defineEmits<{
   download: []
-  stepClicked: [stepName: string, stepDetail: Record<string, unknown>]
+  stepClicked: [stepName: string, stepDetail: any]
 }>()
 
 // 响应式数据
@@ -389,12 +380,12 @@ const getStepIconColor = (step: any) => {
 }
 
 // 判断步骤是否正在处理中
-const isStepProcessing = (step: StepData) => {
+const isStepProcessing = (step: any) => {
   return step.status === 'processing'
 }
 
 // 获取连接线样式类
-const getConnectorClass = (currentStep: StepData, nextStep?: StepData) => {
+const getConnectorClass = (currentStep: any, nextStep: any) => {
   if (currentStep.status === 'completed') {
     return 'connector-completed'
   } else if (currentStep.status === 'processing') {
@@ -454,7 +445,7 @@ const handleStepClick = async (step: any) => {
 }
 
 // 处理步骤悬停
-const handleStepHover = (step: StepData, isEntering: boolean) => {
+const handleStepHover = (step: any, isEntering: boolean) => {
   if (isEntering) {
     hoveredStepInfo.value = step
   } else {
@@ -472,7 +463,7 @@ const formatTime = (timeString: string) => {
 }
 
 // 格式化步骤数据
-const formatStepData = (stepData: unknown) => {
+const formatStepData = (stepData: any) => {
   if (!stepData) return '无数据'
 
   try {
