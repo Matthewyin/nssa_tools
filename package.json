@@ -6,10 +6,11 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
+    "build:ci": "SKIP_POSTINSTALL=true nuxt build --preset=firebase",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
+    "postinstall": "test \"$SKIP_POSTINSTALL\" = \"true\" || nuxt prepare",
     "typecheck": "nuxt typecheck",
     "start": "node .output/server/index.mjs",
     "deploy:build": "npm run build",
