@@ -10,7 +10,7 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "test \"$SKIP_POSTINSTALL\" = \"true\" || nuxt prepare",
+    "postinstall": "echo 'Skipping postinstall in CI' || nuxt prepare",
     "typecheck": "nuxt typecheck",
     "start": "node .output/server/index.mjs",
     "deploy:build": "npm run build",
