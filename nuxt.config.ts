@@ -14,6 +14,20 @@ export default defineNuxtConfig({
     typeCheck: false
   },
 
+  // 构建配置
+  build: {
+    transpile: []
+  },
+
+  // Nitro配置
+  nitro: {
+    esbuild: {
+      options: {
+        target: 'es2020'
+      }
+    }
+  },
+
   // CSS 配置
   css: [
     '~/assets/css/main.css'
