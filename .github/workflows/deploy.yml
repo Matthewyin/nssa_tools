@@ -28,11 +28,11 @@ jobs:
         # Clean install
         rm -rf node_modules .nuxt .output
 
-        # Install dependencies
-        npm install
+        # Install dependencies (skip optional deps to avoid platform issues)
+        npm install --no-optional
 
         # Install platform-specific rollup binding for CI
-        npm install @rollup/rollup-linux-x64-gnu --save-dev
+        npm install @rollup/rollup-linux-x64-gnu --save-dev --no-optional
 
     - name: Create environment file
       run: |
