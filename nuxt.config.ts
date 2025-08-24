@@ -14,9 +14,27 @@ export default defineNuxtConfig({
     typeCheck: false
   },
 
+  // 实验性功能配置
+  experimental: {
+    // 禁用oxc-parser，使用传统解析器
+    oxcParser: false
+  },
+
   // 构建配置
   build: {
     transpile: []
+  },
+
+  // Vite配置
+  vite: {
+    // 强制使用esbuild而不是oxc
+    esbuild: {
+      target: 'es2020'
+    },
+    optimizeDeps: {
+      // 排除有问题的依赖
+      exclude: ['oxc-parser', 'oxc-walker']
+    }
   },
 
   // Nitro配置

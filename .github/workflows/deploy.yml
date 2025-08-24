@@ -23,38 +23,16 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
-    - name: Install dependencies without oxc-parser
+    - name: Install dependencies
       run: |
-        # Remove existing files
+        # Clean install
         rm -rf node_modules package-lock.json .nuxt .output
 
-        # Create a temporary package.json without problematic dependencies
-        cp package.json package.json.backup
+        # Install dependencies
+        npm ci
 
-        # Remove any references to oxc-parser from package.json
-        sed -i 's/"oxc-parser[^"]*"[^,]*,\?//g' package.json || true
-
-        # Set environment to skip postinstall
-        export SKIP_POSTINSTALL=true
-
-        # Install with specific flags to avoid optional deps
-        npm install --no-optional --no-fund --no-audit --legacy-peer-deps
-
-        # Restore original package.json
-        mv package.json.backup package.json
-
-    - name: Manually prepare Nuxt
-      run: |
-        # Set environment variables
-        export SKIP_POSTINSTALL=true
-        export NODE_ENV=production
-
-        # Create .nuxt directory manually
-        mkdir -p .nuxt/types
-
-        # Create basic type definitions to avoid missing files
-        echo 'export {}' > .nuxt/types/schema.d.ts
-        echo 'export {}' > .nuxt/types/nitro.d.ts
+        # Install platform-specific rollup binding for CI
+        npm install @rollup/rollup-linux-x64-gnu --save-dev
 
     - name: Create environment file
       run: |
@@ -74,82 +52,22 @@ jobs:
       continue-on-error: true
 
     - name: Build application
+      run: npm run build
+
+    - name: Check deployment readiness
       run: |
-        # Set environment variables
-        export NODE_ENV=production
-        export SKIP_POSTINSTALL=true
-
-        # Try static generation first (no server-side dependencies)
-        echo "Attempting static generation..."
-        npx nuxt generate --config nuxt.config.static.ts || {
-          echo "Static generation failed, trying standard build..."
-
-          # Try standard build
-          npx nuxt build || {
-            echo "Standard build failed, trying CI config..."
-
-            # Try CI config
-            npx nuxt build --config nuxt.config.ci.ts || {
-              echo "All builds failed, creating manual static output..."
-
-              # Create manual static output
-              mkdir -p .output/public
-
-              # Copy static assets if they exist
-              [ -d "public" ] && cp -r public/* .output/public/ 2>/dev/null || true
-
-              # Create comprehensive static site
-              cat > .output/public/index.html << 'EOF'
-        <!DOCTYPE html>
-        <html lang="zh-CN">
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>NSSA工具集</title>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>
-            body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-          </style>
-        </head>
-        <body class="bg-gray-50 dark:bg-gray-900">
-          <div class="min-h-screen flex items-center justify-center">
-            <div class="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
-              <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">🛠️ NSSA工具集</h1>
-              <p class="text-gray-600 dark:text-gray-300 mb-6">现代化的网络安全工具集合</p>
-              <div class="space-y-4">
-                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                  <h3 class="font-semibold text-blue-900 dark:text-blue-100">定时任务管理</h3>
-                  <p class="text-sm text-blue-700 dark:text-blue-300">智能的任务调度和监控系统</p>
-                </div>
-                <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-                  <h3 class="font-semibold text-green-900 dark:text-green-100">拓扑生成</h3>
-                  <p class="text-sm text-green-700 dark:text-green-300">AI驱动的网络拓扑图生成</p>
-                </div>
-              </div>
-              <div class="mt-6 text-sm text-gray-500 dark:text-gray-400">
-                应用正在初始化，请稍候...
-              </div>
-            </div>
-          </div>
-          <script>
-            // 检查是否有完整应用可用
-            setTimeout(() => {
-              fetch('/api/admin/health').then(() => {
-                window.location.reload();
-              }).catch(() => {
-                console.log('Full app not ready yet');
-              });
-            }, 5000);
-          </script>
-        </body>
-        </html>
-        EOF
-
-              echo "Manual static output created successfully"
-            }
-          }
-        }
+        if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}" ]; then
+          echo "🔧 Firebase Service Account not configured yet"
+          echo "📋 To complete deployment, please:"
+          echo "1. Generate Firebase Service Account JSON"
+          echo "2. Add it as GitHub Secret: FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516"
+          echo "3. Re-run this workflow"
+          echo ""
+          echo "✅ Build completed successfully!"
+          echo "📁 Static files ready for deployment in .output/public/"
+        else
+          echo "✅ Firebase Service Account configured, proceeding with deployment..."
+        fi
 
     - name: Deploy to Firebase App Hosting
       uses: FirebaseExtended/action-hosting-deploy@v0
@@ -160,3 +78,22 @@ jobs:
         channelId: live
       env:
         FIREBASE_CLI_EXPERIMENTS: webframeworks
+      # 只有在有Service Account时才部署
+      if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 != '' }}
+
+    - name: Build summary
+      run: |
+        echo "🎉 Build Summary:"
+        echo "- Node.js version: $(node --version)"
+        echo "- Build strategy: Multi-layer fallback"
+        echo "- Output directory: .output/public/"
+        echo "- Files generated: $(ls -la .output/public/ | wc -l) files"
+        echo ""
+        if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}" ]; then
+          echo "📋 Next steps:"
+          echo "1. Configure Firebase Service Account"
+          echo "2. Add GitHub Secrets"
+          echo "3. Re-run deployment"
+        else
+          echo "✅ Deployment completed!"
+        fi
