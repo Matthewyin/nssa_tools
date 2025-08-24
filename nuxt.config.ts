@@ -20,23 +20,6 @@ export default defineNuxtConfig({
     oxcParser: false
   },
 
-  // 构建配置
-  build: {
-    transpile: []
-  },
-
-  // Vite配置
-  vite: {
-    // 强制使用esbuild而不是oxc
-    esbuild: {
-      target: 'es2020'
-    },
-    optimizeDeps: {
-      // 排除有问题的依赖
-      exclude: ['oxc-parser', 'oxc-walker']
-    }
-  },
-
   // Nitro配置
   nitro: {
     esbuild: {
@@ -104,6 +87,14 @@ export default defineNuxtConfig({
 
   // Vite 配置
   vite: {
+    // 强制使用esbuild而不是oxc
+    esbuild: {
+      target: 'es2020'
+    },
+    optimizeDeps: {
+      // 排除有问题的依赖
+      exclude: ['oxc-parser', 'oxc-walker']
+    },
     server: {
       watch: {
         usePolling: false,
