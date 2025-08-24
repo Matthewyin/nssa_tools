@@ -54,23 +54,6 @@ jobs:
     - name: Build application
       run: npm run build
 
-    - name: Check deployment readiness
-      run: |
-        if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
-          echo "🔧 Firebase Service Account not configured yet"
-          echo "📋 To complete deployment, please:"
-          echo "1. Generate Firebase Service Account JSON"
-          echo "2. Add it as GitHub Secret: FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516"
-          echo "3. Re-run this workflow"
-          echo ""
-          echo "✅ Build completed successfully!"
-          echo "📁 Static files ready for deployment in .output/public/"
-        else
-          echo "✅ Firebase Service Account configured, proceeding with deployment..."
-        fi
-      env:
-        FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}
-
     - name: Deploy to Firebase App Hosting
       uses: FirebaseExtended/action-hosting-deploy@v0
       with:
@@ -80,24 +63,3 @@ jobs:
         channelId: live
       env:
         FIREBASE_CLI_EXPERIMENTS: webframeworks
-      # 只有在有Service Account时才部署
-      if: secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 != ''
-
-    - name: Build summary
-      run: |
-        echo "🎉 Build Summary:"
-        echo "- Node.js version: $(node --version)"
-        echo "- Build strategy: Clean Nuxt build"
-        echo "- Output directory: .output/public/"
-        echo "- Files generated: $(ls -la .output/public/ | wc -l) files"
-        echo ""
-        if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
-          echo "📋 Next steps:"
-          echo "1. Configure Firebase Service Account"
-          echo "2. Add GitHub Secrets"
-          echo "3. Re-run deployment"
-        else
-          echo "✅ Deployment completed!"
-        fi
-      env:
-        FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}
