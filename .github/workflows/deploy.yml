@@ -81,7 +81,7 @@ jobs:
       env:
         FIREBASE_CLI_EXPERIMENTS: webframeworks
       # 只有在有Service Account时才部署
-      if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 != null }}
+      if: secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 != ''
 
     - name: Build summary
       run: |
