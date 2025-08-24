@@ -389,10 +389,21 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 
+// 版本数据类型定义
+interface VersionData {
+  id: string
+  version: number
+  status: string
+  created_at: string
+  updated_at: string
+  has_xml: boolean
+  content?: string
+}
+
 // 定义 props
 interface Props {
   modelValue: boolean
-  versions: any[]
+  versions: VersionData[]
 }
 
 const props = defineProps<Props>()

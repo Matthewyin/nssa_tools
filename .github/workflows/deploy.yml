@@ -29,7 +29,8 @@ jobs:
         rm -rf node_modules .nuxt .output package-lock.json
 
         # Install dependencies with proper optional dependency handling
-        npm install --include=optional
+        # Suppress deprecation warnings during CI
+        npm install --include=optional --silent
 
         # Verify rollup installation
         npm list @rollup/rollup-linux-x64-gnu || npm install @rollup/rollup-linux-x64-gnu --save-optional

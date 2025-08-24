@@ -43,5 +43,9 @@
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "^4.48.0",
     "@rollup/rollup-linux-x64-gnu": "^4.48.0"
+  },
+  "overrides": {
+    "glob": "^10.0.0",
+    "inflight": "npm:@isaacs/inflight@^1.0.0"
   }
 }

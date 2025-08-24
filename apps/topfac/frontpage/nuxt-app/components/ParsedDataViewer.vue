@@ -424,9 +424,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
+// 解析数据类型定义
+interface ParsedData {
+  environments?: Array<Record<string, unknown>>
+  datacenters?: Array<Record<string, unknown>>
+  zones?: Array<Record<string, unknown>>
+  devices?: Array<Record<string, unknown>>
+  connections?: Array<Record<string, unknown>>
+}
+
 // 定义 props
 interface Props {
-  parsedData?: any
+  parsedData?: ParsedData
   loading?: boolean
 }
 
