@@ -26,10 +26,10 @@ jobs:
     - name: Install dependencies
       run: |
         # Clean install
-        rm -rf node_modules package-lock.json .nuxt .output
+        rm -rf node_modules .nuxt .output
 
         # Install dependencies
-        npm ci
+        npm install
 
         # Install platform-specific rollup binding for CI
         npm install @rollup/rollup-linux-x64-gnu --save-dev
