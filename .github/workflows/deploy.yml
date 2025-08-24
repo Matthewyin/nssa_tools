@@ -26,13 +26,13 @@ jobs:
     - name: Install dependencies
       run: |
         # Clean install
-        rm -rf node_modules .nuxt .output
+        rm -rf node_modules .nuxt .output package-lock.json
 
-        # Install dependencies (skip optional deps to avoid platform issues)
-        npm install --no-optional
+        # Install dependencies with proper optional dependency handling
+        npm install --include=optional
 
-        # Install platform-specific rollup binding for CI
-        npm install @rollup/rollup-linux-x64-gnu --save-dev --no-optional
+        # Verify rollup installation
+        npm list @rollup/rollup-linux-x64-gnu || npm install @rollup/rollup-linux-x64-gnu --save-optional
 
     - name: Create environment file
       run: |

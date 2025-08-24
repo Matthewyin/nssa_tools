@@ -41,6 +41,7 @@
     "node": ">=18.0.0"
   },
   "optionalDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.48.0"
+    "@rollup/rollup-darwin-arm64": "^4.48.0",
+    "@rollup/rollup-linux-x64-gnu": "^4.48.0"
   }
 }
