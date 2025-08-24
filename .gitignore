@@ -1,21 +1,96 @@
-node_modules
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Nuxt.js build / generate output
+.nuxt/
+.output/
+.nitro/
+dist/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+**/node_modules/*
+.runtimeconfig.json
+
+# Firebase Admin SDK keys (keep these secure!)
+**/firebase-adminsdk-*.json
+**/*-firebase-adminsdk-*.json
+
+# Logs
+logs/
+*.log
+server.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# 排除含敏感信息的配置文件
-cron/wrangler.toml
+# Temporary folders
+tmp/
+temp/
 
-# 统一Worker模式下，屏蔽子目录的独立wrangler配置
+# Build artifacts
+build/
+dist/
+
+# Backup files
+**/*.bak
+**/*.backup
+**/*.sample
+
+# Cloudflare Workers (legacy)
 **/wrangler.toml
 !wrangler.toml
 
-# 备份与样例
-**/*.bak
-**/*.sample
+# Local development
+.local
+.cache/
 
-# 环境文件
-.env
-.env.*
+# Testing
+coverage/
+.nyc_output/
 
-# IDE & 系统
-.vscode/
-.idea/
+# Misc
+*.tgz
+*.tar.gz

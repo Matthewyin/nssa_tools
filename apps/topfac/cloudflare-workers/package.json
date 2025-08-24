@@ -1,0 +1,31 @@
+{
+  "name": "nssa-topfac",
+  "version": "1.0.0",
+  "description": "智能网络拓扑生成系统 - Cloudflare Workers 全栈部署",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "npm run build:frontend && wrangler deploy",
+    "deploy:staging": "npm run build:frontend && wrangler deploy --env staging",
+    "build:frontend": "cd ../frontpage/nuxt-app && npm run build && cp -r .output/public/* ../cloudflare-workers/public/",
+    "tail": "wrangler tail",
+    "test": "vitest",
+    "cf-typegen": "wrangler types"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "api",
+    "topology",
+    "network"
+  ],
+  "author": "topfac",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240925.0",
+    "wrangler": "^3.78.12",
+    "vitest": "^2.1.1"
+  },
+  "dependencies": {
+    "hono": "^4.6.3"
+  }
+}

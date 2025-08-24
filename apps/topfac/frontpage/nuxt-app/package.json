@@ -1,0 +1,31 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "nuxt typecheck",
+    "build:analyze": "ANALYZE=true nuxt build",
+    "start": "node .output/server/index.mjs",
+    "deploy:build": "./scripts/build.sh",
+    "docker:build": "docker build -t work-counts-frontend .",
+    "docker:run": "docker run -p 30100:3000 work-counts-frontend"
+  },
+  "dependencies": {
+    "@mdi/font": "^7.4.47",
+    "@nuxt/eslint": "^1.4.1",
+    "axios": "^1.10.0",
+    "nuxt": "^3.17.5",
+    "sass": "^1.89.2",
+    "typescript": "^5.8.3",
+    "vite-plugin-vuetify": "^2.0.4",
+    "vue": "^3.5.16",
+    "vuetify": "^3.8.9"
+  }
+}

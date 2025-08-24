@@ -1,0 +1,73 @@
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  deploy-workers:
+    runs-on: ubuntu-latest
+    name: Deploy Workers API
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: cloudflare-workers/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd cloudflare-workers
+          npm ci
+      
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: cloudflare-workers
+          command: deploy
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+
+  deploy-pages:
+    runs-on: ubuntu-latest
+    name: Deploy Frontend to Pages
+    needs: deploy-workers
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontpage/nuxt-app/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd frontpage/nuxt-app
+          npm ci
+      
+      - name: Build frontend
+        run: |
+          cd frontpage/nuxt-app
+          npm run build
+      
+      - name: Copy Cloudflare Pages config
+        run: |
+          cp cloudflare-pages/_headers frontpage/nuxt-app/.output/public/
+          cp cloudflare-pages/_redirects frontpage/nuxt-app/.output/public/
+      
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: topfac
+          directory: frontpage/nuxt-app/.output/public
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

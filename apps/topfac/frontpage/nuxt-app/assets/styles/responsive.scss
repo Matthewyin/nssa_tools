@@ -1,0 +1,408 @@
+@use './variables.scss' as *;
+@use 'sass:map';
+
+// 全局响应式容器
+.responsive-container {
+  @include container();
+}
+
+// 响应式网格系统
+.responsive-grid {
+  display: grid;
+  gap: 24px;
+  
+  // 默认单列布局（移动端）
+  grid-template-columns: 1fr;
+  
+  // 平板：2列布局
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  // 桌面：3列布局
+  @include respond-to(lg) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  // 大屏：4列布局
+  @include respond-to(xl) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// 图表网格系统
+.chart-grid {
+  display: grid;
+  gap: 24px;
+  
+  // 移动端：单列
+  grid-template-columns: 1fr;
+  
+  // 平板：2列
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  // 桌面：3列
+  @include respond-to(lg) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  // 特殊布局：2x3网格
+  &.grid-2x3 {
+    @include respond-to(lg) {
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+  }
+}
+
+// 响应式卡片
+.responsive-card {
+  @include card-shadow(base);
+  border-radius: map.get($border-radius, xl);
+  background: map.get($colors, surface);
+  padding: 24px;
+  
+  // 移动端优化
+  @media (max-width: 768px) {
+    padding: 16px;
+    border-radius: map.get($border-radius, lg);
+  }
+  
+  // 图表容器
+  .chart-container {
+    height: 300px;
+    position: relative;
+    
+    @media (max-width: 768px) {
+      height: 250px;
+    }
+    
+    @media (max-width: 480px) {
+      height: 200px;
+    }
+  }
+}
+
+// 响应式头部
+.responsive-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  
+  // 移动端垂直布局
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    
+    @media (max-width: 480px) {
+      gap: 12px;
+    }
+  }
+  
+  .header-right {
+    display: flex;
+    gap: 8px;
+    
+    @media (max-width: 768px) {
+      width: 100%;
+      justify-content: flex-end;
+    }
+    
+    @media (max-width: 480px) {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+  }
+}
+
+// 响应式统计卡片
+.stats-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+  
+  // 移动端：单列
+  grid-template-columns: 1fr;
+  
+  // 小平板：2列
+  @include respond-to(sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  // 大平板：3列
+  @include respond-to(md) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  // 桌面：4列
+  @include respond-to(lg) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-card {
+  @include card-shadow(sm);
+  border-radius: map.get($border-radius, xl);
+  padding: 20px;
+  background: map.get($colors, surface);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    @include card-shadow(md);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
+  
+  .stat-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    
+    @media (max-width: 480px) {
+      gap: 12px;
+    }
+  }
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: map.get($border-radius, xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    
+    @media (max-width: 480px) {
+      width: 40px;
+      height: 40px;
+    }
+  }
+  
+  .stat-value {
+    font-size: map.get($font-sizes, 2xl);
+    font-weight: 600;
+    color: map.get($colors, on-surface);
+    
+    @media (max-width: 768px) {
+      font-size: map.get($font-sizes, xl);
+    }
+    
+    @media (max-width: 480px) {
+      font-size: map.get($font-sizes, lg);
+    }
+  }
+  
+  .stat-label {
+    font-size: map.get($font-sizes, sm);
+    color: rgba(map.get($colors, on-surface), 0.7);
+    
+    @media (max-width: 480px) {
+      font-size: map.get($font-sizes, xs);
+    }
+  }
+}
+
+// 响应式表格
+.responsive-table {
+  overflow-x: auto;
+  
+  @media (max-width: 768px) {
+    // 移动端隐藏部分列
+    .hide-mobile {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    // 小屏幕隐藏更多列
+    .hide-small {
+      display: none;
+    }
+  }
+}
+
+// 响应式筛选器
+.responsive-filters {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+  
+  // 移动端：单列
+  grid-template-columns: 1fr;
+  
+  // 平板：2列
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  // 桌面：3列
+  @include respond-to(lg) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  // 大屏：4列
+  @include respond-to(xl) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// 响应式按钮组
+.responsive-button-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  
+  @media (max-width: 480px) {
+    gap: 6px;
+    
+    .v-btn {
+      min-width: auto;
+      padding: 0 12px;
+    }
+  }
+}
+
+// 响应式页面布局
+.responsive-page {
+  padding: 24px;
+  background-color: map.get($colors, background);
+  min-height: 100vh;
+  
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 12px;
+  }
+}
+
+// 响应式标题
+.responsive-title {
+  font-size: map.get($font-sizes, 3xl);
+  font-weight: 500;
+  color: map.get($colors, primary);
+  margin: 0;
+  
+  @media (max-width: 768px) {
+    font-size: map.get($font-sizes, 2xl);
+  }
+  
+  @media (max-width: 480px) {
+    font-size: map.get($font-sizes, xl);
+  }
+}
+
+.responsive-subtitle {
+  font-size: map.get($font-sizes, sm);
+  color: rgba(map.get($colors, on-surface), 0.7);
+  margin: 0;
+  
+  @media (max-width: 480px) {
+    font-size: map.get($font-sizes, xs);
+  }
+}
+
+// 响应式间距工具类
+@each $name, $size in $spacers {
+  .m-#{$name} { margin: $size !important; }
+  .mt-#{$name} { margin-top: $size !important; }
+  .mr-#{$name} { margin-right: $size !important; }
+  .mb-#{$name} { margin-bottom: $size !important; }
+  .ml-#{$name} { margin-left: $size !important; }
+  .mx-#{$name} { margin-left: $size !important; margin-right: $size !important; }
+  .my-#{$name} { margin-top: $size !important; margin-bottom: $size !important; }
+  
+  .p-#{$name} { padding: $size !important; }
+  .pt-#{$name} { padding-top: $size !important; }
+  .pr-#{$name} { padding-right: $size !important; }
+  .pb-#{$name} { padding-bottom: $size !important; }
+  .pl-#{$name} { padding-left: $size !important; }
+  .px-#{$name} { padding-left: $size !important; padding-right: $size !important; }
+  .py-#{$name} { padding-top: $size !important; padding-bottom: $size !important; }
+}
+
+// 响应式显示工具类
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+.d-flex { display: flex !important; }
+.d-grid { display: grid !important; }
+
+@include respond-to(sm) {
+  .d-sm-none { display: none !important; }
+  .d-sm-block { display: block !important; }
+  .d-sm-flex { display: flex !important; }
+  .d-sm-grid { display: grid !important; }
+}
+
+@include respond-to(md) {
+  .d-md-none { display: none !important; }
+  .d-md-block { display: block !important; }
+  .d-md-flex { display: flex !important; }
+  .d-md-grid { display: grid !important; }
+}
+
+@include respond-to(lg) {
+  .d-lg-none { display: none !important; }
+  .d-lg-block { display: block !important; }
+  .d-lg-flex { display: flex !important; }
+  .d-lg-grid { display: grid !important; }
+}
+
+@include respond-to(xl) {
+  .d-xl-none { display: none !important; }
+  .d-xl-block { display: block !important; }
+  .d-xl-flex { display: flex !important; }
+  .d-xl-grid { display: grid !important; }
+}
+
+// 全局代码显示优化样式
+.v-code {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Droid Sans Mono', 'Courier New', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  letter-spacing: 0.3px !important;
+  word-spacing: 1px !important;
+  background: #f8f9fa !important;
+  border-radius: 8px !important;
+  padding: 20px !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #2d3748 !important;
+  white-space: pre-wrap !important;
+  overflow-x: auto !important;
+
+  // 移动端优化
+  @include respond-to(sm) {
+    font-size: 13px !important;
+    padding: 16px !important;
+    line-height: 1.5 !important;
+  }
+
+  // 平板和桌面端优化
+  @include respond-to(md) {
+    font-size: 14px !important;
+    padding: 24px !important;
+    line-height: 1.7 !important;
+  }
+}
+
+// 代码块容器优化
+.code-example-card,
+.format-help .v-card {
+  .v-card-text {
+    padding: 0 !important;
+  }
+}

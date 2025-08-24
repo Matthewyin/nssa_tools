@@ -1,0 +1,17 @@
+# 忽略旧的应用目录
+apps/
+
+# 忽略认证目录
+auth/
+
+# 忽略其他不需要的目录
+.kiro/
+node_modules/
+.git/
+dist/
+.output/
+
+# 忽略特定文件
+*.log
+*.tmp
+.DS_Store
