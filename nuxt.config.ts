@@ -20,8 +20,9 @@ export default defineNuxtConfig({
     oxcParser: false
   },
 
-  // Nitro配置
+  // Nitro配置 - 强制静态生成
   nitro: {
+    preset: 'static',
     esbuild: {
       options: {
         target: 'es2020'
