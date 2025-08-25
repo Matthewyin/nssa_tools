@@ -1,12 +1,11 @@
-# Firebase App Hosting 配置文件
-# 用于部署到Firebase App Hosting
-
-# 运行时配置
 runConfig:
-  # Node.js 运行时版本
   runtime: nodejs18
-  
-  # 环境变量（生产环境）
+  cpu: 1
+  memory: 1Gi
+  maxInstances: 10
+  minInstances: 0
+  concurrency: 100
+
   env:
     - variable: NODE_ENV
       value: production
@@ -34,87 +33,9 @@ runConfig:
       secret: firebase-messaging-sender-id
     - variable: FIREBASE_APP_ID
       secret: firebase-app-id
-    
-  # 资源配置
-  cpu: 1
-  memory: 1Gi
-  
-  # 并发配置
-  concurrency: 100
-  maxInstances: 10
-  minInstances: 0
 
-# 构建配置
 buildConfig:
-  # 构建命令
+  runtime: nodejs18
   commands:
     - npm ci
     - npm run build
-  
-  # 构建输出目录
-  outputDir: .output/public
-  
-  # 服务器函数目录
-  serverDir: .output/server
-
-# 网络配置
-networkConfig:
-  # 自定义域名（可选）
-  # customDomains:
-  #   - nssa-tools.your-domain.com
-  
-  # CORS配置
-  cors:
-    allowOrigins:
-      - "*"
-    allowMethods:
-      - GET
-      - POST
-      - PUT
-      - DELETE
-      - OPTIONS
-    allowHeaders:
-      - Content-Type
-      - Authorization
-      - X-Requested-With
-
-# 安全配置
-securityConfig:
-  # IAM配置
-  iamPolicy:
-    # 允许未认证访问（公开应用）
-    allUsers: true
-    
-  # 安全头配置
-  headers:
-    # 强制HTTPS
-    forceHttps: true
-    
-    # 安全头
-    contentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: https:; font-src 'self' data: https:;"
-    xFrameOptions: "SAMEORIGIN"
-    xContentTypeOptions: "nosniff"
-
-# 监控配置
-monitoringConfig:
-  # 启用日志
-  logging: true
-  
-  # 启用指标
-  metrics: true
-  
-  # 健康检查
-  healthCheck:
-    path: /api/admin/health
-    interval: 300s
-    timeout: 30s
-
-# 缓存配置
-cacheConfig:
-  # 静态资源缓存
-  staticAssets:
-    maxAge: 31536000  # 1年
-    
-  # API响应缓存
-  apiResponses:
-    maxAge: 300  # 5分钟

@@ -155,4 +155,5 @@ console.log('\n✅ 部署前检查完成！');
 console.log('\n🚀 准备部署到Firebase App Hosting...');
 console.log('   项目ID: n8n-project-460516');
 console.log('   App ID: 1:18068529376:web:42ce80ad28f316b97a3085');
-console.log('   Target: nssa-tools');
+console.log('   Backend: nssa-tools');
+console.log('   部署方式: Firebase App Hosting (不是Hosting)');
