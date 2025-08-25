@@ -8,8 +8,32 @@ runConfig:
   
   # 环境变量（生产环境）
   env:
-    NODE_ENV: production
-    NITRO_PRESET: firebase
+    - variable: NODE_ENV
+      value: production
+    - variable: NITRO_PRESET
+      value: firebase
+
+    # Firebase Admin配置（私有）
+    - variable: FIREBASE_ADMIN_PRIVATE_KEY
+      secret: firebase-admin-private-key
+    - variable: FIREBASE_ADMIN_CLIENT_EMAIL
+      secret: firebase-admin-client-email
+    - variable: FIREBASE_ADMIN_PROJECT_ID
+      secret: firebase-admin-project-id
+
+    # Firebase客户端配置（公共）
+    - variable: FIREBASE_API_KEY
+      secret: firebase-api-key
+    - variable: FIREBASE_AUTH_DOMAIN
+      secret: firebase-auth-domain
+    - variable: FIREBASE_PROJECT_ID
+      secret: firebase-project-id
+    - variable: FIREBASE_STORAGE_BUCKET
+      secret: firebase-storage-bucket
+    - variable: FIREBASE_MESSAGING_SENDER_ID
+      secret: firebase-messaging-sender-id
+    - variable: FIREBASE_APP_ID
+      secret: firebase-app-id
     
   # 资源配置
   cpu: 1

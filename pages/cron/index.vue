@@ -266,7 +266,9 @@
 
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import type { Task } from '~/composables/useTasks'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from '~/stores/auth'
+import { useCronStore } from '~/stores/cron'
 
 // 页面元数据
 useHead({
@@ -276,19 +278,15 @@ useHead({
   ]
 })
 
+// 使用新的状态管理
+const authStore = useAuthStore()
+const cronStore = useCronStore()
+
 // 认证相关
-const { isAuthenticated, getUserInfo, login, logout, loading, error: authError } = useAuth()
+const { isAuthenticated, getUserInfo, loading, error: authError } = storeToRefs(authStore)
 
 // 任务管理
-const {
-  tasks,
-  loading: tasksLoading,
-  error: tasksError,
-  subscribeToTasks,
-  toggleTaskStatus,
-  executeTask,
-  deleteTask
-} = useTasks()
+const { tasks, loading: tasksLoading, error: tasksError } = storeToRefs(cronStore)
 
 // 登录表单
 const loginForm = reactive({
@@ -303,17 +301,18 @@ const importInput = ref<HTMLInputElement>()
 
 // 处理登录
 const handleLogin = async () => {
-  const result = await login(loginForm.email, loginForm.password)
+  const result = await authStore.login(loginForm.email, loginForm.password)
   if (result.success) {
-    // 登录成功后订阅任务更新
-    subscribeToTasks()
+    // 登录成功后获取任务列表
+    await cronStore.fetchTasks()
   }
 }
 
 // 处理登出
 const handleLogout = async () => {
-  const result = await logout()
+  const result = await authStore.logout()
   if (result.success) {
+    cronStore.reset()
     console.log('登出成功')
   }
 }
@@ -343,16 +342,16 @@ const handleTaskSubmit = () => {
 }
 
 // 切换任务状态
-const toggleTask = async (task: Task) => {
-  const result = await toggleTaskStatus(task.id!)
+const toggleTask = async (task: any) => {
+  const result = await cronStore.toggleTaskStatus(task.id)
   if (!result.success) {
     console.error('切换任务状态失败:', result.error)
   }
 }
 
 // 立即执行任务
-const executeTaskNow = async (task: Task) => {
-  const result = await executeTask(task)
+const executeTaskNow = async (task: any) => {
+  const result = await cronStore.triggerTask(task.id)
   if (result.success) {
     console.log('任务执行成功')
   } else {
@@ -361,9 +360,9 @@ const executeTaskNow = async (task: Task) => {
 }
 
 // 确认删除任务
-const confirmDeleteTask = async (task: Task) => {
+const confirmDeleteTask = async (task: any) => {
   if (confirm(`确定要删除任务"${task.name}"吗？此操作不可撤销。`)) {
-    const result = await deleteTask(task.id!)
+    const result = await cronStore.deleteTask(task.id)
     if (!result.success) {
       console.error('删除任务失败:', result.error)
     }
@@ -433,16 +432,21 @@ const importTasks = (event: Event) => {
 
 // 页面初始化
 onMounted(async () => {
-  // 如果已登录，订阅任务更新
+  // 初始化认证状态
+  authStore.initAuth()
+
+  // 如果已登录，获取任务列表
   if (isAuthenticated.value) {
-    subscribeToTasks()
+    await cronStore.fetchTasks()
   }
 })
 
 // 监听认证状态变化
-watch(isAuthenticated, (authenticated) => {
+watch(isAuthenticated, async (authenticated) => {
   if (authenticated) {
-    subscribeToTasks()
+    await cronStore.fetchTasks()
+  } else {
+    cronStore.reset()
   }
 })
 </script>

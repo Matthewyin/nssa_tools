@@ -42,12 +42,12 @@ jobs:
 
     - name: Check Firebase Service Account
       run: |
-        if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}" ]; then
+        if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_NSSA_TOOLS }}" ]; then
           echo "❌ Firebase Service Account not configured"
           echo "📋 To complete deployment:"
-          echo "1. Go to Firebase Console: https://console.firebase.google.com/project/n8n-project-460516/settings/serviceaccounts/adminsdk"
+          echo "1. Go to Firebase Console: https://console.firebase.google.com/project/nssa-tools/settings/serviceaccounts/adminsdk"
           echo "2. Generate new private key and download JSON"
-          echo "3. Add JSON content as GitHub Secret: FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516"
+          echo "3. Add JSON content as GitHub Secret: FIREBASE_SERVICE_ACCOUNT_NSSA_TOOLS"
           echo "4. Re-run this workflow"
           exit 1
         else
@@ -58,6 +58,6 @@ jobs:
       uses: FirebaseExtended/action-hosting-deploy@v0
       with:
         repoToken: '${{ secrets.GITHUB_TOKEN }}'
-        firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}'
-        projectId: n8n-project-460516
+        firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_NSSA_TOOLS }}'
+        projectId: nssa-tools
         target: nssa-tools

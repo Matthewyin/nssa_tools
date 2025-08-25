@@ -1,11 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
-  
+
   // 模块配置
   modules: [
     '@nuxtjs/tailwindcss',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    '@vueuse/nuxt'
   ],
 
   // TypeScript 配置
@@ -20,17 +21,18 @@ export default defineNuxtConfig({
     oxcParser: false
   },
 
-  // Nitro配置 - Node.js服务器 (App Hosting)
+  // Nitro配置 - Firebase App Hosting
   nitro: {
-    preset: 'node-server',
+    preset: 'firebase',
+    firebase: {
+      gen: 2,
+      nodeVersion: '18'
+    },
     esbuild: {
       options: {
         target: 'es2020'
       }
-    },
-    // App Hosting端口配置
-    port: process.env.PORT || 8080,
-    host: '0.0.0.0'
+    }
   },
 
   // CSS 配置
@@ -62,16 +64,16 @@ export default defineNuxtConfig({
     // 私有配置（仅服务端可用）
     firebaseAdminPrivateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY,
     firebaseAdminClientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-    firebaseAdminProjectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-    
+    firebaseAdminProjectId: process.env.FIREBASE_ADMIN_PROJECT_ID || 'nssa-tools',
+
     // 公共配置（客户端和服务端都可用）
     public: {
       firebaseApiKey: process.env.FIREBASE_API_KEY,
-      firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
-      firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
-      firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+      firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN || 'nssa-tools.firebaseapp.com',
+      firebaseProjectId: process.env.FIREBASE_PROJECT_ID || 'nssa-tools',
+      firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'nssa-tools.appspot.com',
       firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-      firebaseAppId: process.env.FIREBASE_APP_ID
+      firebaseAppId: process.env.FIREBASE_APP_ID || '1:18068529376:web:42ce80ad28f316b97a3085'
     }
   },
 

@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 用户文档规则
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Cron任务规则
+    match /cronTasks/{taskId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Cron执行历史规则
+    match /cronExecutions/{executionId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Topfac项目规则
+    match /topfacProjects/{projectId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Topfac版本规则
+    match /topfacVersions/{versionId} {
+      allow read, write: if request.auth != null && 
+        exists(/databases/$(database)/documents/topfacProjects/$(resource.data.projectId)) &&
+        get(/databases/$(database)/documents/topfacProjects/$(resource.data.projectId)).data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+        exists(/databases/$(database)/documents/topfacProjects/$(request.resource.data.projectId)) &&
+        get(/databases/$(database)/documents/topfacProjects/$(request.resource.data.projectId)).data.userId == request.auth.uid;
+    }
+
+    // AI配置规则
+    match /aiConfigs/{configId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // AI转换历史规则
+    match /aiConversions/{conversionId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // 默认拒绝所有其他访问
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

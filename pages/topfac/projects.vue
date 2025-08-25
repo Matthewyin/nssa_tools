@@ -139,6 +139,10 @@
 </template>
 
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from '~/stores/auth'
+import { useTopfacStore } from '~/stores/topfac'
+
 // 页面元数据
 useHead({
   title: '项目管理 - 智能网络拓扑生成',
@@ -147,15 +151,13 @@ useHead({
   ]
 })
 
-// Topfac功能
-const {
-  projects,
-  loading,
-  loadProjects,
-  deleteProject,
-  exportProject,
-  importProject
-} = useTopfac()
+// 使用状态管理
+const authStore = useAuthStore()
+const topfacStore = useTopfacStore()
+
+// 状态
+const { projects, loading } = storeToRefs(topfacStore)
+const { isAuthenticated } = storeToRefs(authStore)
 
 // 响应式数据
 const searchQuery = ref('')
@@ -220,16 +222,34 @@ const showProjectMenu = (project: any) => {
 
 const confirmDeleteProject = async (project: any) => {
   if (confirm(`确定要删除项目"${project.name}"吗？此操作不可撤销。`)) {
-    const result = deleteProject(project.id)
-    if (!result.success) {
-      console.error('删除项目失败:', result.error)
-    }
+    // TODO: 实现删除项目功能
+    console.log('删除项目:', project.name)
   }
 }
 
+const exportProject = (project: any) => {
+  // TODO: 实现导出项目功能
+  console.log('导出项目:', project.name)
+}
+
 // 页面初始化
-onMounted(() => {
-  loadProjects()
+onMounted(async () => {
+  // 初始化认证状态
+  authStore.initAuth()
+
+  // 如果已登录，获取项目列表
+  if (isAuthenticated.value) {
+    await topfacStore.fetchProjects()
+  }
+})
+
+// 监听认证状态变化
+watch(isAuthenticated, async (authenticated) => {
+  if (authenticated) {
+    await topfacStore.fetchProjects()
+  } else {
+    topfacStore.reset()
+  }
 })
 </script>
 
