@@ -20,9 +20,9 @@ export default defineNuxtConfig({
     oxcParser: false
   },
 
-  // Nitro配置 - 强制静态生成
+  // Nitro配置 - App Hosting SSR
   nitro: {
-    preset: 'static',
+    preset: 'firebase',
     esbuild: {
       options: {
         target: 'es2020'
