@@ -7,12 +7,19 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "apphosting": {
-    "source": ".",
+  "hosting": {
+    "target": "nssa-tools",
+    "public": ".output/public",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "function": "server"
+      }
     ]
   }
 }

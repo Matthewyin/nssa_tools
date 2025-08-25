@@ -54,10 +54,11 @@ jobs:
           echo "✅ Firebase Service Account configured"
         fi
 
-    - name: Deploy to Firebase App Hosting
+    - name: Deploy to Firebase Hosting
       uses: FirebaseExtended/action-hosting-deploy@v0
       with:
         repoToken: '${{ secrets.GITHUB_TOKEN }}'
         firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}'
         projectId: n8n-project-460516
         target: nssa-tools
+        channelId: live
