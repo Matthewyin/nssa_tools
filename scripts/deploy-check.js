@@ -45,10 +45,10 @@ try {
   const firebaserc = JSON.parse(fs.readFileSync('.firebaserc', 'utf8'));
   const projectId = firebaserc.projects.default;
   
-  if (projectId === 'nssa-tools') {
+  if (projectId === 'n8n-project-460516') {
     console.log(`  ✅ 项目ID: ${projectId}`);
   } else {
-    console.log(`  ⚠️  项目ID: ${projectId} (应该是 nssa-tools)`);
+    console.log(`  ⚠️  项目ID: ${projectId} (应该是 n8n-project-460516)`);
   }
   
   // 检查hosting target
@@ -119,7 +119,7 @@ for (const envVar of requiredEnvVars) {
 }
 
 console.log('  📋 需要在GitHub Secrets中配置的服务账号:');
-console.log('    - FIREBASE_SERVICE_ACCOUNT_NSSA_TOOLS');
+console.log('    - FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516');
 
 // 检查Nuxt配置
 console.log('\n⚙️  检查Nuxt配置:');
@@ -142,7 +142,7 @@ try {
 }
 
 console.log('\n📋 部署步骤提醒:');
-console.log('1. 确保在Firebase Console中创建了项目 "nssa-tools"');
+console.log('1. 确保在Firebase Console中创建了项目 "n8n-project-460516"');
 console.log('2. 启用以下Firebase服务:');
 console.log('   - Authentication (Email/Password)');
 console.log('   - Firestore Database');
@@ -153,5 +153,6 @@ console.log('4. 推送代码到main分支触发自动部署');
 
 console.log('\n✅ 部署前检查完成！');
 console.log('\n🚀 准备部署到Firebase App Hosting...');
-console.log('   项目ID: nssa-tools');
+console.log('   项目ID: n8n-project-460516');
 console.log('   App ID: 1:18068529376:web:42ce80ad28f316b97a3085');
+console.log('   Target: nssa-tools');

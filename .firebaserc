@@ -1,9 +1,9 @@
 {
   "projects": {
-    "default": "nssa-tools"
+    "default": "n8n-project-460516"
   },
   "targets": {
-    "nssa-tools": {
+    "n8n-project-460516": {
       "hosting": {
         "nssa-tools": [
           "nssa-tools-site"

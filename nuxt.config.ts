@@ -64,14 +64,14 @@ export default defineNuxtConfig({
     // 私有配置（仅服务端可用）
     firebaseAdminPrivateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY,
     firebaseAdminClientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-    firebaseAdminProjectId: process.env.FIREBASE_ADMIN_PROJECT_ID || 'nssa-tools',
+    firebaseAdminProjectId: process.env.FIREBASE_ADMIN_PROJECT_ID || 'n8n-project-460516',
 
     // 公共配置（客户端和服务端都可用）
     public: {
       firebaseApiKey: process.env.FIREBASE_API_KEY,
-      firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN || 'nssa-tools.firebaseapp.com',
-      firebaseProjectId: process.env.FIREBASE_PROJECT_ID || 'nssa-tools',
-      firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'nssa-tools.appspot.com',
+      firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN || 'n8n-project-460516.firebaseapp.com',
+      firebaseProjectId: process.env.FIREBASE_PROJECT_ID || 'n8n-project-460516',
+      firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'n8n-project-460516.appspot.com',
       firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
       firebaseAppId: process.env.FIREBASE_APP_ID || '1:18068529376:web:42ce80ad28f316b97a3085'
     }
