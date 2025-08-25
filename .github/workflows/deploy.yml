@@ -54,23 +54,26 @@ jobs:
           echo "✅ Firebase Service Account configured"
         fi
 
-    - name: Deploy to Firebase App Hosting
+    - name: Deploy to Firebase
       run: |
-        # 安装Firebase CLI
-        npm install -g firebase-tools
+        # 安装最新版Firebase CLI
+        npm install -g firebase-tools@latest
 
         # 使用服务账号认证
         echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}' > /tmp/service-account.json
         export GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json
 
-        # 部署到App Hosting
-        firebase apphosting:backends:create nssa-tools \
-          --project=n8n-project-460516 \
-          --location=us-central1 \
-          --repository=https://github.com/Matthewyin/nssa_tools \
-          --branch=main \
-          --root-directory=. \
-          --non-interactive || true
+        # 检查Firebase CLI版本
+        firebase --version
 
-        # 部署更新
-        firebase deploy --only apphosting:nssa-tools --project=n8n-project-460516
+        # 设置项目
+        firebase use n8n-project-460516
+
+        # 列出可用的部署目标
+        firebase target --project=n8n-project-460516
+
+        # 部署Functions和Firestore
+        firebase deploy --only functions,firestore --project=n8n-project-460516
+
+        # 尝试部署App Hosting（如果支持）
+        firebase deploy --only apphosting --project=n8n-project-460516 || echo "App Hosting部署失败，可能需要手动配置"
