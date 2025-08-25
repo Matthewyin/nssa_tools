@@ -54,9 +54,13 @@ jobs:
           echo "✅ Firebase Service Account configured"
         fi
 
-    - name: Deploy to Firebase App Hosting
-      uses: FirebaseExtended/action-apphosting-deploy@v0
+    - name: Deploy to Firebase Preview Channel
+      uses: FirebaseExtended/action-hosting-deploy@v0
       with:
         repoToken: '${{ secrets.GITHUB_TOKEN }}'
         firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}'
         projectId: n8n-project-460516
+        channelId: nssa-tools
+        expires: 30d
+      env:
+        FIREBASE_CLI_EXPERIMENTS: webframeworks
