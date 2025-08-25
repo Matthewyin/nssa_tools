@@ -37,8 +37,8 @@ jobs:
         echo "FIREBASE_ADMIN_PROJECT_ID=${{ secrets.FIREBASE_ADMIN_PROJECT_ID }}" >> .env
         echo "NODE_ENV=production" >> .env
 
-    - name: Generate static site
-      run: npm run generate
+    - name: Build SSR application
+      run: npm run build
 
     - name: Check Firebase Service Account
       run: |

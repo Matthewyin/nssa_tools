@@ -20,9 +20,9 @@ export default defineNuxtConfig({
     oxcParser: false
   },
 
-  // Nitro配置 - 静态生成
+  // Nitro配置 - Node.js服务器
   nitro: {
-    preset: 'static',
+    preset: 'node-server',
     esbuild: {
       options: {
         target: 'es2020'
