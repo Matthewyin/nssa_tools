@@ -37,8 +37,8 @@ jobs:
         echo "FIREBASE_ADMIN_PROJECT_ID=${{ secrets.FIREBASE_ADMIN_PROJECT_ID }}" >> .env
         echo "NODE_ENV=production" >> .env
 
-    - name: Generate static site
-      run: npm run generate
+    - name: Build for App Hosting
+      run: npm run build
 
     - name: Check Firebase Service Account
       run: |
@@ -54,11 +54,10 @@ jobs:
           echo "✅ Firebase Service Account configured"
         fi
 
-    - name: Deploy to Firebase Preview Channel
+    - name: Deploy to Firebase App Hosting
       uses: FirebaseExtended/action-hosting-deploy@v0
       with:
         repoToken: '${{ secrets.GITHUB_TOKEN }}'
         firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_N8N_PROJECT_460516 }}'
         projectId: n8n-project-460516
-        channelId: nssa-tools
-        expires: 30d
+        target: nssa-tools

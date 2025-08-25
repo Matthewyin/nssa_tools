@@ -20,14 +20,17 @@ export default defineNuxtConfig({
     oxcParser: false
   },
 
-  // Nitro配置 - 静态生成
+  // Nitro配置 - Node.js服务器 (App Hosting)
   nitro: {
-    preset: 'static',
+    preset: 'node-server',
     esbuild: {
       options: {
         target: 'es2020'
       }
-    }
+    },
+    // App Hosting端口配置
+    port: process.env.PORT || 8080,
+    host: '0.0.0.0'
   },
 
   // CSS 配置
